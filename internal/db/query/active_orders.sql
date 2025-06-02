@@ -1,6 +1,6 @@
 -- name: CreateActiveOrder :one
-INSERT INTO active_orders (id, side, qty, leaves_qty, price)
-VALUES ($1, $2, $3, $4, $5) RETURNING *;
+INSERT INTO active_orders (id, side, qty, leaves_qty, price, instrument)
+VALUES ($1, $2, $3, $4, $5, $6) RETURNING *;
 
 -- name: GetActiveOrder :one
 SELECT *

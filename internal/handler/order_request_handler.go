@@ -59,6 +59,7 @@ func (h *OrderRequestHandler) handleNewOrder(ctx context.Context, msg amqp.Deliv
 		ID:        req.Order.ID,
 		Price:     decimal.RequireFromString(req.Order.Price),
 		Qty:       decimal.RequireFromString(req.Order.Qty),
+		Instrument: req.Order.Instrument,
 		Timestamp: time.Now().UnixNano(),
 		IsBid:     req.Order.Side == orderBook.Buy,
 	}
@@ -72,6 +73,7 @@ func (h *OrderRequestHandler) handleNewOrder(ctx context.Context, msg amqp.Deliv
 		OrderQty:  order.Qty,
 		LeavesQty: order.Qty,
 		Price:     order.Price,
+		Instrument: order.Instrument,
 	}
 
 	savedOrder, savedEvent, err := h.OrderService.SaveOrderAndEvent(ctx, order, initialEvent)
@@ -92,6 +94,7 @@ func (h *OrderRequestHandler) handleNewOrder(ctx context.Context, msg amqp.Deliv
 		LeavesQty: trade.LeavesQty,
 		ExecQty:   trade.ExecQty,
 		Price:     savedOrder.Price,
+		Instrument: savedOrder.Instrument,
 	}
 
 	_, _, err = h.OrderService.UpdateOrderAndEvent(ctx, savedOrder.ID, savedOrder.LeavesQty, updatedEvent)
@@ -139,6 +142,8 @@ func (h *OrderRequestHandler) pushEvents(event orderBook.Event) {
 		log.Printf("Failed to serialize event: %v", err)
 		return
 	}
+
+	log.Printf("Published event: %s", string(eventData))
 
 	// Publish the event to Kafka
 	err = h.KafkaProducer.NotifyEvent(event.ID, eventData)

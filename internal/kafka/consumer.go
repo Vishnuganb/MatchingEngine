@@ -26,10 +26,7 @@ func StartConsumer(brokerAddr, topic string) {
 				log.Println("Kafka consumer error:", err)
 				continue
 			}
-
-			// Log the consumed message
 			log.Printf("Consumed message: key=%s, value=%s", string(m.Key), string(m.Value))
-
 		}
 	}()
 }

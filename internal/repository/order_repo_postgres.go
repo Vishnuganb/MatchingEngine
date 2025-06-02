@@ -41,11 +41,12 @@ func (r *PostgresOrderRepository) SaveOrder(ctx context.Context, order orderBook
 	}
 
 	activeOrder, err := r.queries.CreateActiveOrder(ctx, sqlc.CreateActiveOrderParams{
-		ID:        order.ID,
-		Side:      string(order.Side()),
-		Qty:       qty,
-		LeavesQty: leavesQty,
-		Price:     price,
+		ID:         order.ID,
+		Side:       string(order.Side()),
+		Qty:        qty,
+		LeavesQty:  leavesQty,
+		Price:      price,
+		Instrument: order.Instrument,
 	})
 	if err != nil {
 		return orderBook.Order{}, err
@@ -100,13 +101,14 @@ func (r *PostgresOrderRepository) SaveEvent(ctx context.Context, event orderBook
 	}
 
 	dbEvent, err := r.queries.CreateEvent(ctx, sqlc.CreateEventParams{
-		OrderID:   event.OrderID,
-		Type:      string(event.Type),
-		Side:      string(event.Side),
-		OrderQty:  orderQty,
-		LeavesQty: leavesQty,
-		ExecQty:   execQty,
-		Price:     price,
+		OrderID:    event.OrderID,
+		Type:       string(event.Type),
+		Side:       string(event.Side),
+		OrderQty:   orderQty,
+		LeavesQty:  leavesQty,
+		ExecQty:    execQty,
+		Price:      price,
+		Instrument: event.Instrument,
 	})
 	if err != nil {
 		return orderBook.Event{}, err
@@ -179,6 +181,7 @@ func MapDBEventToOrderEvent(dbEvent sqlc.Event) orderBook.Event {
 		Timestamp: dbEvent.Timestamp.UnixNano(),
 		Type:      orderBook.EventType(dbEvent.Type),
 		Side:      orderBook.Side(dbEvent.Side),
+		Instrument: dbEvent.Instrument,
 		OrderQty:  orderQty,
 		LeavesQty: leavesQty,
 		ExecQty:   execQty,
@@ -204,6 +207,7 @@ func MapActiveOrderToOrder(activeOrder sqlc.ActiveOrder) (orderBook.Order, error
 		ID:        activeOrder.ID,
 		Price:     price,
 		Qty:       qty,
+		Instrument: activeOrder.Instrument,
 		LeavesQty: leavesQty,
 		IsBid:     activeOrder.Side == string(orderBook.Buy),
 	}, nil

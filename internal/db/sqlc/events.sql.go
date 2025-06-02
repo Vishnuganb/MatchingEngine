@@ -14,21 +14,22 @@ import (
 
 const createEvent = `-- name: CreateEvent :one
 INSERT INTO events (
-    order_id, type, side, order_qty, leaves_qty, exec_qty, price
+    order_id, type, side, order_qty, leaves_qty, exec_qty, price, instrument
 ) VALUES (
-             $1, $2, $3, $4, $5, $6, $7
+             $1, $2, $3, $4, $5, $6, $7, $8
          )
-    RETURNING id, order_id, timestamp, type, side, order_qty, leaves_qty, exec_qty, price
+    RETURNING id, order_id, timestamp, type, side, instrument, order_qty, leaves_qty, exec_qty, price
 `
 
 type CreateEventParams struct {
-	OrderID   string         `json:"order_id"`
-	Type      string         `json:"type"`
-	Side      string         `json:"side"`
-	OrderQty  pgtype.Numeric `json:"order_qty"`
-	LeavesQty pgtype.Numeric `json:"leaves_qty"`
-	ExecQty   pgtype.Numeric `json:"exec_qty"`
-	Price     pgtype.Numeric `json:"price"`
+	OrderID    string         `json:"order_id"`
+	Type       string         `json:"type"`
+	Side       string         `json:"side"`
+	OrderQty   pgtype.Numeric `json:"order_qty"`
+	LeavesQty  pgtype.Numeric `json:"leaves_qty"`
+	ExecQty    pgtype.Numeric `json:"exec_qty"`
+	Price      pgtype.Numeric `json:"price"`
+	Instrument string         `json:"instrument"`
 }
 
 func (q *Queries) CreateEvent(ctx context.Context, arg CreateEventParams) (Event, error) {
@@ -40,6 +41,7 @@ func (q *Queries) CreateEvent(ctx context.Context, arg CreateEventParams) (Event
 		arg.LeavesQty,
 		arg.ExecQty,
 		arg.Price,
+		arg.Instrument,
 	)
 	var i Event
 	err := row.Scan(
@@ -48,6 +50,7 @@ func (q *Queries) CreateEvent(ctx context.Context, arg CreateEventParams) (Event
 		&i.Timestamp,
 		&i.Type,
 		&i.Side,
+		&i.Instrument,
 		&i.OrderQty,
 		&i.LeavesQty,
 		&i.ExecQty,
@@ -59,7 +62,7 @@ func (q *Queries) CreateEvent(ctx context.Context, arg CreateEventParams) (Event
 const deleteEvent = `-- name: DeleteEvent :one
 DELETE FROM events
 WHERE id = $1
-    RETURNING id, order_id, timestamp, type, side, order_qty, leaves_qty, exec_qty, price
+    RETURNING id, order_id, timestamp, type, side, instrument, order_qty, leaves_qty, exec_qty, price
 `
 
 func (q *Queries) DeleteEvent(ctx context.Context, id uuid.UUID) (Event, error) {
@@ -71,6 +74,7 @@ func (q *Queries) DeleteEvent(ctx context.Context, id uuid.UUID) (Event, error) 
 		&i.Timestamp,
 		&i.Type,
 		&i.Side,
+		&i.Instrument,
 		&i.OrderQty,
 		&i.LeavesQty,
 		&i.ExecQty,
@@ -80,7 +84,7 @@ func (q *Queries) DeleteEvent(ctx context.Context, id uuid.UUID) (Event, error) 
 }
 
 const getEvent = `-- name: GetEvent :one
-SELECT id, order_id, timestamp, type, side, order_qty, leaves_qty, exec_qty, price FROM events
+SELECT id, order_id, timestamp, type, side, instrument, order_qty, leaves_qty, exec_qty, price FROM events
 WHERE id = $1
 `
 
@@ -93,6 +97,7 @@ func (q *Queries) GetEvent(ctx context.Context, id uuid.UUID) (Event, error) {
 		&i.Timestamp,
 		&i.Type,
 		&i.Side,
+		&i.Instrument,
 		&i.OrderQty,
 		&i.LeavesQty,
 		&i.ExecQty,
@@ -102,7 +107,7 @@ func (q *Queries) GetEvent(ctx context.Context, id uuid.UUID) (Event, error) {
 }
 
 const listEvents = `-- name: ListEvents :many
-SELECT id, order_id, timestamp, type, side, order_qty, leaves_qty, exec_qty, price FROM events
+SELECT id, order_id, timestamp, type, side, instrument, order_qty, leaves_qty, exec_qty, price FROM events
 ORDER BY timestamp DESC
 `
 
@@ -121,6 +126,7 @@ func (q *Queries) ListEvents(ctx context.Context) ([]Event, error) {
 			&i.Timestamp,
 			&i.Type,
 			&i.Side,
+			&i.Instrument,
 			&i.OrderQty,
 			&i.LeavesQty,
 			&i.ExecQty,
@@ -147,7 +153,7 @@ SET
     exec_qty = COALESCE($7, exec_qty),
     price = COALESCE($8, price)
 WHERE id = $1
-    RETURNING id, order_id, timestamp, type, side, order_qty, leaves_qty, exec_qty, price
+    RETURNING id, order_id, timestamp, type, side, instrument, order_qty, leaves_qty, exec_qty, price
 `
 
 type UpdateEventParams struct {
@@ -179,6 +185,7 @@ func (q *Queries) UpdateEvent(ctx context.Context, arg UpdateEventParams) (Event
 		&i.Timestamp,
 		&i.Type,
 		&i.Side,
+		&i.Instrument,
 		&i.OrderQty,
 		&i.LeavesQty,
 		&i.ExecQty,

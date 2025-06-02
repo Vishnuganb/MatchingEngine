@@ -12,16 +12,17 @@ import (
 )
 
 const createActiveOrder = `-- name: CreateActiveOrder :one
-INSERT INTO active_orders (id, side, qty, leaves_qty, price)
-VALUES ($1, $2, $3, $4, $5) RETURNING id, side, qty, leaves_qty, price
+INSERT INTO active_orders (id, side, qty, leaves_qty, price, instrument)
+VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, side, qty, leaves_qty, price, instrument
 `
 
 type CreateActiveOrderParams struct {
-	ID        string         `json:"id"`
-	Side      string         `json:"side"`
-	Qty       pgtype.Numeric `json:"qty"`
-	LeavesQty pgtype.Numeric `json:"leaves_qty"`
-	Price     pgtype.Numeric `json:"price"`
+	ID         string         `json:"id"`
+	Side       string         `json:"side"`
+	Qty        pgtype.Numeric `json:"qty"`
+	LeavesQty  pgtype.Numeric `json:"leaves_qty"`
+	Price      pgtype.Numeric `json:"price"`
+	Instrument string         `json:"instrument"`
 }
 
 func (q *Queries) CreateActiveOrder(ctx context.Context, arg CreateActiveOrderParams) (ActiveOrder, error) {
@@ -31,6 +32,7 @@ func (q *Queries) CreateActiveOrder(ctx context.Context, arg CreateActiveOrderPa
 		arg.Qty,
 		arg.LeavesQty,
 		arg.Price,
+		arg.Instrument,
 	)
 	var i ActiveOrder
 	err := row.Scan(
@@ -39,6 +41,7 @@ func (q *Queries) CreateActiveOrder(ctx context.Context, arg CreateActiveOrderPa
 		&i.Qty,
 		&i.LeavesQty,
 		&i.Price,
+		&i.Instrument,
 	)
 	return i, err
 }
@@ -46,7 +49,7 @@ func (q *Queries) CreateActiveOrder(ctx context.Context, arg CreateActiveOrderPa
 const deleteActiveOrder = `-- name: DeleteActiveOrder :one
 DELETE
 FROM active_orders
-WHERE id = $1 RETURNING id, side, qty, leaves_qty, price
+WHERE id = $1 RETURNING id, side, qty, leaves_qty, price, instrument
 `
 
 func (q *Queries) DeleteActiveOrder(ctx context.Context, id string) (ActiveOrder, error) {
@@ -58,12 +61,13 @@ func (q *Queries) DeleteActiveOrder(ctx context.Context, id string) (ActiveOrder
 		&i.Qty,
 		&i.LeavesQty,
 		&i.Price,
+		&i.Instrument,
 	)
 	return i, err
 }
 
 const getActiveOrder = `-- name: GetActiveOrder :one
-SELECT id, side, qty, leaves_qty, price
+SELECT id, side, qty, leaves_qty, price, instrument
 FROM active_orders
 WHERE id = $1
 `
@@ -77,12 +81,13 @@ func (q *Queries) GetActiveOrder(ctx context.Context, id string) (ActiveOrder, e
 		&i.Qty,
 		&i.LeavesQty,
 		&i.Price,
+		&i.Instrument,
 	)
 	return i, err
 }
 
 const listActiveOrders = `-- name: ListActiveOrders :many
-SELECT id, side, qty, leaves_qty, price
+SELECT id, side, qty, leaves_qty, price, instrument
 FROM active_orders
 ORDER BY id
 `
@@ -102,6 +107,7 @@ func (q *Queries) ListActiveOrders(ctx context.Context) ([]ActiveOrder, error) {
 			&i.Qty,
 			&i.LeavesQty,
 			&i.Price,
+			&i.Instrument,
 		); err != nil {
 			return nil, err
 		}
@@ -119,7 +125,7 @@ SET side       = COALESCE($2, side),
     qty        = COALESCE($3, qty),
     leaves_qty = COALESCE($4, leaves_qty),
     price      = COALESCE($5, price)
-WHERE id = $1 RETURNING id, side, qty, leaves_qty, price
+WHERE id = $1 RETURNING id, side, qty, leaves_qty, price, instrument
 `
 
 type UpdateActiveOrderParams struct {
@@ -145,6 +151,7 @@ func (q *Queries) UpdateActiveOrder(ctx context.Context, arg UpdateActiveOrderPa
 		&i.Qty,
 		&i.LeavesQty,
 		&i.Price,
+		&i.Instrument,
 	)
 	return i, err
 }

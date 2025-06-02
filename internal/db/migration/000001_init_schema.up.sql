@@ -8,6 +8,7 @@ CREATE TABLE events
     timestamp  timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
     type       text        NOT NULL,
     side       text        NOT NULL,
+    instrument text        NOT NULL,
     order_qty  numeric,
     leaves_qty numeric,
     exec_qty   numeric,
@@ -22,5 +23,6 @@ CREATE TABLE active_orders
     qty        numeric NOT NULL,
     leaves_qty numeric NOT NULL,
     price      numeric NOT NULL,
-    PRIMARY KEY (id, account)
+    instrument  text    NOT NULL,
+    PRIMARY KEY (id)
 );

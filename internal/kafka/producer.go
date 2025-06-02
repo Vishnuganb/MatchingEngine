@@ -22,16 +22,11 @@ func NewProducer(brokerAddr string, topic string) *Producer {
 	}
 }
 
-func (p *Producer) NotifyEvent(key string, value interface{}) error {
+func (p *Producer) NotifyEvent(key string, value json.RawMessage) error {
 	// Serialize the value to JSON
-	data, err := json.Marshal(value)
-	if err != nil {
-		log.Println("failed to serialize value:", err)
-		return err
-	}
-	err = p.writer.WriteMessages(context.Background(), kafka.Message{
+	err := p.writer.WriteMessages(context.Background(), kafka.Message{
 		Key:   []byte(key),
-		Value: data,
+		Value: value,
 	})
 	if err != nil {
 		log.Println("failed to publish message:", err)

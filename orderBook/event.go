@@ -18,15 +18,16 @@ const (
 )
 
 type Event struct {
-	ID        string          `json:"id,omitempty"`
-	OrderID   string          `json:"order_id,omitempty"`
-	Timestamp int64           `json:"timestamp,omitempty"`
-	Type      EventType       `json:"type,omitempty"`
-	Side      Side            `json:"side,omitempty"`
-	Price     decimal.Decimal `json:"price,omitempty"`
-	OrderQty  decimal.Decimal `json:"order_qty,omitempty"`
-	LeavesQty decimal.Decimal `json:"leaves_qty,omitempty"`
-	ExecQty   decimal.Decimal `json:"exec_qty,omitempty"`
+	ID         string          `json:"id,omitempty"`
+	OrderID    string          `json:"order_id,omitempty"`
+	Instrument string          `json:"instrument,omitempty"`
+	Timestamp  int64           `json:"timestamp,omitempty"`
+	Type       EventType       `json:"type,omitempty"`
+	Side       Side            `json:"side,omitempty"`
+	Price      decimal.Decimal `json:"price,omitempty"`
+	OrderQty   decimal.Decimal `json:"order_qty,omitempty"`
+	LeavesQty  decimal.Decimal `json:"leaves_qty,omitempty"`
+	ExecQty    decimal.Decimal `json:"exec_qty,omitempty"`
 }
 
 func newBaseEvent(t EventType, orderID string, side Side) Event {

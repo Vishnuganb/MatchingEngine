@@ -12,21 +12,23 @@ import (
 )
 
 type ActiveOrder struct {
-	ID        string         `json:"id"`
-	Side      string         `json:"side"`
-	Qty       pgtype.Numeric `json:"qty"`
-	LeavesQty pgtype.Numeric `json:"leaves_qty"`
-	Price     pgtype.Numeric `json:"price"`
+	ID         string         `json:"id"`
+	Side       string         `json:"side"`
+	Qty        pgtype.Numeric `json:"qty"`
+	LeavesQty  pgtype.Numeric `json:"leaves_qty"`
+	Price      pgtype.Numeric `json:"price"`
+	Instrument string         `json:"instrument"`
 }
 
 type Event struct {
-	ID        uuid.UUID      `json:"id"`
-	OrderID   string         `json:"order_id"`
-	Timestamp time.Time      `json:"timestamp"`
-	Type      string         `json:"type"`
-	Side      string         `json:"side"`
-	OrderQty  pgtype.Numeric `json:"order_qty"`
-	LeavesQty pgtype.Numeric `json:"leaves_qty"`
-	ExecQty   pgtype.Numeric `json:"exec_qty"`
-	Price     pgtype.Numeric `json:"price"`
+	ID         uuid.UUID      `json:"id"`
+	OrderID    string         `json:"order_id"`
+	Timestamp  time.Time      `json:"timestamp"`
+	Type       string         `json:"type"`
+	Side       string         `json:"side"`
+	Instrument string         `json:"instrument"`
+	OrderQty   pgtype.Numeric `json:"order_qty"`
+	LeavesQty  pgtype.Numeric `json:"leaves_qty"`
+	ExecQty    pgtype.Numeric `json:"exec_qty"`
+	Price      pgtype.Numeric `json:"price"`
 }

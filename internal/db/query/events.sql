@@ -1,8 +1,8 @@
 -- name: CreateEvent :one
 INSERT INTO events (
-    order_id, type, side, order_qty, leaves_qty, exec_qty, price
+    order_id, type, side, order_qty, leaves_qty, exec_qty, price, instrument
 ) VALUES (
-             $1, $2, $3, $4, $5, $6, $7
+             $1, $2, $3, $4, $5, $6, $7, $8
          )
     RETURNING *;
 

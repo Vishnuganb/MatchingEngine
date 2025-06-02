@@ -17,8 +17,9 @@ type OrderRequest struct {
 }
 
 type TraderOrder struct {
-	ID    string         `json:"id,omitempty"`
-	Side  orderBook.Side `json:"side,omitempty"`
-	Qty   string         `json:"qty,omitempty"`
-	Price string         `json:"price,omitempty"`
+	ID         string         `json:"id,omitempty"`
+	Side       orderBook.Side `json:"side,omitempty"`
+	Qty        string         `json:"qty,omitempty"`
+	Price      string         `json:"price,omitempty"`
+	Instrument string         `json:"instrument,omitempty"`
 }
