@@ -7,7 +7,7 @@ rabbitmq:
 kafka:
 	docker-compose up -d kafka zookeeper
 
-matching-engine:
+Run-matching-engine:
 	docker-compose up -d matching-engine
 
 createdb:
@@ -26,7 +26,9 @@ migratedown:
 sqlc:
 	sqlc generate
 
-test:
-	go test -v -cover ./...
+integration-test:
+	docker compose exec matching-engine sh -c 'until nc -z kafka 9092; do echo "waiting for kafka..."; sleep 1; done'
+	docker compose exec matching-engine sh -c 'until nc -z postgres 5432; do echo "waiting for postgres..."; sleep 1; done'
+	docker compose exec matching-engine go test -v -tags integration -count=1 --timeout 300s $(TEST_OPTS) ./integration/suite/...
 
-.PHONY: postgres rabbitmq kafka matching-engine createdb dropdb migrateup migratedown sqlc test
+.PHONY: postgres rabbitmq kafka Run-matching-engine createdb dropdb migrateup migratedown sqlc

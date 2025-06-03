@@ -25,7 +25,7 @@ func main() {
 	fmt.Println("        ORDER BOOK & MATCHING ENGINE     ")
 	fmt.Println("-----------------------------------------")
 
-	config, err := util.LoadConfig(".")
+	config, err := util.LoadConfig("./integration/compose")
 	if err != nil {
 		log.Fatal("cannot load config:", err)
 	}

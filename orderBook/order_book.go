@@ -1,6 +1,9 @@
 package orderBook
 
-import "github.com/shopspring/decimal"
+import (
+	"github.com/shopspring/decimal"
+	"log"
+)
 
 type OrderBook struct {
 	Bids   []Order `json:"bids"`
@@ -23,6 +26,8 @@ func (book *OrderBook) NewOrder(order Order) Event {
 	} else {
 		trade = book.processSellOrder(order)
 	}
+
+	log.Println(trade)
 
 	// Generate an event for the trade
 	if trade.Quantity > 0 {

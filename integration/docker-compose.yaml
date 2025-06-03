@@ -21,21 +21,6 @@ services:
     - "5672:5672" # AMQP protocol port
     - "15672:15672" # Management interface port
 
-  kafka:
-    image: confluentinc/cp-kafka:latest
-    container_name: kafka
-    depends_on:
-      - zookeeper
-    ports:
-      - "9092:9092"
-    env_file:
-      - compose/kafka.env
-    healthcheck:
-      test: [ "CMD-SHELL", "kafka-broker-api-versions --bootstrap-server localhost:9092" ]
-      interval: 20s
-      timeout: 10s
-      retries: 10
-
   zookeeper:
     image: confluentinc/cp-zookeeper:latest
     container_name: zookeeper
@@ -44,6 +29,22 @@ services:
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
+
+  kafka:
+    image: confluentinc/cp-kafka:latest
+    container_name: kafka
+    hostname: kafka
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+    env_file:
+      - compose/kafka.env
+    healthcheck:
+      test: [ "CMD-SHELL", "kafka-broker-api-versions --bootstrap-server kafka:9092" ]
+      interval: 20s
+      timeout: 10s
+      retries: 10
 
   matching-engine:
     image: golang:1.24-alpine

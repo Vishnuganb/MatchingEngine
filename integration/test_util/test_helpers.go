@@ -5,11 +5,11 @@ import (
 	"github.com/segmentio/kafka-go"
 	"github.com/streadway/amqp"
 	"log"
-	"time"
+	"os"
 )
 
 func SetupRabbitMQConnection() *amqp.Connection {
-	conn, err := amqp.Dial("amqp://guest:guest@localhost:5672/")
+	conn, err := amqp.Dial("amqp://guest:guest@rabbitmq:5672")
 	if err != nil {
 		log.Fatalf("Failed to connect to RabbitMQ: %v", err)
 	}
@@ -33,33 +33,20 @@ func PublishOrder(ch *amqp.Channel, queueName string, order []byte) {
 }
 
 // SetupKafkaConsumer sets up a Kafka consumer for testing purposes
-func SetupKafkaConsumer(brokerAddr, topic, groupID string) *kafka.Reader {
+func StartConsumer(topic string) string {
+	brokers := os.Getenv("KAFKA_BROKER")
 	reader := kafka.NewReader(kafka.ReaderConfig{
-		Brokers: []string{brokerAddr},
+		Brokers: []string{brokers},
 		Topic:   topic,
-		GroupID: groupID,
+		GroupID: "eventConsumer",
 	})
 
-	return reader
-}
+	defer reader.Close()
 
-// ConsumeMessages consumes messages from the Kafka topic
-func ConsumeMessages(reader *kafka.Reader, timeout time.Duration) []string {
-	var messages []string
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-
-	for {
-		m, err := reader.ReadMessage(ctx)
-		if err != nil {
-			if ctx.Err() == context.DeadlineExceeded {
-				break
-			}
-			log.Printf("Error reading message: %v", err)
-			continue
-		}
-		messages = append(messages, string(m.Value))
+	m, err := reader.ReadMessage(context.Background())
+	if err != nil {
+		log.Fatalf("Kafka consumer error: %v", err)
 	}
-
-	return messages
+	log.Printf("Consumed message: key=%s, value=%s", string(m.Key), string(m.Value))
+	return string(m.Value)
 }
