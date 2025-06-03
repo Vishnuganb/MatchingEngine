@@ -57,8 +57,6 @@ func main() {
 		}
 	}()
 
-	go kafka.StartConsumer(config.KafkaBroker, config.KafkaTopic)
-
 	sigCh := make(chan os.Signal, 1) // Correctly define the channel
 	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
 	<-sigCh

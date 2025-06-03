@@ -97,13 +97,13 @@ func (h *OrderRequestHandler) handleNewOrder(ctx context.Context, msg amqp.Deliv
 		Instrument: savedOrder.Instrument,
 	}
 
-	_, _, err = h.OrderService.UpdateOrderAndEvent(ctx, savedOrder.ID, savedOrder.LeavesQty, updatedEvent)
+	order, event, err := h.OrderService.UpdateOrderAndEvent(ctx, savedOrder.ID, savedOrder.LeavesQty, updatedEvent)
 	if err != nil {
 		h.handleServiceError(msg, err, "failed to update order and event")
 		return
 	}
 
-	h.pushEvents(updatedEvent)
+	h.pushEventsAndOrder(order, event)
 	if err := msg.Ack(false); err != nil {
 		log.Printf("Failed to acknowledge message: %v", err)
 	}
@@ -112,13 +112,13 @@ func (h *OrderRequestHandler) handleNewOrder(ctx context.Context, msg amqp.Deliv
 func (h *OrderRequestHandler) handleCancelOrder(ctx context.Context, msg amqp.Delivery, req rmq.OrderRequest) {
 	canceledEvent := h.OrderBook.CancelOrder(req.Order.ID)
 
-	_, _, err := h.OrderService.UpdateOrderAndEvent(ctx, req.Order.ID, decimal.Zero, canceledEvent)
+	order, event, err := h.OrderService.UpdateOrderAndEvent(ctx, req.Order.ID, decimal.Zero, canceledEvent)
 	if err != nil {
 		h.handleServiceError(msg, err, "failed to update canceled order and event")
 		return
 	}
 
-	h.pushEvents(canceledEvent)
+	h.pushEventsAndOrder(order, event)
 	if err := msg.Ack(false); err != nil {
 		log.Printf("Failed to acknowledge message: %v", err)
 	}
@@ -135,7 +135,7 @@ func (h *OrderRequestHandler) handleServiceError(msg amqp.Delivery, err error, c
 	h.handleFailure(msg, fmt.Errorf("%s: %w", contextMsg, err))
 }
 
-func (h *OrderRequestHandler) pushEvents(event orderBook.Event) {
+func (h *OrderRequestHandler) pushEventsAndOrder(order orderBook.Order, event orderBook.Event) {
 	// Serialize the event to JSON
 	eventData, err := json.Marshal(event)
 	if err != nil {
@@ -143,16 +143,26 @@ func (h *OrderRequestHandler) pushEvents(event orderBook.Event) {
 		return
 	}
 
-	log.Printf("Published event: %s", string(eventData))
-
 	// Publish the event to Kafka
-	err = h.KafkaProducer.NotifyEvent(event.ID, eventData)
+	err = h.KafkaProducer.NotifyEventAndOrder(event.ID, eventData)
 	if err != nil {
 		log.Printf("Failed to publish event to Kafka: %v", err)
 		return
 	}
 
-	log.Println("Event published successfully to Kafka")
+	// Serialize the order to JSON
+	orderData, err := json.Marshal(order)
+	if err != nil {
+		log.Printf("Failed to serialize event: %v", err)
+		return
+	}
+
+	// Publish the order to Kafka
+	err = h.KafkaProducer.NotifyEventAndOrder(order.ID, orderData)
+	if err != nil {
+		log.Printf("Failed to publish event to Kafka: %v", err)
+		return
+	}
 }
 
 func (h *OrderRequestHandler) handleFailure(msg amqp.Delivery, err error) {

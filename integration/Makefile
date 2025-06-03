@@ -14,6 +14,7 @@ createdb:
 	docker exec -it matchingEnginePostgres createdb --username=postgres --owner=postgres orderManagement
 
 dropdb:
+	docker exec -it matchingEnginePostgres psql -U postgres -c "SELECT pg_terminate_backend(pg_stat_activity.pid) FROM pg_stat_activity WHERE pg_stat_activity.datname = 'orderManagement' AND pid <> pg_backend_pid();" || true
 	docker exec -it matchingEnginePostgres dropdb --username=postgres --if-exists orderManagement
 
 migrateup:

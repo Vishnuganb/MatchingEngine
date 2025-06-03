@@ -22,7 +22,7 @@ func NewProducer(brokerAddr string, topic string) *Producer {
 	}
 }
 
-func (p *Producer) NotifyEvent(key string, value json.RawMessage) error {
+func (p *Producer) NotifyEventAndOrder(key string, value json.RawMessage) error {
 	// Serialize the value to JSON
 	err := p.writer.WriteMessages(context.Background(), kafka.Message{
 		Key:   []byte(key),
