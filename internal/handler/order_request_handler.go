@@ -113,7 +113,7 @@ func (h *OrderRequestHandler) handleCancelOrder(ctx context.Context, msg amqp.De
 
 	log.Println("CanceledEvent",canceledEvent)
 
-	_, event, err := h.OrderService.UpdateOrderAndEvent(ctx, req.Order.ID, decimal.Zero, canceledEvent)
+	event, err := h.OrderService.CancelEvent(ctx, canceledEvent)
 	if err != nil {
 		h.handleServiceError(msg, err, "failed to update canceled order and event")
 		return

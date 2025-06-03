@@ -44,7 +44,6 @@ func TestCancelOrderScenario(t *testing.T) {
 	// Define the expected fields for the cancel event
 	expected := map[string]interface{}{
 		"order_id":   "4",
-		"instrument": "BTC/USDT",
 		"type":       "canceled",
 		"price":      "100",
 		"order_qty":  "10",

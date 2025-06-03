@@ -60,3 +60,18 @@ func (s *OrderService) UpdateOrderAndEvent(ctx context.Context, orderID string, 
 
 	return order, updatedEvent, nil
 }
+
+func (s *OrderService) CancelEvent(ctx context.Context, event orderBook.Event) (orderBook.Event, error) {
+	// Create a new context with a deadline
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	// Update the event for cancellation
+	canceledEvent, err := s.repo.SaveEvent(ctx, event)
+	if err != nil {
+		log.Println("Failed to update canceled event:", err)
+		return orderBook.Event{}, err
+	}
+
+	return canceledEvent, nil
+}
