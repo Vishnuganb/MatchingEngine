@@ -56,23 +56,23 @@ func (h *OrderRequestHandler) HandleMessage(ctx context.Context, msg amqp.Delive
 
 func (h *OrderRequestHandler) handleNewOrder(ctx context.Context, msg amqp.Delivery, req rmq.OrderRequest) {
 	order := orderBook.Order{
-		ID:        req.Order.ID,
-		Price:     decimal.RequireFromString(req.Order.Price),
-		Qty:       decimal.RequireFromString(req.Order.Qty),
+		ID:         req.Order.ID,
+		Price:      decimal.RequireFromString(req.Order.Price),
+		Qty:        decimal.RequireFromString(req.Order.Qty),
 		Instrument: req.Order.Instrument,
-		Timestamp: time.Now().UnixNano(),
-		IsBid:     req.Order.Side == orderBook.Buy,
+		Timestamp:  time.Now().UnixNano(),
+		IsBid:      req.Order.Side == orderBook.Buy,
 	}
 
 	initialEvent := orderBook.Event{
-		ID:        order.ID,
-		OrderID:   order.ID,
-		Timestamp: time.Now().UnixNano(),
-		Type:      orderBook.EventTypeNew,
-		Side:      order.Side(),
-		OrderQty:  order.Qty,
-		LeavesQty: order.Qty,
-		Price:     order.Price,
+		ID:         order.ID,
+		OrderID:    order.ID,
+		Timestamp:  time.Now().UnixNano(),
+		Type:       orderBook.EventTypeNew,
+		Side:       order.Side(),
+		OrderQty:   order.Qty,
+		LeavesQty:  order.Qty,
+		Price:      order.Price,
 		Instrument: order.Instrument,
 	}
 
@@ -85,15 +85,14 @@ func (h *OrderRequestHandler) handleNewOrder(ctx context.Context, msg amqp.Deliv
 	event := h.OrderBook.NewOrder(savedOrder)
 
 	updatedEvent := orderBook.Event{
-		ID:        savedEvent.ID,
-		OrderID:   savedOrder.ID,
-		Timestamp: time.Now().UnixNano(),
-		Type:      event.Type,
-		Side:      savedOrder.Side(),
-		OrderQty:  event.OrderQty,
-		LeavesQty: event.LeavesQty,
-		ExecQty:   event.ExecQty,
-		Price:     event.Price,
+		ID:         savedEvent.ID,
+		OrderID:    savedOrder.ID,
+		Timestamp:  time.Now().UnixNano(),
+		Type:       event.Type,
+		OrderQty:   event.OrderQty,
+		LeavesQty:  event.LeavesQty,
+		ExecQty:    event.ExecQty,
+		Price:      event.Price,
 		Instrument: event.Instrument,
 	}
 
@@ -111,6 +110,8 @@ func (h *OrderRequestHandler) handleNewOrder(ctx context.Context, msg amqp.Deliv
 
 func (h *OrderRequestHandler) handleCancelOrder(ctx context.Context, msg amqp.Delivery, req rmq.OrderRequest) {
 	canceledEvent := h.OrderBook.CancelOrder(req.Order.ID)
+
+	log.Println("CanceledEvent",canceledEvent)
 
 	_, event, err := h.OrderService.UpdateOrderAndEvent(ctx, req.Order.ID, decimal.Zero, canceledEvent)
 	if err != nil {

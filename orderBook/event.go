@@ -55,13 +55,16 @@ func newEvent(o *Order) Event {
 	return newBaseOrderEvent(EventTypeNew, o)
 }
 
-func newFillEvent(o *Order, qty decimal.Decimal) Event {
+func newFillEvent(o *Order, qty, tradePrice decimal.Decimal) Event {
 	typ := EventTypeFill
 	if o.LeavesQty.IsPositive() {
 		typ = EventTypePartialFill
 	}
 	e := newBaseOrderEvent(typ, o)
 	e.ExecQty = qty
+	if tradePrice.GreaterThan(o.Price){
+		e.Price = tradePrice
+	}
 	return e
 }
 

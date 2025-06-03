@@ -29,6 +29,6 @@ sqlc:
 integration-test:
 	docker compose exec matching-engine sh -c 'until nc -z kafka 9092; do echo "waiting for kafka..."; sleep 1; done'
 	docker compose exec matching-engine sh -c 'until nc -z postgres 5432; do echo "waiting for postgres..."; sleep 1; done'
-	docker compose exec matching-engine go test -v -tags integration -count=1 --timeout 300s $(TEST_OPTS) ./integration/suite/...
+	docker compose exec matching-engine sh -c 'go test -v -tags integration -count=1 -timeout 300s ./integration/suite/$(TEST_FILE)'
 
 .PHONY: postgres rabbitmq kafka Run-matching-engine createdb dropdb migrateup migratedown sqlc

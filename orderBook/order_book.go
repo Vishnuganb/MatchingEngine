@@ -23,15 +23,13 @@ func (book *OrderBook) NewOrder(order Order) Event {
 	var trade Trade
 	if order.IsBid {
 		trade = book.processBuyOrder(order)
+		log.Println("orderbook", trade)
 	} else {
 		trade = book.processSellOrder(order)
 	}
-
-	log.Println(trade)
-
 	// Generate an event for the trade
 	if trade.Quantity > 0 {
-		return newFillEvent(&order, decimal.NewFromInt(int64(trade.Quantity)))
+		return newFillEvent(&order, decimal.NewFromInt(int64(trade.Quantity)), decimal.NewFromInt(int64(trade.Price)))
 	}
 
 	// If the order is not fully filled, add it to the order book

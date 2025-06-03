@@ -6,6 +6,7 @@ import (
 	"github.com/streadway/amqp"
 	"log"
 	"os"
+	"time"
 )
 
 func SetupRabbitMQConnection() *amqp.Connection {
@@ -43,10 +44,42 @@ func StartConsumer(topic string) string {
 
 	defer reader.Close()
 
-	m, err := reader.ReadMessage(context.Background())
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second) // Set a 10-second timeout
+	defer cancel()
+
+	m, err := reader.ReadMessage(ctx)
 	if err != nil {
+		if err == context.DeadlineExceeded {
+			log.Println("Timeout reached while consuming Kafka message")
+			return ""
+		}
 		log.Fatalf("Kafka consumer error: %v", err)
 	}
 	log.Printf("Consumed message: key=%s, value=%s", string(m.Key), string(m.Value))
 	return string(m.Value)
+}
+
+func ClearKafkaTopic(topic string) {
+	brokers := os.Getenv("KAFKA_BROKER")
+	reader := kafka.NewReader(kafka.ReaderConfig{
+		Brokers: []string{brokers},
+		Topic:   topic,
+		GroupID: "test-clear-group",
+	})
+	defer reader.Close()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second) // Set a 10-second timeout
+	defer cancel()
+
+	for {
+		_, err := reader.ReadMessage(ctx)
+		if err != nil {
+			if err == context.DeadlineExceeded {
+				log.Println("Timeout reached while clearing Kafka topic")
+				break
+			}
+			log.Printf("Error reading message: %v", err)
+			break
+		}
+	}
 }
