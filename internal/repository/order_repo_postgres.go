@@ -11,12 +11,18 @@ import (
 	sqlc "MatchingEngine/internal/db/sqlc"
 	"MatchingEngine/orderBook"
 )
-
-type PostgresOrderRepository struct {
-	queries *sqlc.Queries
+type OrderQueries interface {
+	CreateActiveOrder(ctx context.Context, params sqlc.CreateActiveOrderParams) (sqlc.ActiveOrder, error)
+	UpdateActiveOrder(ctx context.Context, params sqlc.UpdateActiveOrderParams) (sqlc.ActiveOrder, error)
+	CreateEvent(ctx context.Context, params sqlc.CreateEventParams) (sqlc.Event, error)
+	UpdateEvent(ctx context.Context, params sqlc.UpdateEventParams) (sqlc.Event, error)
 }
 
-func NewPostgresOrderRepository(queries *sqlc.Queries) *PostgresOrderRepository {
+type PostgresOrderRepository struct {
+	queries OrderQueries
+}
+
+func NewPostgresOrderRepository(queries OrderQueries) *PostgresOrderRepository {
 	return &PostgresOrderRepository{queries: queries}
 }
 

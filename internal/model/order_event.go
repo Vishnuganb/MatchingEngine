@@ -1,0 +1,25 @@
+package model
+
+import "github.com/shopspring/decimal"
+
+type Event struct {
+	ID        string          `json:"id"`
+	OrderID   string          `json:"order_id"`
+	Timestamp int64           `json:"timestamp"`
+	Type      string          `json:"type"`
+	Side      string          `json:"side"`
+	Price     decimal.Decimal `json:"price"`
+	OrderQty  decimal.Decimal `json:"order_qty"`
+	LeavesQty decimal.Decimal `json:"leaves_qty"`
+	ExecQty   decimal.Decimal `json:"exec_qty"`
+}
+
+type OrderRequest struct {
+	ID         string          `json:"id"`
+	Instrument string          `json:"instrument"`
+	Price      decimal.Decimal `json:"price"`
+	Qty        decimal.Decimal `json:"qty"`
+	Side       Side            `json:"side"`
+	Timestamp  int64           `json:"timestamp"`
+	IsBid      bool            `json:"is_bid"`
+}

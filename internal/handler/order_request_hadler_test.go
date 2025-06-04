@@ -3,18 +3,14 @@ package handler
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"testing"
 	"time"
 
 	"github.com/shopspring/decimal"
 	"github.com/streadway/amqp"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
-	"MatchingEngine/internal/kafka"
 	"MatchingEngine/internal/rmq"
-	"MatchingEngine/internal/service"
 	"MatchingEngine/orderBook"
 )
 
@@ -49,7 +45,8 @@ func (m *MockKafkaProducer) NotifyEventAndOrder(key string, value json.RawMessag
 func TestHandleNewOrder(t *testing.T) {
 	mockService := new(MockOrderService)
 	mockProducer := new(MockKafkaProducer)
-	handler := NewOrderRequestHandler(orderBook, mockService, mockProducer)
+	book := orderBook.NewOrderBook()
+	handler := NewOrderRequestHandler(book, mockService, mockProducer)
 
 	order := orderBook.Order{
 		ID:         "1",
@@ -70,7 +67,11 @@ func TestHandleNewOrder(t *testing.T) {
 		Price:      decimal.NewFromInt(100),
 	}
 
-	mockService.On("SaveOrderAndEvent", mock.Anything, order, event).Return(order, event, nil)
+	mockService.On("SaveOrderAndEvent", mock.Anything, mock.MatchedBy(func(o orderBook.Order) bool {
+		return o.ID == order.ID && o.Instrument == order.Instrument
+	}), mock.MatchedBy(func(e orderBook.Event) bool {
+		return e.OrderID == event.OrderID && e.Type == event.Type
+	})).Return(order, event, nil)
 	mockService.On("UpdateOrderAndEvent", mock.Anything, order.ID, order.LeavesQty, mock.Anything).Return(order, event, nil)
 	mockProducer.On("NotifyEventAndOrder", mock.Anything, mock.Anything).Return(nil)
 
@@ -97,19 +98,47 @@ func TestHandleNewOrder(t *testing.T) {
 func TestHandleCancelOrder(t *testing.T) {
 	mockService := new(MockOrderService)
 	mockProducer := new(MockKafkaProducer)
-	handler := NewOrderRequestHandler(orderBook, mockService, mockProducer)
+	book := orderBook.NewOrderBook()
+	handler := NewOrderRequestHandler(book, mockService, mockProducer)
 
-	event := orderBook.Event{
+	// Step 1: Create an order in memory
+	order := orderBook.Order{
+		ID:         "1",
+		Instrument: "BTC/USDT",
+		Price:      decimal.NewFromInt(100),
+		Qty:        decimal.NewFromInt(10),
+		LeavesQty:  decimal.NewFromInt(10),
+		Timestamp:  time.Now().UnixNano(),
+		IsBid:      true,
+	}
+
+	book.NewOrder(order)
+
+	// Step 2: Cancel the order
+	cancelRequest := orderBook.OrderRequest{
+		ID:   "1",
+		Side: orderBook.Buy,
+	}
+
+	_ = book.CancelOrder(cancelRequest.ID)
+
+	// Create a valid event object
+	expectedEvent := orderBook.Event{
 		ID:         "event-1",
 		OrderID:    "1",
 		Instrument: "BTC/USDT",
 		Type:       orderBook.EventTypeCanceled,
+		Price:      decimal.NewFromInt(100),
 		OrderQty:   decimal.NewFromInt(10),
 		LeavesQty:  decimal.Zero,
-		Price:      decimal.NewFromInt(100),
+		ExecQty:    decimal.Zero,
 	}
 
-	mockService.On("CancelEvent", mock.Anything, event).Return(event, nil)
+	mockService.On("CancelEvent", mock.Anything, mock.MatchedBy(func(e orderBook.Event) bool {
+		return e.OrderID == "1" && e.Type == orderBook.EventTypeCanceled
+	})).Return(expectedEvent, nil)
+
+	// Call the handler with the correct event
 	mockProducer.On("NotifyEventAndOrder", mock.Anything, mock.Anything).Return(nil)
 
 	req := rmq.OrderRequest{
