@@ -11,21 +11,34 @@ import (
 	"github.com/shopspring/decimal"
 	"github.com/streadway/amqp"
 
-	"MatchingEngine/internal/kafka"
 	"MatchingEngine/internal/rmq"
-	"MatchingEngine/internal/service"
 	"MatchingEngine/orderBook"
 )
 
 var ErrOrderNotFound = errors.New("order not found")
 
-type OrderRequestHandler struct {
-	OrderBook     *orderBook.OrderBook
-	OrderService  *service.OrderService
-	KafkaProducer *kafka.Producer
+type OrderService interface {
+	SaveOrderAndEvent(ctx context.Context, order orderBook.Order, event orderBook.Event) (orderBook.Order, orderBook.Event, error)
+	UpdateOrderAndEvent(ctx context.Context, orderID string, leavesQty decimal.Decimal, event orderBook.Event) (orderBook.Order, orderBook.Event, error)
+	CancelEvent(ctx context.Context, event orderBook.Event) (orderBook.Event, error)
 }
 
-func NewOrderRequestHandler(orderBook *orderBook.OrderBook, orderService *service.OrderService, kafkaProducer *kafka.Producer) *OrderRequestHandler {
+type Producer interface {
+	NotifyEventAndOrder(key string, value json.RawMessage) error
+}
+
+type OrderBook interface {
+	NewOrder(order orderBook.Order) orderBook.Event
+	CancelOrder(orderID string) orderBook.Event
+}
+
+type OrderRequestHandler struct {
+	OrderBook     OrderBook
+	OrderService  OrderService
+	KafkaProducer Producer
+}
+
+func NewOrderRequestHandler(orderBook OrderBook, orderService OrderService, kafkaProducer Producer) *OrderRequestHandler {
 	return &OrderRequestHandler{
 		OrderBook:     orderBook,
 		OrderService:  orderService,
@@ -111,7 +124,7 @@ func (h *OrderRequestHandler) handleNewOrder(ctx context.Context, msg amqp.Deliv
 func (h *OrderRequestHandler) handleCancelOrder(ctx context.Context, msg amqp.Delivery, req rmq.OrderRequest) {
 	canceledEvent := h.OrderBook.CancelOrder(req.Order.ID)
 
-	log.Println("CanceledEvent",canceledEvent)
+	log.Println("CanceledEvent", canceledEvent)
 
 	event, err := h.OrderService.CancelEvent(ctx, canceledEvent)
 	if err != nil {
