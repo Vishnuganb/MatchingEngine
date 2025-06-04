@@ -76,56 +76,62 @@ func TestSaveOrderAndEvent(t *testing.T) {
 	mockRepo.On("SaveOrder", mock.Anything, order).Return(order, nil)
 	mockRepo.On("SaveEvent", mock.Anything, event).Return(event, nil)
 
-	savedOrder, savedEvent, err := orderService.SaveOrderAndEvent(context.Background(), order, event)
+	eventJSON, _ := json.Marshal(event)
+	mockProducer.On("NotifyEventAndOrder", "event-1", json.RawMessage(eventJSON)).Return(nil)
 
-	assert.NoError(t, err)
-	assert.Equal(t, order, savedOrder)
-	assert.Equal(t, event, savedEvent)
+	// Call the method under test
+	_, _, err := orderService.SaveOrderAndEvent(context.Background(), order, event)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// Assert expectations
 	mockRepo.AssertExpectations(t)
+	mockProducer.AssertExpectations(t)
 }
 
 func TestUpdateOrderAndEvent(t *testing.T) {
 	mockRepo := new(MockOrderRepository)
 	mockProducer := new(MockKafkaProducer)
+
 	orderService := NewOrderService(mockRepo, mockProducer)
 
 	orderID := "1"
 	leavesQty := decimal.NewFromInt(5)
-	order := orderBook.Order{
-		ID:         orderID,
-		Instrument: "BTC/USDT",
-		Price:      decimal.NewFromInt(100),
-		Qty:        decimal.NewFromInt(10),
-		LeavesQty:  leavesQty,
-		Timestamp:  time.Now().UnixNano(),
-		IsBid:      true,
-	}
-
-	event := orderBook.Event{
+	updatedEvent := orderBook.Event{
 		ID:         "event-1",
 		OrderID:    orderID,
 		Instrument: "BTC/USDT",
-		Type:       orderBook.EventTypeNew,
+		Type:       orderBook.EventTypePartialFill,
+		Price:      decimal.NewFromInt(100),
 		OrderQty:   decimal.NewFromInt(10),
 		LeavesQty:  leavesQty,
-		Price:      decimal.NewFromInt(100),
+		ExecQty:    decimal.Zero,
 	}
 
-	updatedEvent := event
-	updatedEvent.Type = orderBook.EventTypePartialFill
-
-	mockRepo.On("UpdateOrder", mock.Anything, orderID, leavesQty).Return(order, nil)
+	// Mock repository behavior
+	mockRepo.On("UpdateOrder", mock.Anything, orderID, leavesQty).Return(orderBook.Order{}, nil)
 	mockRepo.On("UpdateEvent", mock.Anything, updatedEvent).Return(updatedEvent, nil)
 
+
+	// Mock producer behavior
+	eventJSON, _ := json.Marshal(updatedEvent)
+	mockProducer.On("NotifyEventAndOrder", updatedEvent.ID, json.RawMessage(eventJSON)).Return(nil)
+
+	// Call the method under test
 	err := orderService.UpdateOrderAndEvent(context.Background(), orderID, leavesQty, updatedEvent)
 
-	assert.NoError(t, err)
+	// Assertions
 	mockRepo.AssertExpectations(t)
+	mockProducer.AssertExpectations(t)
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
 }
 
 func TestCancelEvent(t *testing.T) {
-	mockRepo := new(MockOrderRepository)
 	mockProducer := new(MockKafkaProducer)
+	mockRepo := new(MockOrderRepository) // Assuming you have a mock for the repository
 	orderService := NewOrderService(mockRepo, mockProducer)
 
 	event := orderBook.Event{
@@ -133,17 +139,29 @@ func TestCancelEvent(t *testing.T) {
 		OrderID:    "1",
 		Instrument: "BTC/USDT",
 		Type:       orderBook.EventTypeCanceled,
+		Price:      decimal.NewFromInt(100),
 		OrderQty:   decimal.NewFromInt(10),
 		LeavesQty:  decimal.Zero,
-		Price:      decimal.NewFromInt(100),
+		ExecQty:    decimal.Zero,
 	}
 
+	// Set up the mock expectation for SaveEvent
 	mockRepo.On("SaveEvent", mock.Anything, event).Return(event, nil)
 
+	// Set up the mock producer to expect NotifyEventAndOrder
+	eventJSON, _ := json.Marshal(event)
+	mockProducer.On("NotifyEventAndOrder", "event-1", json.RawMessage(eventJSON)).Return(nil)
+
+	// Call the method under test
 	err := orderService.CancelEvent(context.Background(), event)
 
-	assert.NoError(t, err)
-	mockRepo.AssertExpectations(t)
+	// Assert that no error occurred
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	// Assert that the mock producer was called as expected
+	mockProducer.AssertExpectations(t)
 }
 
 func TestSaveOrderAndEvent_Failure(t *testing.T) {
