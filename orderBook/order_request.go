@@ -19,7 +19,6 @@ func (s Side) IsValid() bool {
 
 type OrderRequest struct {
 	ID        string
-	Account   string
 	Side      Side
 	Price     decimal.Decimal
 	Qty       decimal.Decimal
@@ -30,14 +29,12 @@ func (or *OrderRequest) Validate() error {
 	switch {
 	case or.ID == "":
 		return errors.New("missing order id")
-	case or.Account == "":
-		return errors.New("missing account")
 	case !or.Side.IsValid():
 		return errors.New("invalid order side")
 	case !or.Qty.IsPositive():
 		return errors.New("invalid order qty")
 	case or.Price.IsNegative():
-		return errors.New("invalid limit price")
+		return errors.New("invalid price")
 	}
 	return nil
 }

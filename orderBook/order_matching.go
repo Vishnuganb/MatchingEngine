@@ -47,15 +47,15 @@ func (book *OrderBook) processOrder(order Order, isBuy bool) Trade {
 		if matchingOrder.Qty.GreaterThanOrEqual(order.Qty) {
 			// Full match
 			trade := Trade{
-				BuyerOrderID:  getOrderID(order, isBuy),
-				SellerOrderID: getOrderID(matchingOrder, !isBuy),
+				BuyerOrderID:  getOrderID(order, matchingOrder, isBuy),
+				SellerOrderID: getOrderID(order, matchingOrder, !isBuy),
 				Quantity:      order.Qty.BigInt().Uint64(),
 				Price:         matchingOrder.Price.BigInt().Uint64(),
 				Timestamp:     order.Timestamp,
 			}
 
 			// Update remaining qty of matching order
-			matchingOrder.LeavesQty = matchingOrder.LeavesQty.Sub(order.Qty)
+			matchingOrder.LeavesQty = matchingOrder.Qty.Sub(order.Qty)
 			if matchingOrder.LeavesQty.IsZero() {
 				removeOrderFunc(0)
 			} else {
@@ -65,8 +65,8 @@ func (book *OrderBook) processOrder(order Order, isBuy bool) Trade {
 		} else {
 			// Partial match
 			trade := Trade{
-				BuyerOrderID:  getOrderID(order, isBuy),
-				SellerOrderID: getOrderID(matchingOrder, !isBuy),
+				BuyerOrderID:  getOrderID(order, matchingOrder, isBuy),
+				SellerOrderID: getOrderID(order, matchingOrder, !isBuy),
 				Quantity:      matchingOrder.Qty.BigInt().Uint64(),
 				Price:         matchingOrder.Price.BigInt().Uint64(),
 				Timestamp:     order.Timestamp,
@@ -92,9 +92,9 @@ func (book *OrderBook) processSellOrder(order Order) Trade {
 	return book.processOrder(order, false)
 }
 
-func getOrderID(order Order, isBuy bool) string {
+func getOrderID(order, matchingOrder Order, isBuy bool) string {
 	if isBuy {
 		return order.ID
 	}
-	return order.ID
+	return matchingOrder.ID
 }

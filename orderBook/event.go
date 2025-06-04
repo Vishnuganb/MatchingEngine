@@ -70,11 +70,13 @@ func newFillEvent(o *Order, qty, tradePrice decimal.Decimal) Event {
 
 func newCanceledEvent(o *Order) Event {
 	e := newBaseOrderEvent(EventTypeCanceled, o)
+	e.LeavesQty = decimal.Zero
 	return e
 }
 
 func newRejectedEvent(or *OrderRequest) Event {
 	e := newBaseEvent(EventTypeRejected, or.ID, or.Side)
 	e.OrderQty = or.Qty
+	e.LeavesQty = decimal.Zero
 	return e
 }
