@@ -41,8 +41,8 @@ func main() {
 	kafkaProducer := kafka.NewProducer(config.KafkaBroker, config.KafkaTopic)
 	book := orderBook.NewOrderBook()
 	repo := repository.NewPostgresOrderRepository(sqlc.New(conn))
-	orderService := service.NewOrderService(repo)
-	requestHandler := handler.NewOrderRequestHandler(book, orderService, kafkaProducer)
+	orderService := service.NewOrderService(repo, kafkaProducer)
+	requestHandler := handler.NewOrderRequestHandler(book, orderService)
 
 	consumerOpts := rmq.ConsumerOpts{
 		RabbitMQURL: config.RmqHost,

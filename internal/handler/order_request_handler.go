@@ -19,12 +19,8 @@ var ErrOrderNotFound = errors.New("order not found")
 
 type OrderService interface {
 	SaveOrderAndEvent(ctx context.Context, order orderBook.Order, event orderBook.Event) (orderBook.Order, orderBook.Event, error)
-	UpdateOrderAndEvent(ctx context.Context, orderID string, leavesQty decimal.Decimal, event orderBook.Event) (orderBook.Order, orderBook.Event, error)
-	CancelEvent(ctx context.Context, event orderBook.Event) (orderBook.Event, error)
-}
-
-type Producer interface {
-	NotifyEventAndOrder(key string, value json.RawMessage) error
+	UpdateOrderAndEvent(ctx context.Context, orderID string, leavesQty decimal.Decimal, event orderBook.Event) error
+	CancelEvent(ctx context.Context, event orderBook.Event) error
 }
 
 type OrderBook interface {
@@ -33,16 +29,14 @@ type OrderBook interface {
 }
 
 type OrderRequestHandler struct {
-	OrderBook     OrderBook
-	OrderService  OrderService
-	KafkaProducer Producer
+	OrderBook    OrderBook
+	OrderService OrderService
 }
 
-func NewOrderRequestHandler(orderBook OrderBook, orderService OrderService, kafkaProducer Producer) *OrderRequestHandler {
+func NewOrderRequestHandler(orderBook OrderBook, orderService OrderService) *OrderRequestHandler {
 	return &OrderRequestHandler{
-		OrderBook:     orderBook,
-		OrderService:  orderService,
-		KafkaProducer: kafkaProducer,
+		OrderBook:    orderBook,
+		OrderService: orderService,
 	}
 }
 
@@ -109,13 +103,12 @@ func (h *OrderRequestHandler) handleNewOrder(ctx context.Context, msg amqp.Deliv
 		Instrument: event.Instrument,
 	}
 
-	_, event, err = h.OrderService.UpdateOrderAndEvent(ctx, savedOrder.ID, savedOrder.LeavesQty, updatedEvent)
+	err = h.OrderService.UpdateOrderAndEvent(ctx, savedOrder.ID, savedOrder.LeavesQty, updatedEvent)
 	if err != nil {
 		h.handleServiceError(msg, err, "failed to update order and event")
 		return
 	}
 
-	h.pushEvents(event)
 	if err := msg.Ack(false); err != nil {
 		log.Printf("Failed to acknowledge message: %v", err)
 	}
@@ -126,13 +119,12 @@ func (h *OrderRequestHandler) handleCancelOrder(ctx context.Context, msg amqp.De
 
 	log.Println("CanceledEvent", canceledEvent)
 
-	event, err := h.OrderService.CancelEvent(ctx, canceledEvent)
+	err := h.OrderService.CancelEvent(ctx, canceledEvent)
 	if err != nil {
 		h.handleServiceError(msg, err, "failed to update canceled order and event")
 		return
 	}
 
-	h.pushEvents(event)
 	if err := msg.Ack(false); err != nil {
 		log.Printf("Failed to acknowledge message: %v", err)
 	}
@@ -147,24 +139,6 @@ func (h *OrderRequestHandler) handleServiceError(msg amqp.Delivery, err error, c
 		return
 	}
 	h.handleFailure(msg, fmt.Errorf("%s: %w", contextMsg, err))
-}
-
-func (h *OrderRequestHandler) pushEvents(event orderBook.Event) {
-	// Serialize the event to JSON
-	eventJSON, err := json.Marshal(event)
-	if err != nil {
-		log.Printf("Failed to serialize event: %v", err)
-		return
-	}
-
-	log.Printf("Pushing event: %v", string(eventJSON))
-
-	// Publish the event to Kafka
-	err = h.KafkaProducer.NotifyEventAndOrder(event.ID, eventJSON)
-	if err != nil {
-		log.Printf("Failed to publish event to Kafka: %v", err)
-		return
-	}
 }
 
 func (h *OrderRequestHandler) handleFailure(msg amqp.Delivery, err error) {

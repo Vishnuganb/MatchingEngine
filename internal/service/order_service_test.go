@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"testing"
 	"time"
@@ -15,6 +16,10 @@ import (
 
 // MockOrderRepository is a mock implementation of the OrderRepository interface
 type MockOrderRepository struct {
+	mock.Mock
+}
+
+type MockKafkaProducer struct {
 	mock.Mock
 }
 
@@ -38,9 +43,15 @@ func (m *MockOrderRepository) UpdateEvent(ctx context.Context, event orderBook.E
 	return args.Get(0).(orderBook.Event), args.Error(1)
 }
 
+func (m *MockKafkaProducer) NotifyEventAndOrder(key string, value json.RawMessage) error {
+	args := m.Called(key, value)
+	return args.Error(0)
+}
+
 func TestSaveOrderAndEvent(t *testing.T) {
 	mockRepo := new(MockOrderRepository)
-	orderService := NewOrderService(mockRepo)
+	mockProducer := new(MockKafkaProducer)
+	orderService := NewOrderService(mockRepo, mockProducer)
 
 	order := orderBook.Order{
 		ID:         "1",
@@ -75,7 +86,8 @@ func TestSaveOrderAndEvent(t *testing.T) {
 
 func TestUpdateOrderAndEvent(t *testing.T) {
 	mockRepo := new(MockOrderRepository)
-	orderService := NewOrderService(mockRepo)
+	mockProducer := new(MockKafkaProducer)
+	orderService := NewOrderService(mockRepo, mockProducer)
 
 	orderID := "1"
 	leavesQty := decimal.NewFromInt(5)
@@ -105,17 +117,16 @@ func TestUpdateOrderAndEvent(t *testing.T) {
 	mockRepo.On("UpdateOrder", mock.Anything, orderID, leavesQty).Return(order, nil)
 	mockRepo.On("UpdateEvent", mock.Anything, updatedEvent).Return(updatedEvent, nil)
 
-	updatedOrder, updatedEventResult, err := orderService.UpdateOrderAndEvent(context.Background(), orderID, leavesQty, updatedEvent)
+	err := orderService.UpdateOrderAndEvent(context.Background(), orderID, leavesQty, updatedEvent)
 
 	assert.NoError(t, err)
-	assert.Equal(t, order, updatedOrder)
-	assert.Equal(t, updatedEvent, updatedEventResult)
 	mockRepo.AssertExpectations(t)
 }
 
 func TestCancelEvent(t *testing.T) {
 	mockRepo := new(MockOrderRepository)
-	orderService := NewOrderService(mockRepo)
+	mockProducer := new(MockKafkaProducer)
+	orderService := NewOrderService(mockRepo, mockProducer)
 
 	event := orderBook.Event{
 		ID:         "event-1",
@@ -129,16 +140,16 @@ func TestCancelEvent(t *testing.T) {
 
 	mockRepo.On("SaveEvent", mock.Anything, event).Return(event, nil)
 
-	canceledEvent, err := orderService.CancelEvent(context.Background(), event)
+	err := orderService.CancelEvent(context.Background(), event)
 
 	assert.NoError(t, err)
-	assert.Equal(t, event, canceledEvent)
 	mockRepo.AssertExpectations(t)
 }
 
 func TestSaveOrderAndEvent_Failure(t *testing.T) {
 	mockRepo := new(MockOrderRepository)
-	orderService := NewOrderService(mockRepo)
+	mockProducer := new(MockKafkaProducer)
+	orderService := NewOrderService(mockRepo, mockProducer)
 
 	order := orderBook.Order{
 		ID:         "1",
