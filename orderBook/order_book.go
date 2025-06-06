@@ -11,7 +11,7 @@ type OrderBook struct {
 	Bids   []Order `json:"bids"`
 	Asks   []Order `json:"asks"`
 	Events []Event `json:"events"`
-	KafkaProducer *kafka.Producer
+	KafkaProducer kafka.EventNotifier
 }
 
 func NewOrderBook() *OrderBook {

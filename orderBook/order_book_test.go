@@ -1,6 +1,7 @@
 package orderBook
 
 import (
+	"MatchingEngine/internal/model"
 	"testing"
 	"time"
 
@@ -66,11 +67,13 @@ func TestProcessBuyOrder(t *testing.T) {
 		Timestamp:  time.Now().UnixNano(),
 		IsBid:      true,
 	}
-	trade := book.processBuyOrder(buyOrder)
+	trades := book.processBuyOrder(buyOrder)
 
-	assert.Equal(t, uint64(5), trade.Quantity)
-	assert.Equal(t, uint64(100), trade.Price)
-	assert.Empty(t, book.Asks)
+	for _, trade := range trades {
+		assert.Equal(t, uint64(5), trade.Quantity)
+		assert.Equal(t, uint64(100), trade.Price)
+		assert.Empty(t, book.Asks)
+	}
 }
 
 func TestCancelOrder(t *testing.T) {
@@ -92,7 +95,7 @@ func TestCancelOrder(t *testing.T) {
 
 func TestNewOrder(t *testing.T) {
 	book := NewOrderBook()
-	order := Order{
+	order := model.Order{
 		ID:         "1",
 		Price:      decimal.NewFromInt(100),
 		Qty:        decimal.NewFromInt(10),
@@ -100,7 +103,12 @@ func TestNewOrder(t *testing.T) {
 		Timestamp:  time.Now().UnixNano(),
 		IsBid:      true,
 	}
-	event := book.NewOrder(order)
-	assert.Equal(t, EventTypeNew, event.Type)
-	assert.Len(t, book.Bids, 1)
+	events := book.OnNewOrder(order)
+	for _, event := range events {
+		assert.Equal(t, EventTypeNew, event.Type)
+		assert.Equal(t, order.ID, event.ID)
+		assert.Equal(t, order.Instrument, event.Instrument)
+		assert.Equal(t, order.Price, event.Price)
+		assert.Equal(t, order.Qty, event.OrderQty)
+	}
 }

@@ -8,108 +8,116 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestProcessBuyOrder_FullMatch(t *testing.T) {
+func newTestOrderBook() *OrderBook {
 	book := NewOrderBook()
+	book.KafkaProducer = &MockKafkaProducer{}
+	return book
+}
+
+
+func TestProcessBuyOrder_FullMatch(t *testing.T) {
+	book := newTestOrderBook()
 
 	// Add a sell order to the order book
 	book.AddSellOrder(Order{
-		ID:         "1",
-		Price:      decimal.NewFromInt(100),
-		Qty:        decimal.NewFromInt(10),
-		LeavesQty:  decimal.NewFromInt(10),
-		Timestamp:  time.Now().UnixNano(),
-		IsBid:      false,
+		ID:        "1",
+		Price:     decimal.NewFromInt(100),
+		Qty:       decimal.NewFromInt(10),
+		LeavesQty: decimal.NewFromInt(10),
+		Timestamp: time.Now().UnixNano(),
+		IsBid:     false,
 	})
 
 	// Process a buy order that fully matches the sell order
 	buyOrder := Order{
-		ID:         "2",
-		Price:      decimal.NewFromInt(100),
-		Qty:        decimal.NewFromInt(10),
-		LeavesQty:  decimal.NewFromInt(10),
-		Timestamp:  time.Now().UnixNano(),
-		IsBid:      true,
+		ID:        "2",
+		Price:     decimal.NewFromInt(100),
+		Qty:       decimal.NewFromInt(10),
+		LeavesQty: decimal.NewFromInt(10),
+		Timestamp: time.Now().UnixNano(),
+		IsBid:     true,
 	}
 
-	trade := book.processBuyOrder(buyOrder)
+	trades := book.processBuyOrder(buyOrder)
 
-	assert.Equal(t, "2", trade.BuyerOrderID)
-	assert.Equal(t, "1", trade.SellerOrderID)
-	assert.Equal(t, uint64(10), trade.Quantity)
-	assert.Equal(t, uint64(100), trade.Price)
-	assert.Equal(t, 0, len(book.Asks)) // Sell order should be removed
+	assert.Len(t, trades, 1)
+	assert.Equal(t, "2", trades[0].BuyerOrderID)
+	assert.Equal(t, "1", trades[0].SellerOrderID)
+	assert.Equal(t, uint64(10), trades[0].Quantity)
+	assert.Equal(t, uint64(100), trades[0].Price)
+	assert.Len(t, book.Asks, 0) // Sell order should be removed
 }
 
 func TestProcessSellOrder_PartialMatch(t *testing.T) {
-	book := NewOrderBook()
+	book := newTestOrderBook()
 
 	// Add a buy order to the order book
 	book.AddBuyOrder(Order{
-		ID:         "1",
-		Price:      decimal.NewFromInt(100),
-		Qty:        decimal.NewFromInt(10),
-		LeavesQty:  decimal.NewFromInt(10),
-		Timestamp:  time.Now().UnixNano(),
-		IsBid:      true,
+		ID:        "1",
+		Price:     decimal.NewFromInt(100),
+		Qty:       decimal.NewFromInt(10),
+		LeavesQty: decimal.NewFromInt(10),
+		Timestamp: time.Now().UnixNano(),
+		IsBid:     true,
 	})
 
 	// Process a sell order that partially matches the buy order
 	sellOrder := Order{
-		ID:         "2",
-		Price:      decimal.NewFromInt(100),
-		Qty:        decimal.NewFromInt(5),
-		LeavesQty:  decimal.NewFromInt(5),
-		Timestamp:  time.Now().UnixNano(),
-		IsBid:      false,
+		ID:        "2",
+		Price:     decimal.NewFromInt(100),
+		Qty:       decimal.NewFromInt(5),
+		LeavesQty: decimal.NewFromInt(5),
+		Timestamp: time.Now().UnixNano(),
+		IsBid:     false,
 	}
 
-	trade := book.processSellOrder(sellOrder)
+	trades := book.processSellOrder(sellOrder)
 
-	assert.Equal(t, "1", trade.BuyerOrderID)
-	assert.Equal(t, "2", trade.SellerOrderID)
-	assert.Equal(t, uint64(5), trade.Quantity)
-	assert.Equal(t, uint64(100), trade.Price)
-	assert.Equal(t, 1, len(book.Bids)) // Buy order should remain
-	assert.Equal(t, decimal.NewFromInt(5), book.Bids[0].LeavesQty) // Remaining quantity
+	assert.Len(t, trades, 1)
+	assert.Equal(t, "1", trades[0].BuyerOrderID)
+	assert.Equal(t, "2", trades[0].SellerOrderID)
+	assert.Equal(t, uint64(5), trades[0].Quantity)
+	assert.Equal(t, uint64(100), trades[0].Price)
+	assert.Len(t, book.Bids, 1)                                    // Buy order remains
+	assert.Equal(t, decimal.NewFromInt(5), book.Bids[0].LeavesQty) // 5 remaining
 }
 
 func TestProcessOrder_NoMatch(t *testing.T) {
-	book := NewOrderBook()
+	book := newTestOrderBook()
 
-	// Process a buy order with no matching sell orders
 	buyOrder := Order{
-		ID:         "1",
-		Price:      decimal.NewFromInt(100),
-		Qty:        decimal.NewFromInt(10),
-		LeavesQty:  decimal.NewFromInt(10),
-		Timestamp:  time.Now().UnixNano(),
-		IsBid:      true,
+		ID:        "1",
+		Price:     decimal.NewFromInt(100),
+		Qty:       decimal.NewFromInt(10),
+		LeavesQty: decimal.NewFromInt(10),
+		Timestamp: time.Now().UnixNano(),
+		IsBid:     true,
 	}
 
-	trade := book.processBuyOrder(buyOrder)
+	trades := book.processBuyOrder(buyOrder)
 
-	assert.Equal(t, uint64(0), trade.Quantity) // No trade should occur
-	assert.Equal(t, 1, len(book.Bids))        // Buy order should be added to the book
+	assert.Len(t, trades, 0)
+	assert.Len(t, book.Bids, 1)
 	assert.Equal(t, "1", book.Bids[0].ID)
 }
 
 func TestProcessOrder_InvalidOrder(t *testing.T) {
-	book := NewOrderBook()
+	book := newTestOrderBook()
 
-	// Process an invalid order (negative price)
 	invalidOrder := Order{
-		ID:         "1",
-		Price:      decimal.NewFromInt(-100),
-		Qty:        decimal.NewFromInt(10),
-		LeavesQty:  decimal.NewFromInt(10),
-		Timestamp:  time.Now().UnixNano(),
-		IsBid:      true,
+		ID:        "1",
+		Price:     decimal.NewFromInt(-100),
+		Qty:       decimal.NewFromInt(10),
+		LeavesQty: decimal.NewFromInt(10),
+		Timestamp: time.Now().UnixNano(),
+		IsBid:     true,
 	}
 
-	trade := book.processBuyOrder(invalidOrder)
+	trades := book.processBuyOrder(invalidOrder)
 
-	assert.Equal(t, uint64(0), trade.Quantity) // No trade should occur
-	assert.Equal(t, 0, len(book.Bids))        // Order should not be added to the book
-	assert.Equal(t, 1, len(book.Events))      // Rejected event should be created
+	assert.Len(t, trades, 0)
+	assert.Len(t, book.Bids, 0)
+	assert.Len(t, book.Events, 1)
 	assert.Equal(t, EventTypeRejected, book.Events[0].Type)
+	assert.Equal(t, "1", book.Events[0].OrderID)
 }

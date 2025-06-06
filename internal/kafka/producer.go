@@ -12,6 +12,10 @@ type Producer struct {
 	writer *kafka.Writer
 }
 
+type EventNotifier interface {
+	NotifyEventAndOrder(orderID string, value json.RawMessage) error
+}
+
 func NewProducer(brokerAddr string, topic string) *Producer {
 	return &Producer{
 		writer: &kafka.Writer{
