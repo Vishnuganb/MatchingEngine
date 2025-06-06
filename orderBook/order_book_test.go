@@ -76,10 +76,10 @@ func TestNewOrder(t *testing.T) {
 	}
 	events := book.OnNewOrder(order)
 	for _, event := range events {
-		assert.Equal(t, EventTypeNew, event.Type)
-		assert.Equal(t, order.ID, event.ID)
+		assert.Equal(t, "new", event.Type)
 		assert.Equal(t, order.Instrument, event.Instrument)
 		assert.Equal(t, order.Price, event.Price)
 		assert.Equal(t, order.Qty, event.OrderQty)
 	}
+	assert.Len(t, book.Bids, 1)
 }

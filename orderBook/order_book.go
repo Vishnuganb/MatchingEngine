@@ -27,10 +27,10 @@ func (book *OrderBook) OnNewOrder(modelOrder model.Order) model.Events {
 	var events Events
 	order := mapModelOrderToOrderBookOrder(modelOrder)
 	if order.IsBid {
-		trades = book.processBuyOrder(order)
+		trades = book.processBuyOrder(&order)
 		log.Println("orderbook", trades)
 	} else {
-		trades = book.processSellOrder(order)
+		trades = book.processSellOrder(&order)
 	}
 	// Emit fill events for each trade
 	if len(trades) > 0 {

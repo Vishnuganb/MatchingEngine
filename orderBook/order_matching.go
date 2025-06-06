@@ -7,7 +7,7 @@ import (
 	"github.com/shopspring/decimal"
 )
 
-func (book *OrderBook) processOrder(order Order, isBuy bool) []Trade {
+func (book *OrderBook) processOrder(order *Order, isBuy bool) []Trade {
 	log.Println("processOrder")
 
 	var matchingOrders *[]Order
@@ -49,8 +49,8 @@ func (book *OrderBook) processOrder(order Order, isBuy bool) []Trade {
 		matchQty := decimal.Min(order.LeavesQty, matchingOrder.LeavesQty)
 
 		trade := Trade{
-			BuyerOrderID:  getOrderID(order, matchingOrder, isBuy),
-			SellerOrderID: getOrderID(order, matchingOrder, !isBuy),
+			BuyerOrderID:  getOrderID(order, &matchingOrder, isBuy),
+			SellerOrderID: getOrderID(order, &matchingOrder, !isBuy),
 			Quantity:      matchQty.BigInt().Uint64(),
 			Price:         matchingOrder.Price.BigInt().Uint64(),
 			Timestamp:     order.Timestamp,
@@ -75,15 +75,15 @@ func (book *OrderBook) processOrder(order Order, isBuy bool) []Trade {
 	return trades
 }
 
-func (book *OrderBook) processBuyOrder(order Order) []Trade {
+func (book *OrderBook) processBuyOrder(order *Order) []Trade {
 	return book.processOrder(order, true)
 }
 
-func (book *OrderBook) processSellOrder(order Order) []Trade {
+func (book *OrderBook) processSellOrder(order *Order) []Trade {
 	return book.processOrder(order, false)
 }
 
-func getOrderID(order, matchingOrder Order, isBuy bool) string {
+func getOrderID(order, matchingOrder *Order, isBuy bool) string {
 	if isBuy {
 		return order.ID
 	}

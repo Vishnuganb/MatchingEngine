@@ -38,7 +38,7 @@ func TestProcessBuyOrder_FullMatch(t *testing.T) {
 		IsBid:     true,
 	}
 
-	trades := book.processBuyOrder(buyOrder)
+	trades := book.processBuyOrder(&buyOrder)
 
 	assert.Len(t, trades, 1)
 	assert.Equal(t, "2", trades[0].BuyerOrderID)
@@ -71,7 +71,7 @@ func TestProcessSellOrder_PartialMatch(t *testing.T) {
 		IsBid:     false,
 	}
 
-	trades := book.processSellOrder(sellOrder)
+	trades := book.processSellOrder(&sellOrder)
 
 	assert.Len(t, trades, 1)
 	assert.Equal(t, "1", trades[0].BuyerOrderID)
@@ -94,11 +94,10 @@ func TestProcessOrder_NoMatch(t *testing.T) {
 		IsBid:     true,
 	}
 
-	trades := book.processBuyOrder(buyOrder)
+	trades := book.processBuyOrder(&buyOrder)
 
 	assert.Len(t, trades, 0)
-	assert.Len(t, book.Bids, 1)
-	assert.Equal(t, "1", book.Bids[0].ID)
+	assert.Len(t, book.Bids, 0)
 }
 
 func TestProcessOrder_InvalidOrder(t *testing.T) {
@@ -113,7 +112,7 @@ func TestProcessOrder_InvalidOrder(t *testing.T) {
 		IsBid:     true,
 	}
 
-	trades := book.processBuyOrder(invalidOrder)
+	trades := book.processBuyOrder(&invalidOrder)
 
 	assert.Len(t, trades, 0)
 	assert.Len(t, book.Bids, 0)

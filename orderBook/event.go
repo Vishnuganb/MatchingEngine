@@ -17,7 +17,7 @@ const (
 	EventTypeRejected    EventType = "rejected"
 )
 
-type Events []Event 
+type Events []Event
 
 type Event struct {
 	ID         string          `json:"id,omitempty"`
@@ -49,6 +49,9 @@ func newBaseOrderEvent(t EventType, o *Order) Event {
 	e.LeavesQty = o.LeavesQty
 	if o.Price.IsPositive() {
 		e.Price = o.Price
+	}
+	if o.Instrument != "" {
+		e.Instrument = o.Instrument
 	}
 	return e
 }
