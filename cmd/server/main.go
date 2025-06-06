@@ -1,6 +1,7 @@
 package main
 
 import (
+	"MatchingEngine/internal/kafka"
 	"context"
 	"fmt"
 	"log"
@@ -12,7 +13,6 @@ import (
 
 	sqlc "MatchingEngine/internal/db/sqlc"
 	"MatchingEngine/internal/handler"
-	"MatchingEngine/internal/kafka"
 	"MatchingEngine/internal/repository"
 	"MatchingEngine/internal/rmq"
 	"MatchingEngine/internal/service"
@@ -40,8 +40,10 @@ func main() {
 	defer cancel()
 	kafkaProducer := kafka.NewProducer(config.KafkaBroker, config.KafkaTopic)
 	book := orderBook.NewOrderBook()
+	book.KafkaProducer = kafkaProducer
 	repo := repository.NewPostgresOrderRepository(sqlc.New(conn))
-	orderService := service.NewOrderService(repo, kafkaProducer)
+	asyncWriter := repository.NewAsyncDBWriter(repo, 10)
+	orderService := service.NewOrderService(asyncWriter)
 	requestHandler := handler.NewOrderRequestHandler(book, orderService)
 
 	consumerOpts := rmq.ConsumerOpts{

@@ -1,6 +1,8 @@
 package orderBook
 
 import (
+	"MatchingEngine/internal/kafka"
+	"MatchingEngine/internal/model"
 	"github.com/shopspring/decimal"
 	"log"
 )
@@ -9,6 +11,7 @@ type OrderBook struct {
 	Bids   []Order `json:"bids"`
 	Asks   []Order `json:"asks"`
 	Events []Event `json:"events"`
+	KafkaProducer *kafka.Producer
 }
 
 func NewOrderBook() *OrderBook {
@@ -19,17 +22,25 @@ func NewOrderBook() *OrderBook {
 	}
 }
 
-func (book *OrderBook) NewOrder(order Order) Event {
-	var trade Trade
+func (book *OrderBook) OnNewOrder(modelOrder model.Order) model.Events {
+	var trades []Trade
+	var events Events
+	order := mapModelOrderToOrderBookOrder(modelOrder)
 	if order.IsBid {
-		trade = book.processBuyOrder(order)
-		log.Println("orderbook", trade)
+		trades = book.processBuyOrder(order)
+		log.Println("orderbook", trades)
 	} else {
-		trade = book.processSellOrder(order)
+		trades = book.processSellOrder(order)
 	}
-	// Generate an event for the trade
-	if trade.Quantity > 0 {
-		return newFillEvent(&order, decimal.NewFromInt(int64(trade.Quantity)), decimal.NewFromInt(int64(trade.Price)))
+	// Emit fill events for each trade
+	if len(trades) > 0 {
+		for _, trade := range trades {
+			fillQty := decimal.NewFromInt(int64(trade.Quantity))
+			price := decimal.NewFromInt(int64(trade.Price))
+			events = append(events, newFillEvent(&order,
+				fillQty, price),
+			)
+		}
 	}
 
 	// If the order is not fully filled, add it to the order book
@@ -39,17 +50,19 @@ func (book *OrderBook) NewOrder(order Order) Event {
 		} else {
 			book.AddSellOrder(order)
 		}
+		events = append(events, newEvent(&order))
 	}
 
-	return newEvent(&order)
+	book.Events = append(book.Events, events...)
+	return mapOrderBookEventsToModelEvents(events)
 }
 
-func (book *OrderBook) CancelOrder(orderID string) Event {
+func (book *OrderBook) CancelOrder(orderID string) model.Event {
 	// Search for the order in bids
 	for i, order := range book.Bids {
 		if order.ID == orderID {
 			book.RemoveBuyOrder(i)
-			return newCanceledEvent(&order)
+			return mapOrderBookEventToModelEvent(newCanceledEvent(&order))
 		}
 	}
 
@@ -57,12 +70,12 @@ func (book *OrderBook) CancelOrder(orderID string) Event {
 	for i, order := range book.Asks {
 		if order.ID == orderID {
 			book.RemoveSellOrder(i)
-			return newCanceledEvent(&order)
+			return mapOrderBookEventToModelEvent(newCanceledEvent(&order))
 		}
 	}
 
 	// If the order is not found, return an empty event
-	return Event{}
+	return model.Event{}
 }
 
 // Add the new Order to end of orderbook in bids
@@ -122,4 +135,50 @@ func (book *OrderBook) RemoveBuyOrder(index int) {
 
 func (book *OrderBook) RemoveSellOrder(index int) {
 	book.Asks = append(book.Asks[:index], book.Asks[index+1:]...)
+}
+
+func mapOrderBookEventToModelEvent(event Event) model.Event {
+	return model.Event{
+		ID:         event.ID,
+		OrderID:    event.OrderID,
+		Instrument: event.Instrument,
+		Timestamp:  event.Timestamp,
+		Type:       string(event.Type),
+		Side:       string(event.Side),
+		Price:      event.Price,
+		OrderQty:   event.OrderQty,
+		LeavesQty:  event.LeavesQty,
+		ExecQty:    event.ExecQty,
+	}
+}
+
+func mapOrderBookEventsToModelEvents(events Events) model.Events {
+	mappedEvents := make([]model.Event, len(events))
+	for i, event := range events {
+		mappedEvents[i] = model.Event{
+			ID:         event.ID,
+			OrderID:    event.OrderID,
+			Instrument: event.Instrument,
+			Timestamp:  event.Timestamp,
+			Type:       string(event.Type),
+			Side:       string(event.Side),
+			Price:      event.Price,
+			OrderQty:   event.OrderQty,
+			LeavesQty:  event.LeavesQty,
+			ExecQty:    event.ExecQty,
+		}
+	}
+	return mappedEvents
+}
+
+func mapModelOrderToOrderBookOrder(order model.Order) Order {
+	return Order{
+		ID:         order.ID,
+		Instrument: order.Instrument,
+		Price:      order.Price,
+		Qty:        order.Qty,
+		LeavesQty:  order.LeavesQty,
+		Timestamp:  order.Timestamp,
+		IsBid:      order.IsBid,
+	}
 }

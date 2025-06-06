@@ -17,6 +17,8 @@ const (
 	EventTypeRejected    EventType = "rejected"
 )
 
+type Events []Event 
+
 type Event struct {
 	ID         string          `json:"id,omitempty"`
 	OrderID    string          `json:"order_id,omitempty"`
