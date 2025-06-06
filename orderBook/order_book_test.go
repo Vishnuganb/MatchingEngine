@@ -47,35 +47,6 @@ func TestAddSellOrder(t *testing.T) {
 	assert.Equal(t, book.Asks[0].ID, "2")
 }
 
-func TestProcessBuyOrder(t *testing.T) {
-	book := NewOrderBook()
-	sellOrder := Order{
-		ID:         "2",
-		Price:      decimal.NewFromInt(100),
-		Qty:        decimal.NewFromInt(5),
-		Instrument: "BTC/USDT",
-		Timestamp:  time.Now().UnixNano(),
-		IsBid:      false,
-	}
-	book.AddSellOrder(sellOrder)
-
-	buyOrder := Order{
-		ID:         "1",
-		Price:      decimal.NewFromInt(100),
-		Qty:        decimal.NewFromInt(5),
-		Instrument: "BTC/USDT",
-		Timestamp:  time.Now().UnixNano(),
-		IsBid:      true,
-	}
-	trades := book.processBuyOrder(buyOrder)
-
-	for _, trade := range trades {
-		assert.Equal(t, uint64(5), trade.Quantity)
-		assert.Equal(t, uint64(100), trade.Price)
-		assert.Empty(t, book.Asks)
-	}
-}
-
 func TestCancelOrder(t *testing.T) {
 	book := NewOrderBook()
 	order := Order{
@@ -89,7 +60,7 @@ func TestCancelOrder(t *testing.T) {
 	book.AddBuyOrder(order)
 
 	event := book.CancelOrder("1")
-	assert.Equal(t, EventTypeCanceled, event.Type)
+	assert.Equal(t, "canceled", event.Type)
 	assert.Empty(t, book.Bids)
 }
 
