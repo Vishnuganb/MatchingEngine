@@ -44,7 +44,7 @@ func main() {
 	repo := repository.NewPostgresOrderRepository(sqlc.New(conn))
 	asyncWriter := repository.NewAsyncDBWriter(repo, 10)
 	orderService := service.NewOrderService(asyncWriter)
-	requestHandler := handler.NewOrderRequestHandler(book, orderService)
+	requestHandler := handler.NewOrderRequestHandler(orderService)
 
 	consumerOpts := rmq.ConsumerOpts{
 		RabbitMQURL: config.RmqHost,
