@@ -90,25 +90,28 @@ func getOrderID(order, matchingOrder *Order, isBuy bool) string {
 	return matchingOrder.ID
 }
 
-func (book *OrderBook) pushEvents(trade Trade) {
-	// Serialize the trade to JSON
-	tradeJSON, err := json.Marshal(trade)
-	if err != nil {
-		log.Printf("Failed to serialize trade: %v", err)
-		return
-	}
-
-	log.Printf("Pushing trade event: %v", string(tradeJSON))
-
-	// Notify the buyer
-	err = book.KafkaProducer.NotifyEventAndOrder(trade.BuyerOrderID, tradeJSON)
-	if err != nil {
-		log.Printf("Failed to notify buyer: %v", err)
-	}
-
-	// Notify the seller
-	err = book.KafkaProducer.NotifyEventAndOrder(trade.SellerOrderID, tradeJSON)
-	if err != nil {
-		log.Printf("Failed to notify seller: %v", err)
+func (book *OrderBook) pushEvents(data interface{}) {
+	switch v := data.(type) {
+	case Trade:
+		// Handle Trade object
+		log.Printf("Pushing trade: %+v", v)
+		if book.KafkaProducer != nil {
+			err := book.KafkaProducer.NotifyEventAndOrder(v.BuyerOrderID, json.RawMessage(v.ToJSON()))
+			if err != nil {
+				return 
+			}
+		}
+	case Event:
+		// Handle Event object
+		log.Printf("Pushing event: %+v", v)
+		if book.KafkaProducer != nil {
+			eventJSON, _ := json.Marshal(v)
+			err := book.KafkaProducer.NotifyEventAndOrder(v.OrderID, json.RawMessage(eventJSON))
+			if err != nil {
+				return 
+			}
+		}
+	default:
+		log.Printf("Unsupported data type: %T", v)
 	}
 }

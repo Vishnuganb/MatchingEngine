@@ -8,9 +8,9 @@ import (
 )
 
 type OrderBook struct {
-	Bids   []Order `json:"bids"`
-	Asks   []Order `json:"asks"`
-	Events []Event `json:"events"`
+	Bids          []Order `json:"bids"`
+	Asks          []Order `json:"asks"`
+	Events        []Event `json:"events"`
 	KafkaProducer kafka.EventNotifier
 }
 
@@ -50,7 +50,10 @@ func (book *OrderBook) OnNewOrder(modelOrder model.Order) model.Events {
 		} else {
 			book.AddSellOrder(order)
 		}
-		events = append(events, newEvent(&order))
+		newEvent := newEvent(&order)
+		events = append(events, newEvent)
+		// Push the event to external systems
+		book.pushEvents(newEvent)
 	}
 
 	book.Events = append(book.Events, events...)
@@ -62,7 +65,9 @@ func (book *OrderBook) CancelOrder(orderID string) model.Event {
 	for i, order := range book.Bids {
 		if order.ID == orderID {
 			book.RemoveBuyOrder(i)
-			return mapOrderBookEventToModelEvent(newCanceledEvent(&order))
+			event := newCanceledEvent(&order)
+			book.pushEvents(event)
+			return mapOrderBookEventToModelEvent(event)
 		}
 	}
 
@@ -70,7 +75,9 @@ func (book *OrderBook) CancelOrder(orderID string) model.Event {
 	for i, order := range book.Asks {
 		if order.ID == orderID {
 			book.RemoveSellOrder(i)
-			return mapOrderBookEventToModelEvent(newCanceledEvent(&order))
+			event := newCanceledEvent(&order)
+			book.pushEvents(event)
+			return mapOrderBookEventToModelEvent(event)
 		}
 	}
 
