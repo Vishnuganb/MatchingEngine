@@ -29,16 +29,6 @@ func (m *MockQueries) UpdateActiveOrder(ctx context.Context, params sqlc.UpdateA
 	return args.Get(0).(sqlc.ActiveOrder), args.Error(1)
 }
 
-func (m *MockQueries) CreateEvent(ctx context.Context, params sqlc.CreateEventParams) (sqlc.Event, error) {
-	args := m.Called(ctx, params)
-	return args.Get(0).(sqlc.Event), args.Error(1)
-}
-
-func (m *MockQueries) UpdateEvent(ctx context.Context, params sqlc.UpdateEventParams) (sqlc.Event, error) {
-	args := m.Called(ctx, params)
-	return args.Get(0).(sqlc.Event), args.Error(1)
-}
-
 func TestSaveOrder(t *testing.T) {
 	mockQueries := new(MockQueries)
 	repo := NewPostgresOrderRepository(mockQueries)
@@ -47,7 +37,7 @@ func TestSaveOrder(t *testing.T) {
 		ID:         "1",
 		Instrument: "BTC/USDT",
 		Price:      decimal.NewFromInt(100),
-		Qty:        decimal.NewFromInt(10),
+		OrderQty:   decimal.NewFromInt(10),
 		LeavesQty:  decimal.NewFromInt(10),
 		Timestamp:  time.Now().UnixNano(),
 		IsBid:      true,

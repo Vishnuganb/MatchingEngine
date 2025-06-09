@@ -21,8 +21,7 @@ var ErrOrderNotFound = errors.New("order not found")
 
 type OrderService interface {
 	SaveOrderAsync(order model.Order)
-	SaveEventAsync(event model.Event)
-	CancelEventAsync(event model.Event)
+	CancelOrderAsync(event model.Event)
 }
 
 type OrderBook interface {
@@ -33,15 +32,15 @@ type OrderBook interface {
 type OrderRequestHandler struct {
 	orderBooks    map[string]*orderBook.OrderBook
 	orderChannels map[string]chan rmq.OrderRequest
-	OrderService OrderService
-	mu           sync.Mutex
+	OrderService  OrderService
+	mu            sync.Mutex
 }
 
 func NewOrderRequestHandler(orderService OrderService) *OrderRequestHandler {
 	return &OrderRequestHandler{
 		orderBooks:    make(map[string]*orderBook.OrderBook),
 		orderChannels: make(map[string]chan rmq.OrderRequest),
-		OrderService: orderService,
+		OrderService:  orderService,
 	}
 }
 
@@ -83,7 +82,7 @@ func (h *OrderRequestHandler) startWorker(instrument string, channel chan rmq.Or
 		case rmq.ReqTypeNew:
 			h.handleNewOrder(book, req)
 		case rmq.ReqTypeCancel:
-			h.handleCancelOrder( book, req)
+			h.handleCancelOrder(book, req)
 		default:
 			log.Printf("Unknown request type: %v", req.RequestType)
 		}
@@ -95,7 +94,7 @@ func (h *OrderRequestHandler) handleNewOrder(book *orderBook.OrderBook, req rmq.
 	order := model.Order{
 		ID:         req.Order.ID,
 		Price:      decimal.RequireFromString(req.Order.Price),
-		Qty:        decimal.RequireFromString(req.Order.Qty),
+		OrderQty:   decimal.RequireFromString(req.Order.Qty),
 		Instrument: req.Order.Instrument,
 		Timestamp:  time.Now().UnixNano(),
 		IsBid:      req.Order.Side == orderBook.Buy,
@@ -104,20 +103,20 @@ func (h *OrderRequestHandler) handleNewOrder(book *orderBook.OrderBook, req rmq.
 	// Save the order and generate events
 	h.OrderService.SaveOrderAsync(order)
 
-	events := book.OnNewOrder(order)
+	orders := book.OnNewOrder(order)
 
 	// Save each event
-	for _, event := range events {
-		h.OrderService.SaveEventAsync(event)
+	for _, order := range orders {
+		h.OrderService.SaveOrderAsync(order)
 	}
 }
 
 func (h *OrderRequestHandler) handleCancelOrder(book *orderBook.OrderBook, req rmq.OrderRequest) {
-	canceledEvent := book.CancelOrder(req.Order.ID)
+	canceledOrder := book.CancelOrder(req.Order.ID)
 
-	log.Println("CanceledEvent", canceledEvent)
+	log.Println("CanceledEvent", canceledOrder)
 
-	h.OrderService.CancelEventAsync(canceledEvent)
+	h.OrderService.CancelOrderAsync(canceledOrder.ID, canceledOrder.OrderStatus, canceledOrder.ExecType)
 }
 
 func (h *OrderRequestHandler) handleServiceError(msg amqp.Delivery, err error, contextMsg string) {

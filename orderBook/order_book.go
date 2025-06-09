@@ -8,13 +8,13 @@ import (
 )
 
 type EventNotifier interface {
-	NotifyEventAndOrder(orderID string, value json.RawMessage) error
+	NotifyEventAndTrade(orderID string, value json.RawMessage) error
 }
 
 type OrderBook struct {
 	Bids          []Order `json:"bids"`
 	Asks          []Order `json:"asks"`
-	Events        []Event `json:"events"`
+	Orders        []Order `json:"orders"`
 	KafkaProducer EventNotifier
 }
 
@@ -22,13 +22,13 @@ func NewOrderBook() *OrderBook {
 	return &OrderBook{
 		Bids:   []Order{},
 		Asks:   []Order{},
-		Events: []Event{},
+		Orders: []Order{},
 	}
 }
 
-func (book *OrderBook) OnNewOrder(modelOrder model.Order) model.Events {
+func (book *OrderBook) OnNewOrder(modelOrder model.Order) model.Orders {
 	var trades []Trade
-	var events Events
+	var orders Orders
 	order := mapModelOrderToOrderBookOrder(modelOrder)
 	if order.IsBid {
 		trades = book.processBuyOrder(&order)
@@ -41,7 +41,7 @@ func (book *OrderBook) OnNewOrder(modelOrder model.Order) model.Events {
 		for _, trade := range trades {
 			fillQty := decimal.NewFromInt(int64(trade.Quantity))
 			price := decimal.NewFromInt(int64(trade.Price))
-			events = append(events, newFillEvent(&order,
+			orders = append(orders, newFillOrderEvent(&order,
 				fillQty, price),
 			)
 		}
@@ -54,24 +54,21 @@ func (book *OrderBook) OnNewOrder(modelOrder model.Order) model.Events {
 		} else {
 			book.AddSellOrder(order)
 		}
-		newEvent := newEvent(&order)
-		events = append(events, newEvent)
-		// Push the event to external systems
-		book.pushEvents(newEvent)
+		newEvent := newOrderEvent(&order)
+		orders = append(orders, newEvent)
 	}
 
-	book.Events = append(book.Events, events...)
-	return mapOrderBookEventsToModelEvents(events)
+	book.Orders = append(book.Orders, orders...)
+	return mapOrderBookOrdersToModelOrders(orders)
 }
 
-func (book *OrderBook) CancelOrder(orderID string) model.Event {
+func (book *OrderBook) CancelOrder(orderID string) model.Order {
 	// Search for the order in bids
 	for i, order := range book.Bids {
 		if order.ID == orderID {
 			book.RemoveBuyOrder(i)
-			event := newCanceledEvent(&order)
-			book.pushEvents(event)
-			return mapOrderBookEventToModelEvent(event)
+			orderEvent := newCanceledOrderEvent(&order)
+			return mapOrderBookOrderToModelOrder(orderEvent)
 		}
 	}
 
@@ -79,14 +76,13 @@ func (book *OrderBook) CancelOrder(orderID string) model.Event {
 	for i, order := range book.Asks {
 		if order.ID == orderID {
 			book.RemoveSellOrder(i)
-			event := newCanceledEvent(&order)
-			book.pushEvents(event)
-			return mapOrderBookEventToModelEvent(event)
+			orderEvent := newCanceledOrderEvent(&order)
+			return mapOrderBookOrderToModelOrder(orderEvent)
 		}
 	}
 
 	// If the order is not found, return an empty event
-	return model.Event{}
+	return model.Order{}
 }
 
 // Add the new Order to end of orderbook in bids
@@ -148,35 +144,33 @@ func (book *OrderBook) RemoveSellOrder(index int) {
 	book.Asks = append(book.Asks[:index], book.Asks[index+1:]...)
 }
 
-func mapOrderBookEventToModelEvent(event Event) model.Event {
-	return model.Event{
-		ID:         event.ID,
-		OrderID:    event.OrderID,
-		Instrument: event.Instrument,
-		Timestamp:  event.Timestamp,
-		Type:       string(event.Type),
-		Side:       string(event.Side),
-		Price:      event.Price,
-		OrderQty:   event.OrderQty,
-		LeavesQty:  event.LeavesQty,
-		ExecQty:    event.ExecQty,
+func mapOrderBookOrderToModelOrder(order Order) model.Order {
+	return model.Order{
+		ID:         order.ID,
+		Instrument: order.Instrument,
+		Timestamp:  order.Timestamp,
+		ExecType:       string(order.ExecType),
+		IsBid:       order.IsBid,
+		Price:      order.Price,
+		OrderQty:   order.OrderQty,
+		LeavesQty:  order.LeavesQty,
+		ExecQty:    order.ExecQty,
 	}
 }
 
-func mapOrderBookEventsToModelEvents(events Events) model.Events {
-	mappedEvents := make([]model.Event, len(events))
-	for i, event := range events {
-		mappedEvents[i] = model.Event{
-			ID:         event.ID,
-			OrderID:    event.OrderID,
-			Instrument: event.Instrument,
-			Timestamp:  event.Timestamp,
-			Type:       string(event.Type),
-			Side:       string(event.Side),
-			Price:      event.Price,
-			OrderQty:   event.OrderQty,
-			LeavesQty:  event.LeavesQty,
-			ExecQty:    event.ExecQty,
+func mapOrderBookOrdersToModelOrders(orders Orders) model.Orders {
+	mappedEvents := make([]model.Order, len(orders))
+	for i, order := range orders {
+		mappedEvents[i] = model.Order{
+			ID:         order.ID,
+			Instrument: order.Instrument,
+			Timestamp:  order.Timestamp,
+			ExecType:       string(order.ExecType),
+			IsBid:       order.IsBid,
+			Price:      order.Price,
+			OrderQty:   order.OrderQty,
+			LeavesQty:  order.LeavesQty,
+			ExecQty:    order.ExecQty,
 		}
 	}
 	return mappedEvents
@@ -187,7 +181,7 @@ func mapModelOrderToOrderBookOrder(order model.Order) Order {
 		ID:         order.ID,
 		Instrument: order.Instrument,
 		Price:      order.Price,
-		Qty:        order.Qty,
+		ExecQty:        order.ExecQty,
 		LeavesQty:  order.LeavesQty,
 		Timestamp:  order.Timestamp,
 		IsBid:      order.IsBid,

@@ -40,27 +40,6 @@ func TestSaveOrderAsync(t *testing.T) {
 	mockWriter.AssertCalled(t, "EnqueueTask", repository.SaveOrderTask{Order: order})
 }
 
-func TestSaveEventAsync(t *testing.T) {
-	mockWriter := new(MockAsyncDBWriter)
-	orderService := NewOrderService(mockWriter)
-
-	event := model.Event{
-		ID:         "event-1",
-		OrderID:    "1",
-		Instrument: "BTC/USDT",
-		Type:       "new",
-		OrderQty:   decimal.NewFromInt(10),
-		LeavesQty:  decimal.NewFromInt(10),
-		Price:      decimal.NewFromInt(100),
-	}
-
-	mockWriter.On("EnqueueTask", repository.SaveEventTask{Event: event}).Return()
-
-	orderService.SaveEventAsync(event)
-
-	mockWriter.AssertCalled(t, "EnqueueTask", repository.SaveEventTask{Event: event})
-}
-
 func TestUpdateOrderAsync(t *testing.T) {
 	mockWriter := new(MockAsyncDBWriter)
 	orderService := NewOrderService(mockWriter)

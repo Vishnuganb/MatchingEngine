@@ -25,17 +25,17 @@ func (book *OrderBook) processOrder(order *Order, isBuy bool) []Trade {
 	}
 
 	// Validate order
-	if !order.Qty.IsPositive() || order.Price.IsNegative() {
-		book.Events = append(book.Events, newRejectedEvent(&OrderRequest{
+	if !order.OrderQty.IsPositive() || order.Price.IsNegative() {
+		book.Orders = append(book.Orders, newRejectedOrderEvent(&OrderRequest{
 			ID:   order.ID,
 			Side: order.Side(),
-			Qty:  order.Qty,
+			Qty:  order.OrderQty,
 		}))
 		return nil
 	}
 
 	var trades []Trade
-	order.LeavesQty = order.Qty
+	order.LeavesQty = order.OrderQty
 
 	// Try to match against best available orders
 	for len(*matchingOrders) > 0 && order.LeavesQty.IsPositive() {
@@ -56,7 +56,7 @@ func (book *OrderBook) processOrder(order *Order, isBuy bool) []Trade {
 			Timestamp:     order.Timestamp,
 		}
 
-		book.pushEvents(trade)
+		book.publishTrade(trade)
 		trades = append(trades, trade)
 
 		// Update LeavesQty
@@ -90,28 +90,11 @@ func getOrderID(order, matchingOrder *Order, isBuy bool) string {
 	return matchingOrder.ID
 }
 
-func (book *OrderBook) pushEvents(data interface{}) {
-	switch v := data.(type) {
-	case Trade:
-		// Handle Trade object
-		log.Printf("Pushing trade: %+v", v)
-		if book.KafkaProducer != nil {
-			err := book.KafkaProducer.NotifyEventAndOrder(v.BuyerOrderID, json.RawMessage(v.ToJSON()))
-			if err != nil {
+func (book *OrderBook) publishTrade(trade Trade) {
+	if book.KafkaProducer != nil {
+		err := book.KafkaProducer.NotifyEventAndTrade(trade.BuyerOrderID, json.RawMessage(trade.ToJSON()))
+		if err != nil {
 				return 
 			}
-		}
-	case Event:
-		// Handle Event object
-		log.Printf("Pushing event: %+v", v)
-		if book.KafkaProducer != nil {
-			eventJSON, _ := json.Marshal(v)
-			err := book.KafkaProducer.NotifyEventAndOrder(v.OrderID, json.RawMessage(eventJSON))
-			if err != nil {
-				return 
-			}
-		}
-	default:
-		log.Printf("Unsupported data type: %T", v)
 	}
 }

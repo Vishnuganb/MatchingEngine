@@ -24,10 +24,6 @@ func (s *OrderService) SaveOrderAsync(order model.Order) {
 	})
 }
 
-func (s *OrderService) SaveEventAsync(event model.Event) {
-	s.asyncWriter.EnqueueTask(repository.SaveEventTask{Event: event})
-}
-
 func (s *OrderService) UpdateOrderAsync(orderID string, leavesQty decimal.Decimal) {
 	task := repository.UpdateOrderTask{
 		OrderID:   orderID,
@@ -36,9 +32,11 @@ func (s *OrderService) UpdateOrderAsync(orderID string, leavesQty decimal.Decima
 	s.asyncWriter.EnqueueTask(task)
 }
 
-func (s *OrderService) CancelEventAsync(event model.Event) {
-	task := repository.CancelEventTask{
-		Event: event,
+func (s *OrderService) CancelOrderAsync(orderID , orderStatus, execType string) {
+	task := repository.CancelOrderTask{
+		OrderID: orderID,
+		OrderStatus: orderStatus,
+		ExecType: execType,
 	}
 	s.asyncWriter.EnqueueTask(task)
 }

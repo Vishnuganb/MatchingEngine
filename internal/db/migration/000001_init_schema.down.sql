@@ -1,2 +1,1 @@
-DROP TABLE events CASCADE;
 DROP TABLE active_orders CASCADE;

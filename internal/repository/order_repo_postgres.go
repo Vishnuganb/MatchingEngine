@@ -5,7 +5,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/shopspring/decimal"
 
@@ -16,8 +15,6 @@ import (
 type OrderQueries interface {
 	CreateActiveOrder(ctx context.Context, params sqlc.CreateActiveOrderParams) (sqlc.ActiveOrder, error)
 	UpdateActiveOrder(ctx context.Context, params sqlc.UpdateActiveOrderParams) (sqlc.ActiveOrder, error)
-	CreateEvent(ctx context.Context, params sqlc.CreateEventParams) (sqlc.Event, error)
-	UpdateEvent(ctx context.Context, params sqlc.UpdateEventParams) (sqlc.Event, error)
 }
 
 type PostgresOrderRepository struct {
@@ -35,7 +32,7 @@ func decimalToPgNumeric(d decimal.Decimal) (pgtype.Numeric, error) {
 }
 
 func (r *PostgresOrderRepository) SaveOrder(ctx context.Context, order model.Order) (model.Order, error) {
-	qty, err := decimalToPgNumeric(order.Qty)
+	qty, err := decimalToPgNumeric(order.OrderQty)
 	if err != nil {
 		return model.Order{}, err
 	}
@@ -50,7 +47,7 @@ func (r *PostgresOrderRepository) SaveOrder(ctx context.Context, order model.Ord
 
 	activeOrder, err := r.queries.CreateActiveOrder(ctx, sqlc.CreateActiveOrderParams{
 		ID:         order.ID,
-		Qty:        qty,
+		OrderQty:        qty,
 		LeavesQty:  leavesQty,
 		Price:      price,
 		Instrument: order.Instrument,
@@ -89,119 +86,12 @@ func (r *PostgresOrderRepository) UpdateOrder(ctx context.Context, orderID strin
 	return mappedOrder, nil
 }
 
-func (r *PostgresOrderRepository) SaveEvent(ctx context.Context, event model.Event) (model.Event, error) {
-	orderQty, err := decimalToPgNumeric(event.OrderQty)
-	if err != nil {
-		return model.Event{}, err
-	}
-	leavesQty, err := decimalToPgNumeric(event.LeavesQty)
-	if err != nil {
-		return model.Event{}, err
-	}
-	execQty, err := decimalToPgNumeric(event.ExecQty)
-	if err != nil {
-		return model.Event{}, err
-	}
-	price, err := decimalToPgNumeric(event.Price)
-	if err != nil {
-		return model.Event{}, err
-	}
-
-	dbEvent, err := r.queries.CreateEvent(ctx, sqlc.CreateEventParams{
-		OrderID:    event.OrderID,
-		Type:       event.Type,
-		Side:       event.Side,
-		OrderQty:   orderQty,
-		LeavesQty:  leavesQty,
-		ExecQty:    execQty,
-		Price:      price,
-		Instrument: event.Instrument,
-	})
-	if err != nil {
-		return model.Event{}, err
-	}
-
-	return MapDBEventToOrderEvent(dbEvent), nil
-}
-
-func (r *PostgresOrderRepository) UpdateEvent(ctx context.Context, event model.Event) (model.Event, error) {
-	orderQty, err := decimalToPgNumeric(event.OrderQty)
-	if err != nil {
-		return model.Event{}, err
-	}
-	leavesQty, err := decimalToPgNumeric(event.LeavesQty)
-	if err != nil {
-		return model.Event{}, err
-	}
-	execQty, err := decimalToPgNumeric(event.ExecQty)
-	if err != nil {
-		return model.Event{}, err
-	}
-	price, err := decimalToPgNumeric(event.Price)
-	if err != nil {
-		return model.Event{}, err
-	}
-
-	eventID, err := uuid.Parse(event.ID)
-	if err != nil {
-		return model.Event{}, fmt.Errorf("invalid UUID for event ID: %w", err)
-	}
-
-	dbEvent, err := r.queries.UpdateEvent(ctx, sqlc.UpdateEventParams{
-		ID:        eventID,
-		OrderID:   pgtype.Text{String: event.OrderID, Valid: true},
-		Type:      pgtype.Text{String: event.Type, Valid: true},
-		Side:      pgtype.Text{String: event.Side, Valid: true},
-		OrderQty:  orderQty,
-		LeavesQty: leavesQty,
-		ExecQty:   execQty,
-		Price:     price,
-	})
-	if err != nil {
-		return model.Event{}, err
-	}
-
-	return MapDBEventToOrderEvent(dbEvent), nil
-}
-
-func MapDBEventToOrderEvent(dbEvent sqlc.Event) model.Event {
-	orderQty, err := pgNumericToDecimal(dbEvent.OrderQty)
-	if err != nil {
-		orderQty = decimal.Zero // Default to zero if conversion fails
-	}
-	leavesQty, err := pgNumericToDecimal(dbEvent.LeavesQty)
-	if err != nil {
-		leavesQty = decimal.Zero
-	}
-	execQty, err := pgNumericToDecimal(dbEvent.ExecQty)
-	if err != nil {
-		execQty = decimal.Zero
-	}
-	price, err := pgNumericToDecimal(dbEvent.Price)
-	if err != nil {
-		price = decimal.Zero
-	}
-
-	return model.Event{
-		ID:         dbEvent.ID.String(),
-		OrderID:    dbEvent.OrderID,
-		Timestamp:  dbEvent.Timestamp.UnixNano(),
-		Type:       dbEvent.Type,
-		Side:       dbEvent.Side,
-		Instrument: dbEvent.Instrument,
-		OrderQty:   orderQty,
-		LeavesQty:  leavesQty,
-		ExecQty:    execQty,
-		Price:      price,
-	}
-}
-
 func MapActiveOrderToOrder(activeOrder sqlc.ActiveOrder) (model.Order, error) {
 	price, err := pgNumericToDecimal(activeOrder.Price)
 	if err != nil {
 		return model.Order{}, fmt.Errorf("converting price: %w", err)
 	}
-	qty, err := pgNumericToDecimal(activeOrder.Qty)
+	qty, err := pgNumericToDecimal(activeOrder.OrderQty)
 	if err != nil {
 		return model.Order{}, fmt.Errorf("converting qty: %w", err)
 	}
@@ -213,7 +103,7 @@ func MapActiveOrderToOrder(activeOrder sqlc.ActiveOrder) (model.Order, error) {
 	return model.Order{
 		ID:         activeOrder.ID,
 		Price:      price,
-		Qty:        qty,
+		OrderQty:        qty,
 		Instrument: activeOrder.Instrument,
 		LeavesQty:  leavesQty,
 		IsBid:      activeOrder.Side == string(orderBook.Buy),

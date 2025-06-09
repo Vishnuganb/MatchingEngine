@@ -10,15 +10,6 @@ type DBTask interface {
 	Execute(ctx context.Context, repo OrderRepository) error
 }
 
-type SaveEventTask struct {
-	Event model.Event
-}
-
-func (t SaveEventTask) Execute(ctx context.Context, repo OrderRepository) error {
-	_, err := repo.SaveEvent(ctx, t.Event)
-	return err
-}
-
 type SaveOrderTask struct {
 	Order model.Order
 }
@@ -29,8 +20,8 @@ func (t SaveOrderTask) Execute(ctx context.Context, repo OrderRepository) error 
 }
 
 type UpdateOrderTask struct {
-	OrderID    string
-	LeavesQty  decimal.Decimal
+	OrderID   string
+	LeavesQty decimal.Decimal
 }
 
 func (t UpdateOrderTask) Execute(ctx context.Context, repo OrderRepository) error {
@@ -38,11 +29,13 @@ func (t UpdateOrderTask) Execute(ctx context.Context, repo OrderRepository) erro
 	return err
 }
 
-type CancelEventTask struct {
-	Event model.Event
+type CancelOrderTask struct {
+	OrderID     string
+	OrderStatus string
+	ExecType    string
 }
 
-func (t CancelEventTask) Execute(ctx context.Context, repo OrderRepository) error {
-	_, err := repo.UpdateEvent(ctx, t.Event)
+func (t CancelOrderTask) Execute(ctx context.Context, repo OrderRepository) error {
+	_, err := repo.UpdateOrder(ctx, t.OrderID, t.OrderStatus, t.ExecType)
 	return err
 }
