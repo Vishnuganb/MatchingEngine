@@ -14,7 +14,6 @@ func newTestOrderBook() *OrderBook {
 	return book
 }
 
-
 func TestProcessBuyOrder_FullMatch(t *testing.T) {
 	book := newTestOrderBook()
 
@@ -22,7 +21,7 @@ func TestProcessBuyOrder_FullMatch(t *testing.T) {
 	book.AddSellOrder(Order{
 		ID:        "1",
 		Price:     decimal.NewFromInt(100),
-		Qty:       decimal.NewFromInt(10),
+		OrderQty:  decimal.NewFromInt(10),
 		LeavesQty: decimal.NewFromInt(10),
 		Timestamp: time.Now().UnixNano(),
 		IsBid:     false,
@@ -32,7 +31,7 @@ func TestProcessBuyOrder_FullMatch(t *testing.T) {
 	buyOrder := Order{
 		ID:        "2",
 		Price:     decimal.NewFromInt(100),
-		Qty:       decimal.NewFromInt(10),
+		OrderQty:  decimal.NewFromInt(10),
 		LeavesQty: decimal.NewFromInt(10),
 		Timestamp: time.Now().UnixNano(),
 		IsBid:     true,
@@ -55,7 +54,7 @@ func TestProcessSellOrder_PartialMatch(t *testing.T) {
 	book.AddBuyOrder(Order{
 		ID:        "1",
 		Price:     decimal.NewFromInt(100),
-		Qty:       decimal.NewFromInt(10),
+		OrderQty:  decimal.NewFromInt(10),
 		LeavesQty: decimal.NewFromInt(10),
 		Timestamp: time.Now().UnixNano(),
 		IsBid:     true,
@@ -65,7 +64,7 @@ func TestProcessSellOrder_PartialMatch(t *testing.T) {
 	sellOrder := Order{
 		ID:        "2",
 		Price:     decimal.NewFromInt(100),
-		Qty:       decimal.NewFromInt(5),
+		OrderQty:  decimal.NewFromInt(5),
 		LeavesQty: decimal.NewFromInt(5),
 		Timestamp: time.Now().UnixNano(),
 		IsBid:     false,
@@ -88,7 +87,7 @@ func TestProcessOrder_NoMatch(t *testing.T) {
 	buyOrder := Order{
 		ID:        "1",
 		Price:     decimal.NewFromInt(100),
-		Qty:       decimal.NewFromInt(10),
+		OrderQty:  decimal.NewFromInt(10),
 		LeavesQty: decimal.NewFromInt(10),
 		Timestamp: time.Now().UnixNano(),
 		IsBid:     true,
@@ -106,7 +105,7 @@ func TestProcessOrder_InvalidOrder(t *testing.T) {
 	invalidOrder := Order{
 		ID:        "1",
 		Price:     decimal.NewFromInt(-100),
-		Qty:       decimal.NewFromInt(10),
+		OrderQty:  decimal.NewFromInt(10),
 		LeavesQty: decimal.NewFromInt(10),
 		Timestamp: time.Now().UnixNano(),
 		IsBid:     true,
@@ -116,7 +115,7 @@ func TestProcessOrder_InvalidOrder(t *testing.T) {
 
 	assert.Len(t, trades, 0)
 	assert.Len(t, book.Bids, 0)
-	assert.Len(t, book.Events, 1)
-	assert.Equal(t, EventTypeRejected, book.Events[0].Type)
-	assert.Equal(t, "1", book.Events[0].OrderID)
+	assert.Len(t, book.Orders, 1)
+	assert.Equal(t, EventTypeRejected, book.Orders[0].ExecType)
+	assert.Equal(t, "1", book.Orders[0].ID)
 }

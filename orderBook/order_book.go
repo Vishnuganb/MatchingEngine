@@ -54,8 +54,8 @@ func (book *OrderBook) OnNewOrder(modelOrder model.Order) model.Orders {
 		} else {
 			book.AddSellOrder(order)
 		}
-		newEvent := newOrderEvent(&order)
-		orders = append(orders, newEvent)
+		newOrder := newOrderEvent(&order)
+		orders = append(orders, newOrder)
 	}
 
 	book.Orders = append(book.Orders, orders...)
@@ -149,8 +149,8 @@ func mapOrderBookOrderToModelOrder(order Order) model.Order {
 		ID:         order.ID,
 		Instrument: order.Instrument,
 		Timestamp:  order.Timestamp,
-		ExecType:       string(order.ExecType),
-		IsBid:       order.IsBid,
+		ExecType:   string(order.ExecType),
+		IsBid:      order.IsBid,
 		Price:      order.Price,
 		OrderQty:   order.OrderQty,
 		LeavesQty:  order.LeavesQty,
@@ -165,8 +165,8 @@ func mapOrderBookOrdersToModelOrders(orders Orders) model.Orders {
 			ID:         order.ID,
 			Instrument: order.Instrument,
 			Timestamp:  order.Timestamp,
-			ExecType:       string(order.ExecType),
-			IsBid:       order.IsBid,
+			ExecType:   string(order.ExecType),
+			IsBid:      order.IsBid,
 			Price:      order.Price,
 			OrderQty:   order.OrderQty,
 			LeavesQty:  order.LeavesQty,
@@ -180,10 +180,12 @@ func mapModelOrderToOrderBookOrder(order model.Order) Order {
 	return Order{
 		ID:         order.ID,
 		Instrument: order.Instrument,
-		Price:      order.Price,
-		ExecQty:        order.ExecQty,
-		LeavesQty:  order.LeavesQty,
 		Timestamp:  order.Timestamp,
+		ExecType: EventType(order.ExecType),
 		IsBid:      order.IsBid,
+		Price:      order.Price,
+		OrderQty:   order.OrderQty,
+		LeavesQty:  order.LeavesQty,
+		ExecQty:    order.ExecQty,
 	}
 }

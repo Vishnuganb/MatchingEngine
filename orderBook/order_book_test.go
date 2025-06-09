@@ -14,7 +14,7 @@ func TestNewOrderBook(t *testing.T) {
 	assert.NotNil(t, book)
 	assert.Empty(t, book.Bids)
 	assert.Empty(t, book.Asks)
-	assert.Empty(t, book.Events)
+	assert.Empty(t, book.Orders)
 }
 
 func TestAddBuyOrder(t *testing.T) {
@@ -22,7 +22,7 @@ func TestAddBuyOrder(t *testing.T) {
 	order := Order{
 		ID:         "1",
 		Price:      decimal.NewFromInt(100),
-		Qty:        decimal.NewFromInt(10),
+		OrderQty:   decimal.NewFromInt(10),
 		Instrument: "BTC/USDT",
 		Timestamp:  time.Now().UnixNano(),
 		IsBid:      true,
@@ -37,7 +37,7 @@ func TestAddSellOrder(t *testing.T) {
 	order := Order{
 		ID:         "2",
 		Price:      decimal.NewFromInt(200),
-		Qty:        decimal.NewFromInt(5),
+		OrderQty:   decimal.NewFromInt(5),
 		Instrument: "BTC/USDT",
 		Timestamp:  time.Now().UnixNano(),
 		IsBid:      false,
@@ -52,7 +52,7 @@ func TestCancelOrder(t *testing.T) {
 	order := Order{
 		ID:         "1",
 		Price:      decimal.NewFromInt(100),
-		Qty:        decimal.NewFromInt(10),
+		OrderQty:   decimal.NewFromInt(10),
 		Instrument: "BTC/USDT",
 		Timestamp:  time.Now().UnixNano(),
 		IsBid:      true,
@@ -60,7 +60,7 @@ func TestCancelOrder(t *testing.T) {
 	book.AddBuyOrder(order)
 
 	event := book.CancelOrder("1")
-	assert.Equal(t, "canceled", event.Type)
+	assert.Equal(t, "canceled", event.ExecType)
 	assert.Empty(t, book.Bids)
 }
 
@@ -69,17 +69,17 @@ func TestNewOrder(t *testing.T) {
 	order := model.Order{
 		ID:         "1",
 		Price:      decimal.NewFromInt(100),
-		Qty:        decimal.NewFromInt(10),
+		OrderQty:   decimal.NewFromInt(10),
 		Instrument: "BTC/USDT",
 		Timestamp:  time.Now().UnixNano(),
 		IsBid:      true,
 	}
-	events := book.OnNewOrder(order)
-	for _, event := range events {
-		assert.Equal(t, "new", event.Type)
-		assert.Equal(t, order.Instrument, event.Instrument)
-		assert.Equal(t, order.Price, event.Price)
-		assert.Equal(t, order.Qty, event.OrderQty)
+	orders := book.OnNewOrder(order)
+	for _, order = range orders {
+		assert.Equal(t, "new", order.ExecType)
+		assert.Equal(t, order.Instrument, order.Instrument)
+		assert.Equal(t, order.Price, order.Price)
+		assert.Equal(t, order.OrderQty, order.OrderQty)
 	}
 	assert.Len(t, book.Bids, 1)
 }
