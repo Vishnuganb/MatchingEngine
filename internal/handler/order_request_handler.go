@@ -53,7 +53,6 @@ func (h *OrderRequestHandler) HandleMessage(ctx context.Context, msg amqp.Delive
 	}
 	h.mu.Lock()
 	channel, exists := h.orderChannels[req.Order.Instrument]
-	_, exists = h.orderBooks[req.Order.Instrument]
 	if !exists {
 		channel = make(chan rmq.OrderRequest, 100) // Buffer size of 100
 		h.orderChannels[req.Order.Instrument] = channel
