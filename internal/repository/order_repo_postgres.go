@@ -47,7 +47,7 @@ func (r *PostgresOrderRepository) SaveOrder(ctx context.Context, order model.Ord
 
 	activeOrder, err := r.queries.CreateActiveOrder(ctx, sqlc.CreateActiveOrderParams{
 		ID:         order.ID,
-		OrderQty:        qty,
+		OrderQty:   qty,
 		LeavesQty:  leavesQty,
 		Price:      price,
 		Instrument: order.Instrument,
@@ -64,15 +64,22 @@ func (r *PostgresOrderRepository) SaveOrder(ctx context.Context, order model.Ord
 	return mappedOrder, nil
 }
 
-func (r *PostgresOrderRepository) UpdateOrder(ctx context.Context, orderID string, leavesQty decimal.Decimal) (model.Order, error) {
+func (r *PostgresOrderRepository) UpdateOrder(ctx context.Context, orderID, orderStatus, execType string, leavesQty, execQty decimal.Decimal) (model.Order, error) {
 	leavesQtyNumeric, err := decimalToPgNumeric(leavesQty)
 	if err != nil {
 		return model.Order{}, err
 	}
+	execQtyNumeric, _ := decimalToPgNumeric(execQty)
+
+	pgOrderStatus := pgtype.Text{String: orderStatus, Valid: true}
+	pgExecType := pgtype.Text{String: execType, Valid: true}
 
 	activeOrder, err := r.queries.UpdateActiveOrder(ctx, sqlc.UpdateActiveOrderParams{
-		ID:        orderID,
-		LeavesQty: leavesQtyNumeric,
+		ID:          orderID,
+		LeavesQty:   leavesQtyNumeric,
+		ExecQty:     execQtyNumeric,
+		OrderStatus: pgOrderStatus,
+		Type:        pgExecType,
 	})
 	if err != nil {
 		return model.Order{}, err
@@ -99,14 +106,21 @@ func MapActiveOrderToOrder(activeOrder sqlc.ActiveOrder) (model.Order, error) {
 	if err != nil {
 		return model.Order{}, fmt.Errorf("converting leavesQty: %w", err)
 	}
+	execQty, err := pgNumericToDecimal(activeOrder.ExecQty)
+	if err != nil {
+		return model.Order{}, fmt.Errorf("converting execQty: %w", err)
+	}
 
 	return model.Order{
-		ID:         activeOrder.ID,
-		Price:      price,
-		OrderQty:        qty,
-		Instrument: activeOrder.Instrument,
-		LeavesQty:  leavesQty,
-		IsBid:      activeOrder.Side == string(orderBook.Buy),
+		ID:          activeOrder.ID,
+		Price:       price,
+		OrderQty:    qty,
+		Instrument:  activeOrder.Instrument,
+		LeavesQty:   leavesQty,
+		IsBid:       activeOrder.Side == string(orderBook.Buy),
+		ExecType:    activeOrder.Type,
+		ExecQty:     execQty,
+		OrderStatus: activeOrder.OrderStatus,
 	}, nil
 }
 

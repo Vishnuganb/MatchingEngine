@@ -14,10 +14,10 @@ ORDER BY id;
 
 -- name: UpdateActiveOrder :one
 UPDATE active_orders
-SET side       = COALESCE(sqlc.narg(side), side),
-    order_qty        = COALESCE(sqlc.narg(order_qty), order_qty),
-    leaves_qty = COALESCE(sqlc.narg(leaves_qty), leaves_qty),
-    price      = COALESCE(sqlc.narg(price), price)
+SET type         = COALESCE(sqlc.narg(type), type),
+    leaves_qty   = COALESCE(sqlc.narg(leaves_qty), leaves_qty),
+    exec_qty     = COALESCE(sqlc.narg(exec_qty), exec_qty),
+    order_status = COALESCE(sqlc.narg(order_status), order_status)
 WHERE id = $1 RETURNING *;
 
 -- name: DeleteActiveOrder :one

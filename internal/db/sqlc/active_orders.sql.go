@@ -139,28 +139,28 @@ func (q *Queries) ListActiveOrders(ctx context.Context) ([]ActiveOrder, error) {
 
 const updateActiveOrder = `-- name: UpdateActiveOrder :one
 UPDATE active_orders
-SET side       = COALESCE($2, side),
-    order_qty        = COALESCE($3, order_qty),
-    leaves_qty = COALESCE($4, leaves_qty),
-    price      = COALESCE($5, price)
+SET type         = COALESCE($2, type),
+    leaves_qty   = COALESCE($3, leaves_qty),
+    exec_qty     = COALESCE($4, exec_qty),
+    order_status = COALESCE($5, order_status)
 WHERE id = $1 RETURNING id, side, order_qty, leaves_qty, price, instrument, type, exec_qty, order_status
 `
 
 type UpdateActiveOrderParams struct {
-	ID        string         `json:"id"`
-	Side      pgtype.Text    `json:"side"`
-	OrderQty  pgtype.Numeric `json:"order_qty"`
-	LeavesQty pgtype.Numeric `json:"leaves_qty"`
-	Price     pgtype.Numeric `json:"price"`
+	ID          string         `json:"id"`
+	Type        pgtype.Text    `json:"type"`
+	LeavesQty   pgtype.Numeric `json:"leaves_qty"`
+	ExecQty     pgtype.Numeric `json:"exec_qty"`
+	OrderStatus pgtype.Text    `json:"order_status"`
 }
 
 func (q *Queries) UpdateActiveOrder(ctx context.Context, arg UpdateActiveOrderParams) (ActiveOrder, error) {
 	row := q.db.QueryRow(ctx, updateActiveOrder,
 		arg.ID,
-		arg.Side,
-		arg.OrderQty,
+		arg.Type,
 		arg.LeavesQty,
-		arg.Price,
+		arg.ExecQty,
+		arg.OrderStatus,
 	)
 	var i ActiveOrder
 	err := row.Scan(

@@ -20,22 +20,14 @@ func (t SaveOrderTask) Execute(ctx context.Context, repo OrderRepository) error 
 }
 
 type UpdateOrderTask struct {
-	OrderID   string
-	LeavesQty decimal.Decimal
-}
-
-func (t UpdateOrderTask) Execute(ctx context.Context, repo OrderRepository) error {
-	_, err := repo.UpdateOrder(ctx, t.OrderID, t.LeavesQty)
-	return err
-}
-
-type CancelOrderTask struct {
 	OrderID     string
 	OrderStatus string
 	ExecType    string
+	LeavesQty   decimal.Decimal
+	ExecQty     decimal.Decimal
 }
 
-func (t CancelOrderTask) Execute(ctx context.Context, repo OrderRepository) error {
-	_, err := repo.UpdateOrder(ctx, t.OrderID, t.OrderStatus, t.ExecType)
+func (t UpdateOrderTask) Execute(ctx context.Context, repo OrderRepository) error {
+	_, err := repo.UpdateOrder(ctx, t.OrderID, t.OrderStatus, t.ExecType, t.LeavesQty, t.ExecQty)
 	return err
 }

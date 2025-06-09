@@ -21,7 +21,7 @@ var ErrOrderNotFound = errors.New("order not found")
 
 type OrderService interface {
 	SaveOrderAsync(order model.Order)
-	CancelOrderAsync(event model.Event)
+	UpdateOrderAsync(orderID, orderStatus, execType string, leavesQty, execQty decimal.Decimal)
 }
 
 type OrderBook interface {
@@ -116,7 +116,7 @@ func (h *OrderRequestHandler) handleCancelOrder(book *orderBook.OrderBook, req r
 
 	log.Println("CanceledEvent", canceledOrder)
 
-	h.OrderService.CancelOrderAsync(canceledOrder.ID, canceledOrder.OrderStatus, canceledOrder.ExecType)
+	h.OrderService.UpdateOrderAsync(canceledOrder.ID, canceledOrder.OrderStatus, canceledOrder.ExecType, canceledOrder.ExecQty, canceledOrder.LeavesQty)
 }
 
 func (h *OrderRequestHandler) handleServiceError(msg amqp.Delivery, err error, contextMsg string) {
