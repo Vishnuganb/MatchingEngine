@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"MatchingEngine/internal/model"
 	"context"
 	"encoding/json"
 	"testing"
@@ -18,25 +19,25 @@ type MockOrderService struct {
 	mock.Mock
 }
 
-func (m *MockOrderService) SaveOrderAndEvent(ctx context.Context, order orderBook.Order, event orderBook.Event) (orderBook.Order, orderBook.Event, error) {
-	args := m.Called(ctx, order, event)
-	return args.Get(0).(orderBook.Order), args.Get(1).(orderBook.Event), args.Error(2)
+func (m *MockOrderService) SaveOrderAsync(order model.Order) {
+	m.Called(order)
 }
 
-func (m *MockOrderService) UpdateOrderAndEvent(ctx context.Context, orderID string, leavesQty decimal.Decimal, event orderBook.Event) error {
-	args := m.Called(ctx, orderID, leavesQty, event)
-	return args.Error(2)
+func (m *MockOrderService) SaveEventAsync(event model.Event) {
+	m.Called(event)
 }
 
-func (m *MockOrderService) CancelEvent(ctx context.Context, event orderBook.Event) error {
-	args := m.Called(ctx, event)
-	return args.Error(1)
+func (m *MockOrderService) CancelEventAsync(event model.Event) {
+	m.Called(event)
+}
+
+func (m *MockOrderService) UpdateOrderAsync(orderID string, leavesQty decimal.Decimal) {
+	m.Called(orderID, leavesQty)
 }
 
 func TestHandleNewOrder(t *testing.T) {
 	mockService := new(MockOrderService)
-	book := orderBook.NewOrderBook()
-	_ = NewOrderRequestHandler(book, mockService)
+	_ = NewOrderRequestHandler(mockService)
 
 	order := orderBook.Order{
 		ID:         "1",
@@ -68,8 +69,10 @@ func TestHandleNewOrder(t *testing.T) {
 
 func TestHandleCancelOrder(t *testing.T) {
 	mockService := new(MockOrderService)
+	_ = NewOrderRequestHandler(mockService)
+
+	// Initialize the OrderBook
 	book := orderBook.NewOrderBook()
-	_ = NewOrderRequestHandler(book, mockService)
 
 	// Step 1: Create an order in memory
 	order := orderBook.Order{
@@ -82,7 +85,7 @@ func TestHandleCancelOrder(t *testing.T) {
 		IsBid:      true,
 	}
 
-	book.NewOrder(order)
+	book.AddBuyOrder(order)
 
 	// Step 2: Cancel the order
 	cancelRequest := orderBook.OrderRequest{
@@ -107,13 +110,11 @@ func TestHandleCancelOrder(t *testing.T) {
 	mockService.On("CancelEvent", mock.Anything, mock.MatchedBy(func(e orderBook.Event) bool {
 		return e.OrderID == "1" && e.Type == orderBook.EventTypeCanceled
 	})).Return(expectedEvent, nil)
-
 }
 
 func TestHandleInvalidMessage(t *testing.T) {
 	mockService := new(MockOrderService)
-	orderBook := orderBook.NewOrderBook()
-	handler := NewOrderRequestHandler(orderBook, mockService)
+	handler := NewOrderRequestHandler(mockService)
 
 	msg := amqp.Delivery{Body: []byte("invalid message")}
 
@@ -122,8 +123,7 @@ func TestHandleInvalidMessage(t *testing.T) {
 
 func TestHandleUnknownRequestType(t *testing.T) {
 	mockService := new(MockOrderService)
-	orderBook := orderBook.NewOrderBook()
-	handler := NewOrderRequestHandler(orderBook, mockService)
+	handler := NewOrderRequestHandler(mockService)
 
 	req := rmq.OrderRequest{
 		RequestType: 999, // Unknown request type
