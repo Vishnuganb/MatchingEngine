@@ -32,6 +32,7 @@ type OrderBook interface {
 
 type OrderRequestHandler struct {
 	orderBooks    map[string]*orderBook.OrderBook
+	orderChannels map[string]chan rmq.OrderRequest
 	OrderService OrderService
 	mu           sync.Mutex
 }
@@ -39,40 +40,59 @@ type OrderRequestHandler struct {
 func NewOrderRequestHandler(orderService OrderService) *OrderRequestHandler {
 	return &OrderRequestHandler{
 		orderBooks:    make(map[string]*orderBook.OrderBook),
+		orderChannels: make(map[string]chan rmq.OrderRequest),
 		OrderService: orderService,
 	}
 }
 
 func (h *OrderRequestHandler) HandleMessage(ctx context.Context, msg amqp.Delivery) {
-	start := time.Now()
 	var req rmq.OrderRequest
-	h.mu.Lock()
-	book, exists := h.orderBooks[req.Order.Instrument]
-	if !exists {
-		book = orderBook.NewOrderBook()
-		h.orderBooks[req.Order.Instrument] = book
-	}
-	h.mu.Unlock()
-
 	if err := json.Unmarshal(msg.Body, &req); err != nil {
 		h.handleFailure(msg, fmt.Errorf("invalid message format: %w", err))
 		return
 	}
-	switch req.RequestType {
-	case rmq.ReqTypeNew:
-		h.handleNewOrder(msg, book, req)
+	h.mu.Lock()
+	channel, exists := h.orderChannels[req.Order.Instrument]
+	_, exists = h.orderBooks[req.Order.Instrument]
+	if !exists {
+		channel = make(chan rmq.OrderRequest, 100) // Buffer size of 100
+		h.orderChannels[req.Order.Instrument] = channel
 
-	case rmq.ReqTypeCancel:
-		h.handleCancelOrder(msg, book, req)
-
-	default:
-		h.handleFailure(msg, fmt.Errorf("unknown request type: %v", req.RequestType))
-		return
+		// Start a worker for the instrument
+		go h.startWorker(req.Order.Instrument, channel)
 	}
-	log.Printf("Processed request of type %d in %v", req.RequestType, time.Since(start))
+	h.mu.Unlock()
+
+	// Send the request to the channel
+	channel <- req
+	if err := msg.Ack(false); err != nil {
+		log.Printf("Failed to acknowledge message: %v", err)
+	}
 }
 
-func (h *OrderRequestHandler) handleNewOrder(msg amqp.Delivery, book *orderBook.OrderBook, req rmq.OrderRequest) {
+func (h *OrderRequestHandler) startWorker(instrument string, channel chan rmq.OrderRequest) {
+	for req := range channel {
+		h.mu.Lock()
+		book, exists := h.orderBooks[instrument]
+		if !exists {
+			book = orderBook.NewOrderBook()
+			h.orderBooks[instrument] = book
+		}
+		h.mu.Unlock()
+
+		switch req.RequestType {
+		case rmq.ReqTypeNew:
+			h.handleNewOrder(book, req)
+		case rmq.ReqTypeCancel:
+			h.handleCancelOrder( book, req)
+		default:
+			log.Printf("Unknown request type: %v", req.RequestType)
+		}
+		log.Printf("Processed request of type %d", req.RequestType)
+	}
+}
+
+func (h *OrderRequestHandler) handleNewOrder(book *orderBook.OrderBook, req rmq.OrderRequest) {
 	order := model.Order{
 		ID:         req.Order.ID,
 		Price:      decimal.RequireFromString(req.Order.Price),
@@ -91,22 +111,14 @@ func (h *OrderRequestHandler) handleNewOrder(msg amqp.Delivery, book *orderBook.
 	for _, event := range events {
 		h.OrderService.SaveEventAsync(event)
 	}
-
-	if err := msg.Ack(false); err != nil {
-		log.Printf("Failed to acknowledge message: %v", err)
-	}
 }
 
-func (h *OrderRequestHandler) handleCancelOrder(msg amqp.Delivery, book *orderBook.OrderBook, req rmq.OrderRequest) {
+func (h *OrderRequestHandler) handleCancelOrder(book *orderBook.OrderBook, req rmq.OrderRequest) {
 	canceledEvent := book.CancelOrder(req.Order.ID)
 
 	log.Println("CanceledEvent", canceledEvent)
 
 	h.OrderService.CancelEventAsync(canceledEvent)
-
-	if err := msg.Ack(false); err != nil {
-		log.Printf("Failed to acknowledge message: %v", err)
-	}
 }
 
 func (h *OrderRequestHandler) handleServiceError(msg amqp.Delivery, err error, contextMsg string) {
