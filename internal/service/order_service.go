@@ -9,10 +9,10 @@ import (
 )
 
 type OrderService struct {
-	asyncWriter *repository.AsyncDBWriter
+	asyncWriter repository.AsyncDBWriterInterface
 }
 
-func NewOrderService(asyncWriter *repository.AsyncDBWriter) *OrderService {
+func NewOrderService(asyncWriter repository.AsyncDBWriterInterface) *OrderService {
 	return &OrderService{
 		asyncWriter: asyncWriter,
 	}

@@ -6,6 +6,10 @@ import (
 	"time"
 )
 
+type AsyncDBWriterInterface interface {
+	EnqueueTask(task DBTask)
+}
+
 type AsyncDBWriter struct {
 	taskChannel chan DBTask
 	repo        *PostgresOrderRepository
