@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"sync"
 	"time"
 
 	"github.com/shopspring/decimal"
@@ -30,13 +31,14 @@ type OrderBook interface {
 }
 
 type OrderRequestHandler struct {
-	OrderBook    OrderBook
+	orderBooks    map[string]*orderBook.OrderBook
 	OrderService OrderService
+	mu           sync.Mutex
 }
 
-func NewOrderRequestHandler(orderBook OrderBook, orderService OrderService) *OrderRequestHandler {
+func NewOrderRequestHandler(orderService OrderService) *OrderRequestHandler {
 	return &OrderRequestHandler{
-		OrderBook:    orderBook,
+		orderBooks:    make(map[string]*orderBook.OrderBook),
 		OrderService: orderService,
 	}
 }
@@ -44,16 +46,24 @@ func NewOrderRequestHandler(orderBook OrderBook, orderService OrderService) *Ord
 func (h *OrderRequestHandler) HandleMessage(ctx context.Context, msg amqp.Delivery) {
 	start := time.Now()
 	var req rmq.OrderRequest
+	h.mu.Lock()
+	book, exists := h.orderBooks[req.Order.Instrument]
+	if !exists {
+		book = orderBook.NewOrderBook()
+		h.orderBooks[req.Order.Instrument] = book
+	}
+	h.mu.Unlock()
+
 	if err := json.Unmarshal(msg.Body, &req); err != nil {
 		h.handleFailure(msg, fmt.Errorf("invalid message format: %w", err))
 		return
 	}
 	switch req.RequestType {
 	case rmq.ReqTypeNew:
-		h.handleNewOrder(msg, req)
+		h.handleNewOrder(msg, book, req)
 
 	case rmq.ReqTypeCancel:
-		h.handleCancelOrder(msg, req)
+		h.handleCancelOrder(msg, book, req)
 
 	default:
 		h.handleFailure(msg, fmt.Errorf("unknown request type: %v", req.RequestType))
@@ -62,7 +72,7 @@ func (h *OrderRequestHandler) HandleMessage(ctx context.Context, msg amqp.Delive
 	log.Printf("Processed request of type %d in %v", req.RequestType, time.Since(start))
 }
 
-func (h *OrderRequestHandler) handleNewOrder(msg amqp.Delivery, req rmq.OrderRequest) {
+func (h *OrderRequestHandler) handleNewOrder(msg amqp.Delivery, book *orderBook.OrderBook, req rmq.OrderRequest) {
 	order := model.Order{
 		ID:         req.Order.ID,
 		Price:      decimal.RequireFromString(req.Order.Price),
@@ -75,7 +85,7 @@ func (h *OrderRequestHandler) handleNewOrder(msg amqp.Delivery, req rmq.OrderReq
 	// Save the order and generate events
 	h.OrderService.SaveOrderAsync(order)
 
-	events := h.OrderBook.OnNewOrder(order)
+	events := book.OnNewOrder(order)
 
 	// Save each event
 	for _, event := range events {
@@ -87,8 +97,8 @@ func (h *OrderRequestHandler) handleNewOrder(msg amqp.Delivery, req rmq.OrderReq
 	}
 }
 
-func (h *OrderRequestHandler) handleCancelOrder(msg amqp.Delivery, req rmq.OrderRequest) {
-	canceledEvent := h.OrderBook.CancelOrder(req.Order.ID)
+func (h *OrderRequestHandler) handleCancelOrder(msg amqp.Delivery, book *orderBook.OrderBook, req rmq.OrderRequest) {
+	canceledEvent := book.CancelOrder(req.Order.ID)
 
 	log.Println("CanceledEvent", canceledEvent)
 
