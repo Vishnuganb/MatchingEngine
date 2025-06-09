@@ -1,17 +1,21 @@
 package orderBook
 
 import (
-	"MatchingEngine/internal/kafka"
 	"MatchingEngine/internal/model"
+	"encoding/json"
 	"github.com/shopspring/decimal"
 	"log"
 )
+
+type EventNotifier interface {
+	NotifyEventAndOrder(orderID string, value json.RawMessage) error
+}
 
 type OrderBook struct {
 	Bids          []Order `json:"bids"`
 	Asks          []Order `json:"asks"`
 	Events        []Event `json:"events"`
-	KafkaProducer kafka.EventNotifier
+	KafkaProducer EventNotifier
 }
 
 func NewOrderBook() *OrderBook {
