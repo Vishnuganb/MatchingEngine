@@ -25,8 +25,8 @@ type OrderService interface {
 }
 
 type OrderBook interface {
-	OnNewOrder(order model.Order) model.Events
-	CancelOrder(orderID string) model.Event
+	OnNewOrder(order model.Order) model.Orders
+	CancelOrder(orderID string) model.Order
 }
 
 type OrderRequestHandler struct {
@@ -103,18 +103,13 @@ func (h *OrderRequestHandler) handleNewOrder(book *orderBook.OrderBook, req rmq.
 	// Save the order and generate events
 	h.OrderService.SaveOrderAsync(order)
 
-	orders := book.OnNewOrder(order)
-
-	// Save each event
-	for _, order := range orders {
-		h.OrderService.SaveOrderAsync(order)
-	}
+	_ = book.OnNewOrder(order)
 }
 
 func (h *OrderRequestHandler) handleCancelOrder(book *orderBook.OrderBook, req rmq.OrderRequest) {
 	canceledOrder := book.CancelOrder(req.Order.ID)
 
-	log.Println("CanceledEvent", canceledOrder)
+	log.Println("CanceledOrder", canceledOrder)
 
 	h.OrderService.UpdateOrderAsync(canceledOrder.ID, canceledOrder.OrderStatus, canceledOrder.ExecType, canceledOrder.ExecQty, canceledOrder.LeavesQty)
 }

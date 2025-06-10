@@ -27,7 +27,7 @@ func TestSaveOrderAsync(t *testing.T) {
 		ID:         "1",
 		Instrument: "BTC/USDT",
 		Price:      decimal.NewFromInt(100),
-		Qty:        decimal.NewFromInt(10),
+		OrderQty:   decimal.NewFromInt(10),
 		LeavesQty:  decimal.NewFromInt(10),
 		Timestamp:  time.Now().UnixNano(),
 		IsBid:      true,
@@ -46,31 +46,13 @@ func TestUpdateOrderAsync(t *testing.T) {
 
 	orderID := "1"
 	leavesQty := decimal.NewFromInt(5)
+	execQty := decimal.NewFromInt(10)
+	orderStatus := "partially_fill"
+	execType := "fill"
 
-	mockWriter.On("EnqueueTask", repository.UpdateOrderTask{OrderID: orderID, LeavesQty: leavesQty}).Return()
+	mockWriter.On("EnqueueTask", repository.UpdateOrderTask{OrderID: orderID, LeavesQty: leavesQty, OrderStatus: orderStatus, ExecQty: execQty, ExecType: execType}).Return()
 
-	orderService.UpdateOrderAsync(orderID, leavesQty)
+	orderService.UpdateOrderAsync(orderID, orderStatus, execType, leavesQty, execQty)
 
-	mockWriter.AssertCalled(t, "EnqueueTask", repository.UpdateOrderTask{OrderID: orderID, LeavesQty: leavesQty})
-}
-
-func TestCancelEventAsync(t *testing.T) {
-	mockWriter := new(MockAsyncDBWriter)
-	orderService := NewOrderService(mockWriter)
-
-	event := model.Event{
-		ID:         "event-1",
-		OrderID:    "1",
-		Instrument: "BTC/USDT",
-		Type:       "canceled",
-		OrderQty:   decimal.NewFromInt(10),
-		LeavesQty:  decimal.Zero,
-		Price:      decimal.NewFromInt(100),
-	}
-
-	mockWriter.On("EnqueueTask", repository.CancelEventTask{Event: event}).Return()
-
-	orderService.CancelEventAsync(event)
-
-	mockWriter.AssertCalled(t, "EnqueueTask", repository.CancelEventTask{Event: event})
+	mockWriter.AssertCalled(t, "EnqueueTask", repository.UpdateOrderTask{OrderID: orderID, LeavesQty: leavesQty, OrderStatus: orderStatus, ExecQty: execQty, ExecType: execType})
 }

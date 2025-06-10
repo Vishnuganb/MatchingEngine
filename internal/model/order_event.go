@@ -16,18 +16,3 @@ type Order struct {
 }
 
 type Orders []Order
-
-type Events []Event
-
-type Event struct {
-	ID         string          `json:"id"`
-	OrderID    string          `json:"order_id"`
-	Instrument string          `json:"instrument"`
-	Timestamp  int64           `json:"timestamp"`
-	Type       string          `json:"type"`
-	Side       string          `json:"side"`
-	Price      decimal.Decimal `json:"price"`
-	OrderQty   decimal.Decimal `json:"order_qty"`
-	LeavesQty  decimal.Decimal `json:"leaves_qty"`
-	ExecQty    decimal.Decimal `json:"exec_qty"`
-}

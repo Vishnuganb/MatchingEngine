@@ -37,7 +37,7 @@ func (book *OrderBook) processOrder(order *Order, isBuy bool) []Trade {
 	var trades []Trade
 	order.LeavesQty = order.OrderQty
 
-	// Try to match against best available orders
+	// Try to match against the best available orders
 	for len(*matchingOrders) > 0 && order.LeavesQty.IsPositive() {
 		matchingOrder := (*matchingOrders)[0]
 

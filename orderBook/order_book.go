@@ -32,7 +32,7 @@ func (book *OrderBook) OnNewOrder(modelOrder model.Order) model.Orders {
 	order := mapModelOrderToOrderBookOrder(modelOrder)
 	if order.IsBid {
 		trades = book.processBuyOrder(&order)
-		log.Println("orderbook", trades)
+		log.Println("Trades", trades)
 	} else {
 		trades = book.processSellOrder(&order)
 	}

@@ -2,6 +2,7 @@ package orderBook
 
 import (
 	"MatchingEngine/internal/model"
+	"log"
 	"testing"
 	"time"
 
@@ -75,6 +76,7 @@ func TestNewOrder(t *testing.T) {
 		IsBid:      true,
 	}
 	orders := book.OnNewOrder(order)
+	log.Println(orders)
 	for _, order = range orders {
 		assert.Equal(t, "new", order.ExecType)
 		assert.Equal(t, order.Instrument, order.Instrument)

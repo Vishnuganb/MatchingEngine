@@ -9,6 +9,7 @@ import (
 type EventType string
 
 const (
+	EventTypePendingNew     EventType = "pending_new"
 	EventTypeNew         EventType = "new"
 	EventTypeFill        EventType = "fill"
 	EventTypePartialFill EventType = "partial_fill"
@@ -39,23 +40,24 @@ func (o *Order) Side() Side {
 	return Sell
 }
 
-func newBaseOrder(t EventType, orderID string, side Side) Order {
+func newBaseOrder(t EventType, orderID string, price decimal.Decimal) Order {
 	o := Order{
 		ID:        orderID,
 		Timestamp: time.Now().UnixNano(),
 		ExecType:  t,
+		Price:     price,
 	}
 	return o
 }
 
 func newBaseOrderEvent(t EventType, order *Order) Order {
-	o := newBaseOrder(t, order.ID, order.Side())
+	o := newBaseOrder(t, order.ID, order.Price)
 	o.OrderQty = order.OrderQty
 	o.LeavesQty = order.LeavesQty
 	if o.Price.IsPositive() {
 		o.Price = order.Price
 	}
-	if o.Instrument != "" {
+	if o.Instrument == "" {
 		o.Instrument = order.Instrument
 	}
 	return o
@@ -80,14 +82,16 @@ func newFillOrderEvent(order *Order, qty, tradePrice decimal.Decimal) Order {
 
 func newCanceledOrderEvent(order *Order) Order {
 	o := newBaseOrderEvent(EventTypeCanceled, order)
-	o.LeavesQty = decimal.Zero
+	zero := decimal.Zero
+	o.LeavesQty = zero
 	return o
 }
 
 func newRejectedOrderEvent(or *OrderRequest) Order {
-	o := newBaseOrder(EventTypeRejected, or.ID, or.Side)
+	o := newBaseOrder(EventTypeRejected, or.ID, or.Price)
 	o.OrderQty = or.Qty
-	o.LeavesQty = decimal.Zero
+	zero := decimal.Zero
+	o.LeavesQty = zero
 	return o
 }
 

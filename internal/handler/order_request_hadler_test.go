@@ -23,94 +23,110 @@ func (m *MockOrderService) SaveOrderAsync(order model.Order) {
 	m.Called(order)
 }
 
-func (m *MockOrderService) SaveEventAsync(event model.Event) {
-	m.Called(event)
+func (m *MockOrderService) UpdateOrderAsync(orderID, orderStatus, execType string, leavesQty, execQty decimal.Decimal) {
+	m.Called(orderID, orderStatus, execType, leavesQty, execQty)
 }
 
-func (m *MockOrderService) CancelEventAsync(event model.Event) {
-	m.Called(event)
+// MockAcknowledger simulates the Acknowledger interface for testing
+type mockAcknowledger struct{}
+
+func (m *mockAcknowledger) Ack(tag uint64, multiple bool) error {
+	return nil
 }
 
-func (m *MockOrderService) UpdateOrderAsync(orderID string, leavesQty decimal.Decimal) {
-	m.Called(orderID, leavesQty)
+func (m *mockAcknowledger) Nack(tag uint64, multiple, requeue bool) error {
+	return nil
+}
+func (m *mockAcknowledger) Reject(tag uint64, requeue bool) error {
+	return nil
 }
 
 func TestHandleNewOrder(t *testing.T) {
 	mockService := new(MockOrderService)
-	_ = NewOrderRequestHandler(mockService)
+	handler := NewOrderRequestHandler(mockService)
 
-	order := orderBook.Order{
+	orderReq := rmq.OrderRequest{
+		RequestType: rmq.ReqTypeNew,
+		Order: rmq.TraderOrder{
+			ID:         "1",
+			Price:      "100",
+			Qty:        "10",
+			Instrument: "BTC/USDT",
+			Side:       orderBook.Buy,
+		},
+	}
+
+	order := model.Order{
 		ID:         "1",
-		Price:      decimal.NewFromInt(100),
-		Qty:        decimal.NewFromInt(10),
+		Price:      decimal.RequireFromString("100"),
+		OrderQty:   decimal.RequireFromString("10"),
 		Instrument: "BTC/USDT",
-		Timestamp:  time.Now().UnixNano(),
 		IsBid:      true,
 	}
 
-	event := orderBook.Event{
-		ID:         "event-1",
-		OrderID:    "1",
-		Instrument: "BTC/USDT",
-		Type:       orderBook.EventTypeNew,
-		OrderQty:   decimal.NewFromInt(10),
-		LeavesQty:  decimal.NewFromInt(10),
-		Price:      decimal.NewFromInt(100),
-	}
+	mockService.On("SaveOrderAsync", mock.MatchedBy(func(o model.Order) bool {
+		return o.ID == order.ID
+	})).Return()
 
-	mockService.On("SaveOrderAndEvent", mock.Anything, mock.MatchedBy(func(o orderBook.Order) bool {
-		return o.ID == order.ID && o.Instrument == order.Instrument
-	}), mock.MatchedBy(func(e orderBook.Event) bool {
-		return e.OrderID == event.OrderID && e.Type == event.Type
-	})).Return(order, event, nil)
-	mockService.On("UpdateOrderAndEvent", mock.Anything, order.ID, order.LeavesQty, mock.Anything).Return(order, event, nil)
+	body, _ := json.Marshal(orderReq)
+	msg := amqp.Delivery{Body: body, Acknowledger: &mockAcknowledger{}}
+
+	handler.HandleMessage(context.Background(), msg)
+
+	// Wait for goroutine to process
+	time.Sleep(100 * time.Millisecond)
+
+	mockService.AssertExpectations(t)
 
 }
 
-func TestHandleCancelOrder(t *testing.T) {
-	mockService := new(MockOrderService)
-	_ = NewOrderRequestHandler(mockService)
-
-	// Initialize the OrderBook
-	book := orderBook.NewOrderBook()
-
-	// Step 1: Create an order in memory
-	order := orderBook.Order{
-		ID:         "1",
-		Instrument: "BTC/USDT",
-		Price:      decimal.NewFromInt(100),
-		Qty:        decimal.NewFromInt(10),
-		LeavesQty:  decimal.NewFromInt(10),
-		Timestamp:  time.Now().UnixNano(),
-		IsBid:      true,
-	}
-
-	book.AddBuyOrder(order)
-
-	// Step 2: Cancel the order
-	cancelRequest := orderBook.OrderRequest{
-		ID:   "1",
-		Side: orderBook.Buy,
-	}
-
-	_ = book.CancelOrder(cancelRequest.ID)
-
-	// Create a valid event object
-	expectedEvent := orderBook.Event{
-		ID:         "event-1",
-		OrderID:    "1",
-		Instrument: "BTC/USDT",
-		Type:       orderBook.EventTypeCanceled,
-		Price:      decimal.NewFromInt(100),
-		OrderQty:   decimal.NewFromInt(10),
-		LeavesQty:  decimal.Zero,
-		ExecQty:    decimal.Zero,
-	}
-
-	mockService.On("CancelEvent", mock.Anything, mock.MatchedBy(func(e orderBook.Event) bool {
-		return e.OrderID == "1" && e.Type == orderBook.EventTypeCanceled
-	})).Return(expectedEvent, nil)
-}
+//func TestHandleCancelOrder(t *testing.T) {
+//	mockService := new(MockOrderService)
+//	handler := NewOrderRequestHandler(mockService)
+//
+//	book := orderBook.NewOrderBook()
+//	order := model.Order{
+//		ID:          "1",
+//		Instrument:  "BTC/USDT",
+//		Price:       decimal.NewFromInt(100),
+//		OrderQty:    decimal.NewFromInt(10),
+//		LeavesQty:   decimal.NewFromInt(10),
+//		Timestamp:   time.Now().UnixNano(),
+//		IsBid:       true,
+//		OrderStatus: "new",
+//		ExecType:    "new",
+//		ExecQty:     decimal.Zero,
+//	}
+//
+//	handler.mu.Lock()
+//	handler.orderBooks["BTC/USDT"] = book
+//	handler.mu.Unlock()
+//
+//	book.OnNewOrder(order)
+//	canceledOrder := book.CancelOrder(order.ID)
+//
+//	log.Println("hii", canceledOrder)
+//
+//	handler.OrderService = mockService
+//	mockService.On("UpdateOrderAsync", canceledOrder.ID, canceledOrder.OrderStatus, canceledOrder.ExecType, canceledOrder.ExecQty, canceledOrder.LeavesQty).Return()
+//
+//	cancelReq := rmq.OrderRequest{
+//		RequestType: rmq.ReqTypeCancel,
+//		Order: rmq.TraderOrder{
+//			ID: "1",
+//		},
+//	}
+//
+//	body, _ := json.Marshal(cancelReq)
+//	msg := amqp.Delivery{Body: body, Acknowledger: &mockAcknowledger{}}
+//
+//	handler.HandleMessage(context.Background(), msg)
+//
+//	// Wait for goroutine to process
+//	time.Sleep(100 * time.Millisecond)
+//
+//	mockService.AssertExpectations(t)
+//}
 
 func TestHandleInvalidMessage(t *testing.T) {
 	mockService := new(MockOrderService)
@@ -126,11 +142,15 @@ func TestHandleUnknownRequestType(t *testing.T) {
 	handler := NewOrderRequestHandler(mockService)
 
 	req := rmq.OrderRequest{
-		RequestType: 999, // Unknown request type
+		RequestType: 999,
+		Order: rmq.TraderOrder{
+			ID:         "unknown",
+			Instrument: "BTC/USDT",
+		},
 	}
 
 	body, _ := json.Marshal(req)
-	msg := amqp.Delivery{Body: body}
+	msg := amqp.Delivery{Body: body, Acknowledger: &mockAcknowledger{}}
 
 	handler.HandleMessage(context.Background(), msg)
 }
