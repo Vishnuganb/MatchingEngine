@@ -155,6 +155,7 @@ func mapOrderBookOrderToModelOrder(order Order) model.Order {
 		OrderQty:   order.OrderQty,
 		LeavesQty:  order.LeavesQty,
 		ExecQty:    order.ExecQty,
+		OrderStatus: string(order.OrderStatus),
 	}
 }
 
@@ -171,6 +172,7 @@ func mapOrderBookOrdersToModelOrders(orders Orders) model.Orders {
 			OrderQty:   order.OrderQty,
 			LeavesQty:  order.LeavesQty,
 			ExecQty:    order.ExecQty,
+			OrderStatus: string(order.OrderStatus),
 		}
 	}
 	return mappedEvents
@@ -187,5 +189,6 @@ func mapModelOrderToOrderBookOrder(order model.Order) Order {
 		OrderQty:   order.OrderQty,
 		LeavesQty:  order.LeavesQty,
 		ExecQty:    order.ExecQty,
+		OrderStatus: EventType(order.OrderStatus),
 	}
 }

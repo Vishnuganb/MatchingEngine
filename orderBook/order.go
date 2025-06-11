@@ -66,15 +66,16 @@ func newBaseOrderEvent(t EventType, order *Order) Order {
 func newOrderEvent(order *Order) Order {
 	o := newBaseOrderEvent(EventTypeNew, order)
 	o.ExecQty = decimal.Zero
+	o.OrderStatus = EventTypeNew
 	return o
 }
 
 func newFillOrderEvent(order *Order, qty, tradePrice decimal.Decimal) Order {
-	typ := EventTypeFill
+	o := newBaseOrderEvent(EventTypeFill, order)
+	o.OrderStatus = EventTypeFill
 	if order.LeavesQty.IsPositive() {
-		typ = EventTypePartialFill
+		o.OrderStatus = EventTypePartialFill
 	}
-	o := newBaseOrderEvent(typ, order)
 	o.ExecQty = qty
 	if tradePrice.GreaterThan(o.Price) {
 		o.Price = tradePrice
@@ -85,6 +86,7 @@ func newFillOrderEvent(order *Order, qty, tradePrice decimal.Decimal) Order {
 func newCanceledOrderEvent(order *Order) Order {
 	o := newBaseOrderEvent(EventTypeCanceled, order)
 	o.LeavesQty = decimal.Zero
+	o.OrderStatus = EventTypeCanceled
 	return o
 }
 
@@ -92,6 +94,7 @@ func newRejectedOrderEvent(or *OrderRequest) Order {
 	o := newBaseOrder(EventTypeRejected, or.ID, or.Price, or.Side== Buy)
 	o.OrderQty = or.Qty
 	o.LeavesQty = decimal.Zero
+	o.OrderStatus = EventTypeRejected
 	return o
 }
 

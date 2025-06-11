@@ -97,6 +97,7 @@ func (h *OrderRequestHandler) handleNewOrder(book *orderBook.OrderBook, req rmq.
 		OrderQty:   decimal.RequireFromString(req.Order.Qty),
 		Instrument: req.Order.Instrument,
 		Timestamp:  time.Now().UnixNano(),
+		OrderStatus: "pending_new",
 		IsBid:      req.Order.Side == orderBook.Buy,
 	}
 

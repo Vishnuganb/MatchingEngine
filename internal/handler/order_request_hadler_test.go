@@ -62,10 +62,16 @@ func TestHandleNewOrder(t *testing.T) {
 		OrderQty:   decimal.RequireFromString("10"),
 		Instrument: "BTC/USDT",
 		IsBid:      true,
+		OrderStatus: "pending_new",
 	}
 
 	mockService.On("SaveOrderAsync", mock.MatchedBy(func(o model.Order) bool {
-		return o.ID == order.ID
+		return o.ID == order.ID &&
+			o.Price.Equal(order.Price) &&
+			o.OrderQty.Equal(order.OrderQty) &&
+			o.Instrument == order.Instrument &&
+			o.IsBid == order.IsBid &&
+			o.OrderStatus == order.OrderStatus
 	})).Return()
 
 	body, _ := json.Marshal(orderReq)
@@ -87,7 +93,7 @@ func TestHandleCancelOrder(t *testing.T) {
 	// Set up the mock expectation first
 	mockService.On("UpdateOrderAsync",
 		"1",                  // orderID
-		"",           // orderStatus
+		"canceled",           // orderStatus
 		"canceled",           // execType
 		decimal.Zero,         // leavesQty
 		decimal.Zero,         // execQty
@@ -103,7 +109,7 @@ func TestHandleCancelOrder(t *testing.T) {
 		LeavesQty:   decimal.NewFromInt(10),
 		Timestamp:   time.Now().UnixNano(),
 		IsBid:       true,
-		OrderStatus: "new",
+		OrderStatus: "pending_new",
 		ExecType:    "new",
 		ExecQty:     decimal.Zero,
 	}
