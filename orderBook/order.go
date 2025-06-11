@@ -9,7 +9,7 @@ import (
 type EventType string
 
 const (
-	EventTypePendingNew     EventType = "pending_new"
+	EventTypePendingNew  EventType = "pending_new"
 	EventTypeNew         EventType = "new"
 	EventTypeFill        EventType = "fill"
 	EventTypePartialFill EventType = "partial_fill"
@@ -21,13 +21,13 @@ type Order struct {
 	ID            string          `json:"id"`
 	Instrument    string          `json:"instrument"`
 	Price         decimal.Decimal `json:"price"`
-	OrderQty      decimal.Decimal `json:"order_qty,omitempty"`
+	OrderQty      decimal.Decimal `json:"order_qty"`
 	LeavesQty     decimal.Decimal `json:"leaves_qty"`
 	Timestamp     int64           `json:"timestamp"`
 	IsBid         bool            `json:"is_bid"`
-	OrderStatus   EventType       `json:"order_status,omitempty"`
-	ExecType      EventType       `json:"exec_type,omitempty"`
-	ExecQty       decimal.Decimal `json:"exec_qty,omitempty"`
+	OrderStatus   EventType       `json:"order_status"`
+	ExecType      EventType       `json:"exec_type"`
+	ExecQty       decimal.Decimal `json:"exec_qty"`
 	KafkaProducer EventNotifier
 }
 
@@ -40,31 +40,33 @@ func (o *Order) Side() Side {
 	return Sell
 }
 
-func newBaseOrder(t EventType, orderID string, price decimal.Decimal) Order {
+func newBaseOrder(t EventType, orderID string, price decimal.Decimal, isBid bool) Order {
 	o := Order{
 		ID:        orderID,
 		Timestamp: time.Now().UnixNano(),
 		ExecType:  t,
 		Price:     price,
+		IsBid:     isBid,
 	}
 	return o
 }
 
 func newBaseOrderEvent(t EventType, order *Order) Order {
-	o := newBaseOrder(t, order.ID, order.Price)
+	o := newBaseOrder(t, order.ID, order.Price, order.IsBid)
 	o.OrderQty = order.OrderQty
 	o.LeavesQty = order.LeavesQty
 	if o.Price.IsPositive() {
 		o.Price = order.Price
 	}
-	if o.Instrument == "" {
-		o.Instrument = order.Instrument
-	}
+	o.ExecQty = order.ExecQty
+	o.Instrument = order.Instrument
 	return o
 }
 
-func newOrderEvent(o *Order) Order {
-	return newBaseOrderEvent(EventTypeNew, o)
+func newOrderEvent(order *Order) Order {
+	o := newBaseOrderEvent(EventTypeNew, order)
+	o.ExecQty = decimal.Zero
+	return o
 }
 
 func newFillOrderEvent(order *Order, qty, tradePrice decimal.Decimal) Order {
@@ -82,16 +84,14 @@ func newFillOrderEvent(order *Order, qty, tradePrice decimal.Decimal) Order {
 
 func newCanceledOrderEvent(order *Order) Order {
 	o := newBaseOrderEvent(EventTypeCanceled, order)
-	zero := decimal.Zero
-	o.LeavesQty = zero
+	o.LeavesQty = decimal.Zero
 	return o
 }
 
 func newRejectedOrderEvent(or *OrderRequest) Order {
-	o := newBaseOrder(EventTypeRejected, or.ID, or.Price)
+	o := newBaseOrder(EventTypeRejected, or.ID, or.Price, or.Side== Buy)
 	o.OrderQty = or.Qty
-	zero := decimal.Zero
-	o.LeavesQty = zero
+	o.LeavesQty = decimal.Zero
 	return o
 }
 

@@ -80,53 +80,62 @@ func TestHandleNewOrder(t *testing.T) {
 
 }
 
-//func TestHandleCancelOrder(t *testing.T) {
-//	mockService := new(MockOrderService)
-//	handler := NewOrderRequestHandler(mockService)
-//
-//	book := orderBook.NewOrderBook()
-//	order := model.Order{
-//		ID:          "1",
-//		Instrument:  "BTC/USDT",
-//		Price:       decimal.NewFromInt(100),
-//		OrderQty:    decimal.NewFromInt(10),
-//		LeavesQty:   decimal.NewFromInt(10),
-//		Timestamp:   time.Now().UnixNano(),
-//		IsBid:       true,
-//		OrderStatus: "new",
-//		ExecType:    "new",
-//		ExecQty:     decimal.Zero,
-//	}
-//
-//	handler.mu.Lock()
-//	handler.orderBooks["BTC/USDT"] = book
-//	handler.mu.Unlock()
-//
-//	book.OnNewOrder(order)
-//	canceledOrder := book.CancelOrder(order.ID)
-//
-//	log.Println("hii", canceledOrder)
-//
-//	handler.OrderService = mockService
-//	mockService.On("UpdateOrderAsync", canceledOrder.ID, canceledOrder.OrderStatus, canceledOrder.ExecType, canceledOrder.ExecQty, canceledOrder.LeavesQty).Return()
-//
-//	cancelReq := rmq.OrderRequest{
-//		RequestType: rmq.ReqTypeCancel,
-//		Order: rmq.TraderOrder{
-//			ID: "1",
-//		},
-//	}
-//
-//	body, _ := json.Marshal(cancelReq)
-//	msg := amqp.Delivery{Body: body, Acknowledger: &mockAcknowledger{}}
-//
-//	handler.HandleMessage(context.Background(), msg)
-//
-//	// Wait for goroutine to process
-//	time.Sleep(100 * time.Millisecond)
-//
-//	mockService.AssertExpectations(t)
-//}
+func TestHandleCancelOrder(t *testing.T) {
+	mockService := new(MockOrderService)
+	handler := NewOrderRequestHandler(mockService)
+
+	// Set up the mock expectation first
+	mockService.On("UpdateOrderAsync",
+		"1",                  // orderID
+		"",           // orderStatus
+		"canceled",           // execType
+		decimal.Zero,         // leavesQty
+		decimal.Zero,         // execQty
+	).Return()
+
+	// Create and initialize the order book
+	book := orderBook.NewOrderBook()
+	order := model.Order{
+		ID:          "1",
+		Instrument:  "BTC/USDT",
+		Price:       decimal.NewFromInt(100),
+		OrderQty:    decimal.NewFromInt(10),
+		LeavesQty:   decimal.NewFromInt(10),
+		Timestamp:   time.Now().UnixNano(),
+		IsBid:       true,
+		OrderStatus: "new",
+		ExecType:    "new",
+		ExecQty:     decimal.Zero,
+	}
+
+	// Set the order book and service in the handler
+	handler.mu.Lock()
+	handler.orderBooks["BTC/USDT"] = book
+	handler.OrderService = mockService
+	handler.mu.Unlock()
+
+	// Add the order to the book
+	book.OnNewOrder(order)
+
+	// Create and send the cancel request
+	cancelReq := rmq.OrderRequest{
+		RequestType: rmq.ReqTypeCancel,
+		Order: rmq.TraderOrder{
+			ID:         "1",
+			Instrument: "BTC/USDT",
+		},
+	}
+
+	body, _ := json.Marshal(cancelReq)
+	msg := amqp.Delivery{Body: body, Acknowledger: &mockAcknowledger{}}
+
+	handler.HandleMessage(context.Background(), msg)
+
+	// Wait for goroutine to process
+	time.Sleep(100 * time.Millisecond)
+
+	mockService.AssertExpectations(t)
+}
 
 func TestHandleInvalidMessage(t *testing.T) {
 	mockService := new(MockOrderService)

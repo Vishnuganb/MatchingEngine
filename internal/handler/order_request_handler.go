@@ -111,7 +111,7 @@ func (h *OrderRequestHandler) handleCancelOrder(book *orderBook.OrderBook, req r
 
 	log.Println("CanceledOrder", canceledOrder)
 
-	h.OrderService.UpdateOrderAsync(canceledOrder.ID, canceledOrder.OrderStatus, canceledOrder.ExecType, canceledOrder.ExecQty, canceledOrder.LeavesQty)
+	h.OrderService.UpdateOrderAsync(canceledOrder.ID, canceledOrder.OrderStatus, canceledOrder.ExecType, canceledOrder.LeavesQty, canceledOrder.ExecQty)
 }
 
 func (h *OrderRequestHandler) handleServiceError(msg amqp.Delivery, err error, contextMsg string) {
