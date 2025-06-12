@@ -2,8 +2,12 @@ package orderBook
 
 import (
 	"encoding/json"
-	"github.com/shopspring/decimal"
+	"log"
 	"time"
+
+	"github.com/shopspring/decimal"
+
+	"MatchingEngine/internal/model"
 )
 
 type EventType string
@@ -67,6 +71,7 @@ func newOrderEvent(order *Order) Order {
 	o := newBaseOrderEvent(EventTypeNew, order)
 	o.ExecQty = decimal.Zero
 	o.OrderStatus = EventTypeNew
+	o.publishEvent(EventTypeNew)
 	return o
 }
 
@@ -80,6 +85,7 @@ func newFillOrderEvent(order *Order, qty, tradePrice decimal.Decimal) Order {
 	if tradePrice.GreaterThan(o.Price) {
 		o.Price = tradePrice
 	}
+	o.publishEvent(o.OrderStatus)
 	return o
 }
 
@@ -87,24 +93,42 @@ func newCanceledOrderEvent(order *Order) Order {
 	o := newBaseOrderEvent(EventTypeCanceled, order)
 	o.LeavesQty = decimal.Zero
 	o.OrderStatus = EventTypeCanceled
+	o.publishEvent(EventTypeCanceled)
 	return o
 }
 
 func newRejectedOrderEvent(or *OrderRequest) Order {
-	o := newBaseOrder(EventTypeRejected, or.ID, or.Price, or.Side== Buy)
+	o := newBaseOrder(EventTypeRejected, or.ID, or.Price, or.Side == Buy)
 	o.OrderQty = or.Qty
 	o.LeavesQty = decimal.Zero
 	o.OrderStatus = EventTypeRejected
+	o.publishEvent(EventTypeRejected)
 	return o
 }
 
-func (o *Order) publishExecutionReport(order Order) {
-	// Handle Event object
-	if o.KafkaProducer != nil {
-		eventJSON, _ := json.Marshal(order)
-		err := o.KafkaProducer.NotifyEventAndTrade(order.ID, eventJSON)
-		if err != nil {
-			return
-		}
+// In Order struct methods where you want to publish events
+func (o *Order) publishEvent(eventType EventType) {
+	event := model.OrderEvent{
+		EventType:   string(eventType),
+		OrderID:     o.ID,
+		Instrument:  o.Instrument,
+		Price:       o.Price,
+		Quantity:    o.OrderQty,
+		LeavesQty:   o.LeavesQty,
+		ExecQty:     o.ExecQty,
+		IsBid:       o.IsBid,
+		OrderStatus: string(o.OrderStatus),
+		ExecType:    string(o.ExecType),
+		Timestamp:   time.Now(),
+	}
+
+	eventJSON, err := json.Marshal(event)
+	if err != nil {
+		log.Printf("Error marshaling event: %v", err)
+		return
+	}
+
+	if err := o.KafkaProducer.NotifyEventAndTrade(o.ID, eventJSON); err != nil {
+		log.Printf("Error publishing event: %v", err)
 	}
 }

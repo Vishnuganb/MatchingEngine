@@ -2,11 +2,11 @@ package repository
 
 import (
 	"context"
-	"github.com/jackc/pgx/v5/pgtype"
 	"testing"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"

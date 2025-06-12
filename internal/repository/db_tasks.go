@@ -1,9 +1,11 @@
 package repository
 
 import (
-	"MatchingEngine/internal/model"
 	"context"
+
 	"github.com/shopspring/decimal"
+
+	"MatchingEngine/internal/model"
 )
 
 type DBTask interface {

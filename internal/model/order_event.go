@@ -1,6 +1,10 @@
 package model
 
-import "github.com/shopspring/decimal"
+import (
+	"time"
+
+	"github.com/shopspring/decimal"
+)
 
 type Order struct {
 	ID          string          `json:"id"`
@@ -16,3 +20,17 @@ type Order struct {
 }
 
 type Orders []Order
+
+type OrderEvent struct {
+	EventType   string          `json:"event_type"`
+	OrderID     string          `json:"order_id"`
+	Instrument  string          `json:"instrument"`
+	Price       decimal.Decimal `json:"price"`
+	Quantity    decimal.Decimal `json:"quantity"`
+	LeavesQty   decimal.Decimal `json:"leaves_qty"`
+	ExecQty     decimal.Decimal `json:"exec_qty"`
+	IsBid       bool            `json:"is_bid"`
+	OrderStatus string          `json:"order_status"`
+	ExecType    string          `json:"exec_type"`
+	Timestamp   time.Time       `json:"timestamp"`
+}

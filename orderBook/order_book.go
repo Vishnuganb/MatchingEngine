@@ -1,10 +1,12 @@
 package orderBook
 
 import (
-	"MatchingEngine/internal/model"
 	"encoding/json"
-	"github.com/shopspring/decimal"
 	"log"
+
+	"github.com/shopspring/decimal"
+
+	"MatchingEngine/internal/model"
 )
 
 type EventNotifier interface {
@@ -146,15 +148,15 @@ func (book *OrderBook) RemoveSellOrder(index int) {
 
 func mapOrderBookOrderToModelOrder(order Order) model.Order {
 	return model.Order{
-		ID:         order.ID,
-		Instrument: order.Instrument,
-		Timestamp:  order.Timestamp,
-		ExecType:   string(order.ExecType),
-		IsBid:      order.IsBid,
-		Price:      order.Price,
-		OrderQty:   order.OrderQty,
-		LeavesQty:  order.LeavesQty,
-		ExecQty:    order.ExecQty,
+		ID:          order.ID,
+		Instrument:  order.Instrument,
+		Timestamp:   order.Timestamp,
+		ExecType:    string(order.ExecType),
+		IsBid:       order.IsBid,
+		Price:       order.Price,
+		OrderQty:    order.OrderQty,
+		LeavesQty:   order.LeavesQty,
+		ExecQty:     order.ExecQty,
 		OrderStatus: string(order.OrderStatus),
 	}
 }
@@ -163,15 +165,15 @@ func mapOrderBookOrdersToModelOrders(orders Orders) model.Orders {
 	mappedEvents := make([]model.Order, len(orders))
 	for i, order := range orders {
 		mappedEvents[i] = model.Order{
-			ID:         order.ID,
-			Instrument: order.Instrument,
-			Timestamp:  order.Timestamp,
-			ExecType:   string(order.ExecType),
-			IsBid:      order.IsBid,
-			Price:      order.Price,
-			OrderQty:   order.OrderQty,
-			LeavesQty:  order.LeavesQty,
-			ExecQty:    order.ExecQty,
+			ID:          order.ID,
+			Instrument:  order.Instrument,
+			Timestamp:   order.Timestamp,
+			ExecType:    string(order.ExecType),
+			IsBid:       order.IsBid,
+			Price:       order.Price,
+			OrderQty:    order.OrderQty,
+			LeavesQty:   order.LeavesQty,
+			ExecQty:     order.ExecQty,
 			OrderStatus: string(order.OrderStatus),
 		}
 	}
@@ -180,15 +182,15 @@ func mapOrderBookOrdersToModelOrders(orders Orders) model.Orders {
 
 func mapModelOrderToOrderBookOrder(order model.Order) Order {
 	return Order{
-		ID:         order.ID,
-		Instrument: order.Instrument,
-		Timestamp:  order.Timestamp,
-		ExecType: EventType(order.ExecType),
-		IsBid:      order.IsBid,
-		Price:      order.Price,
-		OrderQty:   order.OrderQty,
-		LeavesQty:  order.LeavesQty,
-		ExecQty:    order.ExecQty,
+		ID:          order.ID,
+		Instrument:  order.Instrument,
+		Timestamp:   order.Timestamp,
+		ExecType:    EventType(order.ExecType),
+		IsBid:       order.IsBid,
+		Price:       order.Price,
+		OrderQty:    order.OrderQty,
+		LeavesQty:   order.LeavesQty,
+		ExecQty:     order.ExecQty,
 		OrderStatus: EventType(order.OrderStatus),
 	}
 }

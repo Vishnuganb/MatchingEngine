@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"MatchingEngine/internal/model"
 	"context"
 	"encoding/json"
 	"errors"
@@ -13,6 +12,7 @@ import (
 	"github.com/shopspring/decimal"
 	"github.com/streadway/amqp"
 
+	"MatchingEngine/internal/model"
 	"MatchingEngine/internal/rmq"
 	"MatchingEngine/orderBook"
 )
@@ -92,43 +92,66 @@ func (h *OrderRequestHandler) startWorker(instrument string, channel chan rmq.Or
 
 func (h *OrderRequestHandler) handleNewOrder(book *orderBook.OrderBook, req rmq.OrderRequest) {
 	order := model.Order{
-		ID:         req.Order.ID,
-		Price:      decimal.RequireFromString(req.Order.Price),
-		OrderQty:   decimal.RequireFromString(req.Order.Qty),
-		Instrument: req.Order.Instrument,
-		Timestamp:  time.Now().UnixNano(),
-		OrderStatus: "pending_new",
-		IsBid:      req.Order.Side == orderBook.Buy,
+		ID:          req.Order.ID,
+		Price:       decimal.RequireFromString(req.Order.Price),
+		OrderQty:    decimal.RequireFromString(req.Order.Qty),
+		Instrument:  req.Order.Instrument,
+		Timestamp:   time.Now().UnixNano(),
+		OrderStatus: string(orderBook.EventTypePendingNew),
+		IsBid:       req.Order.Side == orderBook.Buy,
 	}
 
-	// Save the order and generate events
-	h.OrderService.SaveOrderAsync(order)
-
-	_ = book.OnNewOrder(order)
+	book.OnNewOrder(order)
 }
 
 func (h *OrderRequestHandler) handleCancelOrder(book *orderBook.OrderBook, req rmq.OrderRequest) {
 	canceledOrder := book.CancelOrder(req.Order.ID)
-
 	log.Println("CanceledOrder", canceledOrder)
-
-	h.OrderService.UpdateOrderAsync(canceledOrder.ID, canceledOrder.OrderStatus, canceledOrder.ExecType, canceledOrder.LeavesQty, canceledOrder.ExecQty)
 }
 
-func (h *OrderRequestHandler) handleServiceError(msg amqp.Delivery, err error, contextMsg string) {
-	if errors.Is(err, ErrOrderNotFound) {
-		log.Printf("Business error: %v", err)
-		if err := msg.Ack(false); err != nil {
-			log.Printf("Failed to acknowledge message: %v", err)
-		}
-		return
+func (h *OrderRequestHandler) HandleEventMessages(message []byte) error {
+	var event model.OrderEvent
+	if err := json.Unmarshal(message, &event); err != nil {
+		return fmt.Errorf("failed to unmarshal event: %w", err)
 	}
-	h.handleFailure(msg, fmt.Errorf("%s: %w", contextMsg, err))
+
+	switch event.EventType {
+	case string(orderBook.EventTypeNew), string(orderBook.EventTypePendingNew):
+		h.OrderService.SaveOrderAsync(h.convertEventToOrder(event))
+	case string(orderBook.EventTypeFill), string(orderBook.EventTypePartialFill),
+		string(orderBook.EventTypeCanceled), string(orderBook.EventTypeRejected):
+		h.OrderService.UpdateOrderAsync(
+			event.OrderID,
+			event.OrderStatus,
+			event.ExecType,
+			event.LeavesQty,
+			event.ExecQty,
+		)
+	default:
+		return fmt.Errorf("unknown event type: %s", event.EventType)
+	}
+
+	return nil
 }
 
 func (h *OrderRequestHandler) handleFailure(msg amqp.Delivery, err error) {
 	log.Printf("Message failed: %v, error: %v", string(msg.Body), err)
 	if err := msg.Nack(false, false); err != nil {
 		log.Printf("Failed to negatively acknowledge message: %v", err)
+	}
+}
+
+func (s *OrderRequestHandler) convertEventToOrder(event model.OrderEvent) model.Order {
+	return model.Order{
+		ID:          event.OrderID,
+		Instrument:  event.Instrument,
+		Price:       event.Price,
+		OrderQty:    event.Quantity,
+		LeavesQty:   event.LeavesQty,
+		ExecQty:     event.ExecQty,
+		IsBid:       event.IsBid,
+		OrderStatus: event.OrderStatus,
+		ExecType:    event.ExecType,
+		Timestamp:   event.Timestamp.UnixNano(),
 	}
 }

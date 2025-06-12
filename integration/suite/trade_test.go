@@ -1,9 +1,10 @@
 package suite
 
 import (
-	"MatchingEngine/integration/test_util"
 	"encoding/json"
 	"testing"
+
+	"MatchingEngine/integration/test_util"
 )
 
 func TestTradeScenario(t *testing.T) {

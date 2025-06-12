@@ -1,7 +1,6 @@
 package main
 
 import (
-	"MatchingEngine/internal/kafka"
 	"context"
 	"fmt"
 	"log"
@@ -13,6 +12,7 @@ import (
 
 	sqlc "MatchingEngine/internal/db/sqlc"
 	"MatchingEngine/internal/handler"
+	"MatchingEngine/internal/kafka"
 	"MatchingEngine/internal/repository"
 	"MatchingEngine/internal/rmq"
 	"MatchingEngine/internal/service"
@@ -55,6 +55,15 @@ func main() {
 
 	go func() {
 		if err := consumer.Start(ctx); err != nil {
+			log.Fatalf("Failed to start consumer: %v", err)
+		}
+	}()
+
+	kafkaConsumerOpts := kafka.ConsumerOpts{BrokerAddrs: config.KafkaBroker, Topic: config.KafkaTopic, GroupID: "order-service-group"}
+	kafkaConsumer := kafka.NewConsumer(kafkaConsumerOpts, requestHandler)
+
+	go func() {
+		if err := kafkaConsumer.Start(ctx); err != nil {
 			log.Fatalf("Failed to start consumer: %v", err)
 		}
 	}()

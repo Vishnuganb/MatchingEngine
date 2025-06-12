@@ -2,11 +2,12 @@ package test_util
 
 import (
 	"context"
-	"github.com/segmentio/kafka-go"
-	"github.com/streadway/amqp"
 	"log"
 	"os"
 	"time"
+
+	kafka "github.com/segmentio/kafka-go"
+	"github.com/streadway/amqp"
 )
 
 func SetupRabbitMQConnection() *amqp.Connection {

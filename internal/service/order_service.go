@@ -1,10 +1,9 @@
 package service
 
 import (
-	"MatchingEngine/internal/model"
-
 	"github.com/shopspring/decimal"
 
+	"MatchingEngine/internal/model"
 	"MatchingEngine/internal/repository"
 )
 
@@ -30,7 +29,7 @@ func (s *OrderService) UpdateOrderAsync(orderID, orderStatus, execType string, l
 		OrderStatus: orderStatus,
 		ExecType:    execType,
 		LeavesQty:   leavesQty,
-		ExecQty: execQty,
+		ExecQty:     execQty,
 	}
 	s.asyncWriter.EnqueueTask(task)
 }

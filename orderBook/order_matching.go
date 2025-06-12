@@ -94,7 +94,7 @@ func (book *OrderBook) publishTrade(trade Trade) {
 	if book.KafkaProducer != nil {
 		err := book.KafkaProducer.NotifyEventAndTrade(trade.BuyerOrderID, json.RawMessage(trade.ToJSON()))
 		if err != nil {
-				return 
-			}
+			return
+		}
 	}
 }

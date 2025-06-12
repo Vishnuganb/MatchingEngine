@@ -1,13 +1,14 @@
 package orderBook
 
 import (
-	"MatchingEngine/internal/model"
 	"log"
 	"testing"
 	"time"
 
 	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/assert"
+
+	"MatchingEngine/internal/model"
 )
 
 func TestNewOrderBook(t *testing.T) {
