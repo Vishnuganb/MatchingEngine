@@ -9,8 +9,8 @@ import (
 )
 
 func newTestOrderBook() *OrderBook {
-	book := NewOrderBook()
-	book.KafkaProducer = &MockKafkaProducer{}
+	mockProducer := &MockKafkaProducer{}
+	book := NewOrderBook(mockProducer)
 	return book
 }
 

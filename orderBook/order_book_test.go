@@ -1,7 +1,6 @@
 package orderBook
 
 import (
-	"log"
 	"testing"
 	"time"
 
@@ -12,7 +11,8 @@ import (
 )
 
 func TestNewOrderBook(t *testing.T) {
-	book := NewOrderBook()
+	mockProducer := &MockKafkaProducer{}
+	book := NewOrderBook(mockProducer)
 	assert.NotNil(t, book)
 	assert.Empty(t, book.Bids)
 	assert.Empty(t, book.Asks)
@@ -20,7 +20,8 @@ func TestNewOrderBook(t *testing.T) {
 }
 
 func TestAddBuyOrder(t *testing.T) {
-	book := NewOrderBook()
+	mockProducer := &MockKafkaProducer{}
+	book := NewOrderBook(mockProducer)
 	order := Order{
 		ID:         "1",
 		Price:      decimal.NewFromInt(100),
@@ -35,7 +36,8 @@ func TestAddBuyOrder(t *testing.T) {
 }
 
 func TestAddSellOrder(t *testing.T) {
-	book := NewOrderBook()
+	mockProducer := &MockKafkaProducer{}
+	book := NewOrderBook(mockProducer)
 	order := Order{
 		ID:         "2",
 		Price:      decimal.NewFromInt(200),
@@ -50,7 +52,8 @@ func TestAddSellOrder(t *testing.T) {
 }
 
 func TestCancelOrder(t *testing.T) {
-	book := NewOrderBook()
+	mockProducer := &MockKafkaProducer{}
+	book := NewOrderBook(mockProducer)
 	order := Order{
 		ID:         "1",
 		Price:      decimal.NewFromInt(100),
@@ -61,13 +64,13 @@ func TestCancelOrder(t *testing.T) {
 	}
 	book.AddBuyOrder(order)
 
-	event := book.CancelOrder("1")
-	assert.Equal(t, "canceled", event.ExecType)
-	assert.Empty(t, book.Bids)
+	book.CancelOrder("1", mockProducer)
+	assert.Len(t, book.Bids, 0)
 }
 
 func TestNewOrder(t *testing.T) {
-	book := NewOrderBook()
+	mockProducer := &MockKafkaProducer{}
+	book := NewOrderBook(mockProducer)
 	order := model.Order{
 		ID:         "1",
 		Price:      decimal.NewFromInt(100),
@@ -76,13 +79,9 @@ func TestNewOrder(t *testing.T) {
 		Timestamp:  time.Now().UnixNano(),
 		IsBid:      true,
 	}
-	orders := book.OnNewOrder(order)
-	log.Println(orders)
-	for _, order = range orders {
-		assert.Equal(t, "new", order.ExecType)
-		assert.Equal(t, order.Instrument, order.Instrument)
-		assert.Equal(t, order.Price, order.Price)
-		assert.Equal(t, order.OrderQty, order.OrderQty)
-	}
+	book.OnNewOrder(order, mockProducer)
 	assert.Len(t, book.Bids, 1)
+	assert.Equal(t, book.Bids[0].ID, "1")
+	assert.Equal(t, book.Bids[0].Price, decimal.NewFromInt(100))
+	assert.Equal(t, book.Bids[0].LeavesQty, decimal.NewFromInt(10))
 }
