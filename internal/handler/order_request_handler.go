@@ -104,11 +104,11 @@ func (h *OrderRequestHandler) handleNewOrder(book *orderBook.OrderBook, req rmq.
 		IsBid:       req.Order.Side == orderBook.Buy,
 	}
 
-	book.OnNewOrder(order)
+	book.OnNewOrder(order, book.KafkaProducer)
 }
 
 func (h *OrderRequestHandler) handleCancelOrder(book *orderBook.OrderBook, req rmq.OrderRequest) {
-	canceledOrder := book.CancelOrder(req.Order.ID)
+	canceledOrder := book.CancelOrder(req.Order.ID, book.KafkaProducer)
 	log.Println("CanceledOrder", canceledOrder)
 }
 
@@ -155,6 +155,6 @@ func (s *OrderRequestHandler) convertEventToOrder(event model.OrderEvent) model.
 		IsBid:       event.IsBid,
 		OrderStatus: event.OrderStatus,
 		ExecType:    event.ExecType,
-		Timestamp:   event.Timestamp.UnixNano(),
+		Timestamp:   event.Timestamp,
 	}
 }

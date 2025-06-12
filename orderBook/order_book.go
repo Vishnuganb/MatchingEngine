@@ -22,14 +22,14 @@ type OrderBook struct {
 
 func NewOrderBook(producer EventNotifier) *OrderBook {
 	return &OrderBook{
-		Bids:   []Order{},
-		Asks:   []Order{},
-		Orders: []Order{},
+		Bids:          []Order{},
+		Asks:          []Order{},
+		Orders:        []Order{},
 		KafkaProducer: producer,
 	}
 }
 
-func (book *OrderBook) OnNewOrder(modelOrder model.Order) model.Orders {
+func (book *OrderBook) OnNewOrder(modelOrder model.Order, producer EventNotifier) model.Orders {
 	var trades []Trade
 	var orders Orders
 	order := mapModelOrderToOrderBookOrder(modelOrder)
@@ -45,7 +45,7 @@ func (book *OrderBook) OnNewOrder(modelOrder model.Order) model.Orders {
 			fillQty := decimal.NewFromInt(int64(trade.Quantity))
 			price := decimal.NewFromInt(int64(trade.Price))
 			orders = append(orders, newFillOrderEvent(&order,
-				fillQty, price),
+				fillQty, price, producer),
 			)
 		}
 	}
@@ -57,7 +57,7 @@ func (book *OrderBook) OnNewOrder(modelOrder model.Order) model.Orders {
 		} else {
 			book.AddSellOrder(order)
 		}
-		newOrder := newOrderEvent(&order)
+		newOrder := newOrderEvent(&order, producer)
 		orders = append(orders, newOrder)
 	}
 
@@ -65,12 +65,12 @@ func (book *OrderBook) OnNewOrder(modelOrder model.Order) model.Orders {
 	return mapOrderBookOrdersToModelOrders(orders)
 }
 
-func (book *OrderBook) CancelOrder(orderID string) model.Order {
+func (book *OrderBook) CancelOrder(orderID string, producer EventNotifier) model.Order {
 	// Search for the order in bids
 	for i, order := range book.Bids {
 		if order.ID == orderID {
 			book.RemoveBuyOrder(i)
-			orderEvent := newCanceledOrderEvent(&order)
+			orderEvent := newCanceledOrderEvent(&order, producer)
 			return mapOrderBookOrderToModelOrder(orderEvent)
 		}
 	}
@@ -79,7 +79,7 @@ func (book *OrderBook) CancelOrder(orderID string) model.Order {
 	for i, order := range book.Asks {
 		if order.ID == orderID {
 			book.RemoveSellOrder(i)
-			orderEvent := newCanceledOrderEvent(&order)
+			orderEvent := newCanceledOrderEvent(&order, producer)
 			return mapOrderBookOrderToModelOrder(orderEvent)
 		}
 	}

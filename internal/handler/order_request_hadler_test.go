@@ -104,7 +104,7 @@ func TestHandleEventMessages(t *testing.T) {
 				IsBid:       true,
 				OrderStatus: tt.eventType,
 				ExecType:    tt.eventType,
-				Timestamp:   time.Now(),
+				Timestamp:   time.Now().UnixNano(),
 			}
 
 			eventJSON, _ := json.Marshal(event)
