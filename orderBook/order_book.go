@@ -20,11 +20,12 @@ type OrderBook struct {
 	KafkaProducer EventNotifier
 }
 
-func NewOrderBook() *OrderBook {
+func NewOrderBook(producer EventNotifier) *OrderBook {
 	return &OrderBook{
 		Bids:   []Order{},
 		Asks:   []Order{},
 		Orders: []Order{},
+		KafkaProducer: producer,
 	}
 }
 

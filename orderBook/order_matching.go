@@ -30,7 +30,7 @@ func (book *OrderBook) processOrder(order *Order, isBuy bool) []Trade {
 			ID:   order.ID,
 			Side: order.Side(),
 			Qty:  order.OrderQty,
-		}))
+		}, order.KafkaProducer))
 		return nil
 	}
 

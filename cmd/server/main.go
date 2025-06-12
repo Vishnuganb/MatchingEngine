@@ -17,7 +17,6 @@ import (
 	"MatchingEngine/internal/rmq"
 	"MatchingEngine/internal/service"
 	"MatchingEngine/internal/util"
-	"MatchingEngine/orderBook"
 )
 
 func main() {
@@ -39,12 +38,13 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	kafkaProducer := kafka.NewProducer(config.KafkaBroker, config.KafkaTopic)
-	book := orderBook.NewOrderBook()
-	book.KafkaProducer = kafkaProducer
+	if kafkaProducer == nil {
+		log.Fatal("Failed to initialize Kafka producer")
+	}
 	repo := repository.NewPostgresOrderRepository(sqlc.New(conn))
 	asyncWriter := repository.NewAsyncDBWriter(repo, 10)
 	orderService := service.NewOrderService(asyncWriter)
-	requestHandler := handler.NewOrderRequestHandler(orderService)
+	requestHandler := handler.NewOrderRequestHandler(orderService, kafkaProducer)
 
 	consumerOpts := rmq.ConsumerOpts{
 		RabbitMQURL: config.RmqHost,

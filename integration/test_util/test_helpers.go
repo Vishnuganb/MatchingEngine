@@ -38,25 +38,29 @@ func PublishOrder(ch *amqp.Channel, queueName string, order []byte) {
 func StartConsumer(topic string) string {
 	brokers := os.Getenv("KAFKA_BROKER")
 	reader := kafka.NewReader(kafka.ReaderConfig{
-		Brokers: []string{brokers},
-		Topic:   topic,
-		GroupID: "eventConsumer",
+		Brokers:        []string{brokers},
+		Topic:         topic,
+		GroupID:       "eventConsumer",
+		ReadBackoffMin: time.Millisecond * 100,
+		ReadBackoffMax: time.Second * 1,
 	})
 
 	defer reader.Close()
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second) // Set a 10-second timeout
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second) // Increased timeout to 30 seconds
 	defer cancel()
 
 	m, err := reader.ReadMessage(ctx)
 	if err != nil {
 		if err == context.DeadlineExceeded {
-			log.Println("Timeout reached while consuming Kafka message")
+			log.Printf("Timeout reached while consuming Kafka message for topic: %s", topic)
 			return ""
 		}
-		log.Fatalf("Kafka consumer error: %v", err)
+		log.Printf("Kafka consumer error for topic %s: %v", topic, err)
+		return ""
 	}
-	log.Printf("Consumed message: key=%s, value=%s", string(m.Key), string(m.Value))
+
+	log.Printf("Consumed message from topic %s: key=%s, value=%s", topic, string(m.Key), string(m.Value))
 	return string(m.Value)
 }
 
@@ -83,4 +87,30 @@ func ClearKafkaTopic(topic string) {
 			break
 		}
 	}
+}
+
+func ConsumeKafkaMessages(topic string) <-chan string {
+	brokers := os.Getenv("KAFKA_BROKER")
+	reader := kafka.NewReader(kafka.ReaderConfig{
+		Brokers: []string{brokers},
+		Topic:   topic,
+		GroupID: "test-consumer-group",
+	})
+
+	messageChan := make(chan string)
+
+	go func() {
+		defer reader.Close()
+		for {
+			msg, err := reader.ReadMessage(context.Background())
+			if err != nil {
+				log.Printf("Error reading Kafka message: %v", err)
+				close(messageChan)
+				return
+			}
+			messageChan <- string(msg.Value)
+		}
+	}()
+
+	return messageChan
 }

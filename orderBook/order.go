@@ -44,19 +44,20 @@ func (o *Order) Side() Side {
 	return Sell
 }
 
-func newBaseOrder(t EventType, orderID string, price decimal.Decimal, isBid bool) Order {
+func newBaseOrder(t EventType, orderID string, price decimal.Decimal, isBid bool, producer EventNotifier) Order {
 	o := Order{
 		ID:        orderID,
 		Timestamp: time.Now().UnixNano(),
 		ExecType:  t,
 		Price:     price,
 		IsBid:     isBid,
+		KafkaProducer: producer,
 	}
 	return o
 }
 
 func newBaseOrderEvent(t EventType, order *Order) Order {
-	o := newBaseOrder(t, order.ID, order.Price, order.IsBid)
+	o := newBaseOrder(t, order.ID, order.Price, order.IsBid, order.KafkaProducer)
 	o.OrderQty = order.OrderQty
 	o.LeavesQty = order.LeavesQty
 	if o.Price.IsPositive() {
@@ -97,8 +98,8 @@ func newCanceledOrderEvent(order *Order) Order {
 	return o
 }
 
-func newRejectedOrderEvent(or *OrderRequest) Order {
-	o := newBaseOrder(EventTypeRejected, or.ID, or.Price, or.Side == Buy)
+func newRejectedOrderEvent(or *OrderRequest, producer EventNotifier) Order {
+	o := newBaseOrder(EventTypeRejected, or.ID, or.Price, or.Side == Buy, producer)
 	o.OrderQty = or.Qty
 	o.LeavesQty = decimal.Zero
 	o.OrderStatus = EventTypeRejected
@@ -108,6 +109,11 @@ func newRejectedOrderEvent(or *OrderRequest) Order {
 
 // In Order struct methods where you want to publish events
 func (o *Order) publishEvent(eventType EventType) {
+	if o.KafkaProducer == nil {
+		log.Printf("Warning: KafkaProducer is nil for order %s", o.ID)
+		return
+	}
+
 	event := model.OrderEvent{
 		EventType:   string(eventType),
 		OrderID:     o.ID,
@@ -119,7 +125,6 @@ func (o *Order) publishEvent(eventType EventType) {
 		IsBid:       o.IsBid,
 		OrderStatus: string(o.OrderStatus),
 		ExecType:    string(o.ExecType),
-		Timestamp:   time.Now(),
 	}
 
 	eventJSON, err := json.Marshal(event)

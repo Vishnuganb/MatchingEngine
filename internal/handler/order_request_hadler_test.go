@@ -42,6 +42,12 @@ func (m *mockAcknowledger) Reject(tag uint64, requeue bool) error {
 	return nil
 }
 
+type MockEventNotifier struct{}
+
+func (m *MockEventNotifier) NotifyEventAndTrade(orderID string, value json.RawMessage) error {
+	return nil
+}
+
 func TestHandleEventMessages(t *testing.T) {
 	tests := []struct {
 		name         string
@@ -84,7 +90,8 @@ func TestHandleEventMessages(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			mockService := new(MockOrderService)
-			handler := NewOrderRequestHandler(mockService)
+			mockNotifier := new(MockEventNotifier)
+			handler := NewOrderRequestHandler(mockService, mockNotifier)
 
 			event := model.OrderEvent{
 				EventType:   tt.eventType,
@@ -129,7 +136,8 @@ func TestHandleEventMessages(t *testing.T) {
 
 func TestHandleMessage_WorkerCreation(t *testing.T) {
 	mockService := new(MockOrderService)
-	handler := NewOrderRequestHandler(mockService)
+	mockNotifier := new(MockEventNotifier)
+	handler := NewOrderRequestHandler(mockService, mockNotifier)
 
 	instrument := "BTC/USDT"
 	orderReq := rmq.OrderRequest{
@@ -171,7 +179,8 @@ func TestHandleMessage_WorkerCreation(t *testing.T) {
 
 func TestHandleMessage_InvalidJSON(t *testing.T) {
 	mockService := new(MockOrderService)
-	handler := NewOrderRequestHandler(mockService)
+	mockNotifier := new(MockEventNotifier)
+	handler := NewOrderRequestHandler(mockService, mockNotifier)
 
 	msg := amqp.Delivery{
 		Body:         []byte("invalid json"),
@@ -183,11 +192,12 @@ func TestHandleMessage_InvalidJSON(t *testing.T) {
 
 func TestWorkerProcessing(t *testing.T) {
 	mockService := new(MockOrderService)
-	handler := NewOrderRequestHandler(mockService)
+	mockNotifier := new(MockEventNotifier)
+	handler := NewOrderRequestHandler(mockService, mockNotifier)
 
 	instrument := "BTC/USDT"
 	channel := make(chan rmq.OrderRequest, 100)
-	book := orderBook.NewOrderBook()
+	book := orderBook.NewOrderBook(mockNotifier)
 
 	handler.mu.Lock()
 	handler.orderChannels[instrument] = channel

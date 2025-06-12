@@ -3,7 +3,6 @@ package handler
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"log"
 	"sync"
@@ -17,8 +16,6 @@ import (
 	"MatchingEngine/orderBook"
 )
 
-var ErrOrderNotFound = errors.New("order not found")
-
 type OrderService interface {
 	SaveOrderAsync(order model.Order)
 	UpdateOrderAsync(orderID, orderStatus, execType string, leavesQty, execQty decimal.Decimal)
@@ -29,18 +26,24 @@ type OrderBook interface {
 	CancelOrder(orderID string) model.Order
 }
 
+type EventNotifier interface {
+	NotifyEventAndTrade(orderID string, value json.RawMessage) error
+}
+
 type OrderRequestHandler struct {
 	orderBooks    map[string]*orderBook.OrderBook
 	orderChannels map[string]chan rmq.OrderRequest
 	OrderService  OrderService
+	eventNotifier EventNotifier // Add this field
 	mu            sync.Mutex
 }
 
-func NewOrderRequestHandler(orderService OrderService) *OrderRequestHandler {
+func NewOrderRequestHandler(orderService OrderService, eventNotifier EventNotifier) *OrderRequestHandler {
 	return &OrderRequestHandler{
 		orderBooks:    make(map[string]*orderBook.OrderBook),
 		orderChannels: make(map[string]chan rmq.OrderRequest),
 		OrderService:  orderService,
+		eventNotifier: eventNotifier,
 	}
 }
 
@@ -73,7 +76,7 @@ func (h *OrderRequestHandler) startWorker(instrument string, channel chan rmq.Or
 		h.mu.Lock()
 		book, exists := h.orderBooks[instrument]
 		if !exists {
-			book = orderBook.NewOrderBook()
+			book = orderBook.NewOrderBook(h.eventNotifier)
 			h.orderBooks[instrument] = book
 		}
 		h.mu.Unlock()
