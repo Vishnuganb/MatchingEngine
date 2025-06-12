@@ -150,6 +150,5 @@ func (s *OrderRequestHandler) convertEventToOrder(event model.OrderEvent) model.
 		IsBid:       event.IsBid,
 		OrderStatus: event.OrderStatus,
 		ExecType:    event.ExecType,
-		Timestamp:   event.Timestamp,
 	}
 }

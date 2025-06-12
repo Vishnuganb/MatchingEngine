@@ -46,11 +46,11 @@ func (o *Order) Side() Side {
 
 func newBaseOrder(t EventType, orderID string, price decimal.Decimal, isBid bool, producer EventNotifier) Order {
 	o := Order{
-		ID:        orderID,
-		Timestamp: time.Now().UnixNano(),
-		ExecType:  t,
-		Price:     price,
-		IsBid:     isBid,
+		ID:            orderID,
+		Timestamp:     time.Now().UnixNano(),
+		ExecType:      t,
+		Price:         price,
+		IsBid:         isBid,
 		KafkaProducer: producer,
 	}
 	return o

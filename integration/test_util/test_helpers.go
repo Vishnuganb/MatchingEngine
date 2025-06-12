@@ -101,11 +101,11 @@ func ConsumeKafkaMessages(topic string) <-chan string {
 	reader := kafka.NewReader(kafka.ReaderConfig{
 		Brokers: []string{brokers},
 		Topic:   topic,
-		GroupID: fmt.Sprintf("test-group-%d", time.Now().UnixNano()), // Unique group ID per test
+		GroupID: fmt.Sprintf("test-group-%d", time.Now().UnixNano()),
 	})
 
 	messageChan := make(chan string, 100)
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 
 	go func() {
 		defer func() {

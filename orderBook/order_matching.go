@@ -56,12 +56,16 @@ func (book *OrderBook) processOrder(order *Order, isBuy bool) []Trade {
 			Timestamp:     order.Timestamp,
 		}
 
-		book.publishTrade(trade)
+		book.publishExecutionReport(trade)
 		trades = append(trades, trade)
 
 		// Update LeavesQty
 		order.LeavesQty = order.LeavesQty.Sub(matchQty)
 		matchingOrder.LeavesQty = matchingOrder.LeavesQty.Sub(matchQty)
+
+		// Emit fill event for matching order too
+		fillOrderEvent := newFillOrderEvent(&matchingOrder, matchQty, matchingOrder.Price, book.KafkaProducer)
+		book.Orders = append(book.Orders, fillOrderEvent)
 
 		if matchingOrder.LeavesQty.IsZero() {
 			removeOrderFunc(0)
@@ -90,7 +94,7 @@ func getOrderID(order, matchingOrder *Order, isBuy bool) string {
 	return matchingOrder.ID
 }
 
-func (book *OrderBook) publishTrade(trade Trade) {
+func (book *OrderBook) publishExecutionReport(trade Trade) {
 	if book.KafkaProducer != nil {
 		err := book.KafkaProducer.NotifyEventAndTrade(trade.BuyerOrderID, json.RawMessage(trade.ToJSON()))
 		if err != nil {

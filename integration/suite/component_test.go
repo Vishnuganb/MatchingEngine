@@ -2,11 +2,11 @@ package suite
 
 import (
 	"encoding/json"
-	"github.com/shopspring/decimal"
 	"log"
 	"testing"
 	"time"
 
+	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -19,15 +19,15 @@ func TestOrderFlowScenarios(t *testing.T) {
 	tests := []struct {
 		name           string
 		orders         []string
-		expectedEvents []model.OrderEvent
+		expectedEvents []interface{}
 	}{
 		{
 			name: "New Buy Order",
 			orders: []string{
 				`{"RequestType":0,"Order":{"id":"1","side":"buy","qty":"10","price":"100","instrument":"BTC/USDT"}}`,
 			},
-			expectedEvents: []model.OrderEvent{
-				{
+			expectedEvents: []interface{}{
+				model.OrderEvent{
 					EventType:   string(orderBook.EventTypeNew),
 					OrderID:     "1",
 					Instrument:  "BTC/USDT",
@@ -46,8 +46,27 @@ func TestOrderFlowScenarios(t *testing.T) {
 				`{"RequestType":0,"Order":{"id":"1","side":"buy","qty":"10","price":"100","instrument":"BTC/USDT"}}`,
 				`{"RequestType":0,"Order":{"id":"2","side":"sell","qty":"10","price":"100","instrument":"BTC/USDT"}}`,
 			},
-			expectedEvents: []model.OrderEvent{
-				{
+			expectedEvents: []interface{}{
+				model.OrderEvent{
+					EventType:   string(orderBook.EventTypeNew),
+					OrderID:     "1",
+					Instrument:  "BTC/USDT",
+					Price:       decimal.NewFromInt(100),
+					Quantity:    decimal.NewFromInt(10),
+					LeavesQty:   decimal.NewFromInt(10),
+					ExecQty:     decimal.NewFromInt(0),
+					IsBid:       true,
+					OrderStatus: string(orderBook.EventTypeNew),
+					ExecType:    string(orderBook.EventTypeNew),
+				},
+				model.Trade{
+					BuyerOrderID:  "1",
+					SellerOrderID: "2",
+					Quantity:      10,
+					Price:         100,
+					Timestamp:     time.Now().UnixNano(),
+				},
+				model.OrderEvent{
 					EventType:   string(orderBook.EventTypeFill),
 					OrderID:     "1",
 					Instrument:  "BTC/USDT",
@@ -58,7 +77,7 @@ func TestOrderFlowScenarios(t *testing.T) {
 					IsBid:       true,
 					OrderStatus: string(orderBook.EventTypeFill),
 				},
-				{
+				model.OrderEvent{
 					EventType:   string(orderBook.EventTypeFill),
 					OrderID:     "2",
 					Instrument:  "BTC/USDT",
@@ -72,20 +91,72 @@ func TestOrderFlowScenarios(t *testing.T) {
 			},
 		},
 		{
+			name: "Partially Matching Buy and Sell Orders",
+			orders: []string{
+				`{"RequestType":0,"Order":{"id":"1","side":"sell","qty":"10","price":"100","instrument":"BTC/USDT"}}`,
+				`{"RequestType":0,"Order":{"id":"2","side":"buy","qty":"5","price":"100","instrument":"BTC/USDT"}}`,
+			},
+			expectedEvents: []interface{}{
+				model.OrderEvent{
+					EventType:   string(orderBook.EventTypeNew),
+					OrderID:     "1",
+					Instrument:  "BTC/USDT",
+					Price:       decimal.NewFromInt(100),
+					Quantity:    decimal.NewFromInt(10),
+					LeavesQty:   decimal.NewFromInt(10),
+					ExecQty:     decimal.NewFromInt(0),
+					IsBid:       false,
+					OrderStatus: string(orderBook.EventTypeNew),
+					ExecType:    string(orderBook.EventTypeNew),
+				},
+				model.Trade{
+					BuyerOrderID:  "2",
+					SellerOrderID: "1",
+					Quantity:      5,
+					Price:         100,
+					Timestamp:     time.Now().UnixNano(),
+				},
+				model.OrderEvent{
+					EventType:   string(orderBook.EventTypePartialFill),
+					OrderID:     "1",
+					Instrument:  "BTC/USDT",
+					Price:       decimal.NewFromInt(100),
+					Quantity:    decimal.NewFromInt(10),
+					LeavesQty:   decimal.NewFromInt(5),
+					ExecQty:     decimal.NewFromInt(5),
+					IsBid:       false,
+					OrderStatus: string(orderBook.EventTypePartialFill),
+					ExecType:    string(orderBook.EventTypeFill),
+				},
+				model.OrderEvent{
+					EventType:   string(orderBook.EventTypeFill),
+					OrderID:     "2",
+					Instrument:  "BTC/USDT",
+					Price:       decimal.NewFromInt(100),
+					Quantity:    decimal.NewFromInt(5),
+					LeavesQty:   decimal.NewFromInt(0),
+					ExecQty:     decimal.NewFromInt(5),
+					IsBid:       true,
+					OrderStatus: string(orderBook.EventTypeFill),
+					ExecType:    string(orderBook.EventTypeFill),
+				},
+			},
+		},
+		{
 			name: "Cancel Order",
 			orders: []string{
 				`{"RequestType":0,"Order":{"id":"1","side":"buy","qty":"10","price":"100","instrument":"BTC/USDT"}}`,
 				`{"RequestType":1,"Order":{"id":"1","instrument":"BTC/USDT"}}`,
 			},
-			expectedEvents: []model.OrderEvent{
-				{
+			expectedEvents: []interface{}{
+				model.OrderEvent{
 					EventType:   string(orderBook.EventTypeNew),
 					OrderID:     "1",
 					Instrument:  "BTC/USDT",
 					LeavesQty:   decimal.NewFromInt(10),
 					OrderStatus: string(orderBook.EventTypeNew),
 				},
-				{
+				model.OrderEvent{
 					EventType:   string(orderBook.EventTypeCanceled),
 					OrderID:     "1",
 					Instrument:  "BTC/USDT",
@@ -128,7 +199,7 @@ func TestOrderFlowScenarios(t *testing.T) {
 
 			// Collect events
 			messageChan := test_util.ConsumeKafkaMessages("eventTopic")
-			var receivedEvents []model.OrderEvent
+			var receivedEvents []interface{}
 			timeout := time.After(30 * time.Second)
 			expectedCount := len(tt.expectedEvents)
 
@@ -145,16 +216,31 @@ func TestOrderFlowScenarios(t *testing.T) {
 						break
 					}
 
-					var event model.OrderEvent
-					err := json.Unmarshal([]byte(message), &event)
-					if err != nil {
-						log.Printf("Error unmarshaling event: %v, message: %s", err, message)
+					var raw map[string]interface{}
+					if err := json.Unmarshal([]byte(message), &raw); err != nil {
+						log.Printf("Failed to unmarshal message into map: %v", err)
 						continue
 					}
 
-					log.Printf("[%v] Received event: Type=%s, OrderID=%s, Status=%s",
-						time.Since(startTime), event.EventType, event.OrderID, event.OrderStatus)
-					receivedEvents = append(receivedEvents, event)
+					if _, isTrade := raw["buyer_order_id"]; !isTrade {
+						var event model.OrderEvent
+						if err := json.Unmarshal([]byte(message), &event); err != nil {
+							log.Printf("Failed to unmarshal OrderEvent: %v", err)
+							continue
+						}
+						//log.Printf("[%v] Received order event: Type=%s, OrderID=%s, Status=%s",
+						//	time.Since(startTime), event.EventType, event.OrderID, event.OrderStatus)
+						receivedEvents = append(receivedEvents, event)
+					} else {
+						var trade model.Trade
+						if err := json.Unmarshal([]byte(message), &trade); err != nil {
+							log.Printf("Failed to unmarshal Trade: %v", err)
+							continue
+						}
+						//log.Printf("[%v] Received trade: Buyer=%s, Seller=%s, Qty=%d, Price=%d",
+						//	time.Since(startTime), trade.BuyerOrderID, trade.SellerOrderID, trade.Quantity, trade.Price)
+						receivedEvents = append(receivedEvents, trade)
+					}
 
 					// Break if we've received all expected events
 					if len(receivedEvents) == expectedCount {
@@ -167,63 +253,35 @@ func TestOrderFlowScenarios(t *testing.T) {
 				}
 			}
 
-
-			// Verify events
 			assert.Equal(t, len(tt.expectedEvents), len(receivedEvents))
-			for i, expected := range tt.expectedEvents {
-				actual := receivedEvents[i]
-				assert.Equal(t, expected.EventType, actual.EventType)
-				assert.Equal(t, expected.OrderID, actual.OrderID)
-				assert.Equal(t, expected.Instrument, actual.Instrument)
-				assert.Equal(t, expected.OrderStatus, actual.OrderStatus)
-				assert.Equal(t, expected.LeavesQty, actual.LeavesQty)
+			for _, event := range receivedEvents {
+				log.Printf("Received event: %+v", event)
+			}
+			for i, exp := range tt.expectedEvents {
+				switch expected := exp.(type) {
+				case model.OrderEvent:
+					actual, ok := receivedEvents[i].(model.OrderEvent)
+					require.True(t, ok, "received event is not of type model.OrderEvent")
+
+					assert.Equal(t, expected.EventType, actual.EventType)
+					assert.Equal(t, expected.OrderID, actual.OrderID)
+					assert.Equal(t, expected.Instrument, actual.Instrument)
+					assert.Equal(t, expected.OrderStatus, actual.OrderStatus)
+					assert.True(t, expected.LeavesQty.Equal(actual.LeavesQty), "LeavesQty mismatch")
+
+				case model.Trade:
+					actual, ok := receivedEvents[i].(model.Trade)
+					require.True(t, ok, "received event is not of type model.Trade")
+
+					assert.Equal(t, expected.BuyerOrderID, actual.BuyerOrderID)
+					assert.Equal(t, expected.SellerOrderID, actual.SellerOrderID)
+					assert.Equal(t, expected.Quantity, actual.Quantity)
+					assert.Equal(t, expected.Price, actual.Price)
+
+				default:
+					t.Fatalf("unexpected event type: %T", exp)
+				}
 			}
 		})
 	}
 }
-
-//func TestInvalidOrderScenarios(t *testing.T) {
-//	tests := []struct {
-//		name          string
-//		order         string
-//		expectedError string
-//	}{
-//		{
-//			name:          "Invalid JSON",
-//			order:         `{"invalid json"`,
-//			expectedError: "invalid message format",
-//		},
-//		{
-//			name:          "Missing Required Fields",
-//			order:         `{"RequestType":0,"Order":{"id":"1"}}`,
-//			expectedError: "missing required fields",
-//		},
-//		{
-//			name:          "Invalid Price Format",
-//			order:         `{"RequestType":0,"Order":{"id":"1","side":"buy","qty":"10","price":"invalid","instrument":"BTC/USDT"}}`,
-//			expectedError: "invalid price format",
-//		},
-//	}
-//
-//	for _, tt := range tests {
-//		t.Run(tt.name, func(t *testing.T) {
-//			conn := test_util.SetupRabbitMQConnection()
-//			defer conn.Close()
-//
-//			ch, err := conn.Channel()
-//			require.NoError(t, err)
-//			defer ch.Close()
-//
-//			test_util.PublishOrder(ch, "order_requests", []byte(tt.order))
-//
-//			// Wait for error event
-//            message := <-test_util.ConsumeKafkaMessages("eventTopic")
-//            var event model.OrderEvent
-//            err = json.Unmarshal([]byte(message), &event)
-//			require.NoError(t, err)
-//
-//			assert.Equal(t, string(orderBook.EventTypeRejected), event.EventType)
-//			assert.Contains(t, event.OrderStatus, tt.expectedError)
-//		})
-//	}
-//}
