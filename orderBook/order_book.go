@@ -62,10 +62,11 @@ func (book *OrderBook) OnNewOrder(modelOrder model.Order, producer EventNotifier
 	}
 }
 
-func (book *OrderBook) CancelOrder(orderID string, producer EventNotifier){
+func (book *OrderBook) CancelOrder(orderID string, producer EventNotifier) {
 	// Search for the order in bids
 	for i, order := range book.Bids {
 		if order.ID == orderID {
+			log.Printf("Order found in Bids: %+v", order)
 			book.RemoveBuyOrder(i)
 			_ = newCanceledOrderEvent(&order, producer)
 		}
@@ -74,10 +75,12 @@ func (book *OrderBook) CancelOrder(orderID string, producer EventNotifier){
 	// Search for the order in asks
 	for i, order := range book.Asks {
 		if order.ID == orderID {
+			log.Printf("Order found in Asks: %+v", order)
 			book.RemoveSellOrder(i)
 			_ = newCanceledOrderEvent(&order, producer)
 		}
 	}
+	log.Printf("Order with ID %s not found in order book", orderID)
 }
 
 // Add the new Order to end of orderbook in bids

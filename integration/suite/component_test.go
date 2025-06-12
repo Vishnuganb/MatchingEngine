@@ -3,6 +3,7 @@ package suite
 import (
 	"encoding/json"
 	"github.com/shopspring/decimal"
+	"log"
 	"testing"
 	"time"
 
@@ -20,56 +21,56 @@ func TestOrderFlowScenarios(t *testing.T) {
 		orders         []string
 		expectedEvents []model.OrderEvent
 	}{
-		//{
-		//	name: "New Buy Order",
-		//	orders: []string{
-		//		`{"RequestType":0,"Order":{"id":"1","side":"buy","qty":"10","price":"100","instrument":"BTC/USDT"}}`,
-		//	},
-		//	expectedEvents: []model.OrderEvent{
-		//		{
-		//			EventType:   string(orderBook.EventTypeNew),
-		//			OrderID:     "1",
-		//			Instrument:  "BTC/USDT",
-		//			Price:       decimal.NewFromInt(100),
-		//			Quantity:    decimal.NewFromInt(10),
-		//			LeavesQty:   decimal.NewFromInt(10),
-		//			ExecQty:     decimal.NewFromInt(0),
-		//			IsBid:       true,
-		//			OrderStatus: string(orderBook.EventTypeNew),
-		//		},
-		//	},
-		//},
-		//{
-		//	name: "Matching Buy and Sell Orders",
-		//	orders: []string{
-		//		`{"RequestType":0,"Order":{"id":"1","side":"buy","qty":"10","price":"100","instrument":"BTC/USDT"}}`,
-		//		`{"RequestType":0,"Order":{"id":"2","side":"sell","qty":"10","price":"100","instrument":"BTC/USDT"}}`,
-		//	},
-		//	expectedEvents: []model.OrderEvent{
-		//		{
-		//			EventType:   string(orderBook.EventTypeFill),
-		//			OrderID:     "1",
-		//			Instrument:  "BTC/USDT",
-		//			Price:       decimal.NewFromInt(100),
-		//			Quantity:    decimal.NewFromInt(10),
-		//			LeavesQty:   decimal.NewFromInt(0),
-		//			ExecQty:     decimal.NewFromInt(10),
-		//			IsBid:       true,
-		//			OrderStatus: string(orderBook.EventTypeFill),
-		//		},
-		//		{
-		//			EventType:   string(orderBook.EventTypeFill),
-		//			OrderID:     "2",
-		//			Instrument:  "BTC/USDT",
-		//			Price:       decimal.NewFromInt(100),
-		//			Quantity:    decimal.NewFromInt(10),
-		//			LeavesQty:   decimal.NewFromInt(0),
-		//			ExecQty:     decimal.NewFromInt(10),
-		//			IsBid:       false,
-		//			OrderStatus: string(orderBook.EventTypeFill),
-		//		},
-		//	},
-		//},
+		{
+			name: "New Buy Order",
+			orders: []string{
+				`{"RequestType":0,"Order":{"id":"1","side":"buy","qty":"10","price":"100","instrument":"BTC/USDT"}}`,
+			},
+			expectedEvents: []model.OrderEvent{
+				{
+					EventType:   string(orderBook.EventTypeNew),
+					OrderID:     "1",
+					Instrument:  "BTC/USDT",
+					Price:       decimal.NewFromInt(100),
+					Quantity:    decimal.NewFromInt(10),
+					LeavesQty:   decimal.NewFromInt(10),
+					ExecQty:     decimal.NewFromInt(0),
+					IsBid:       true,
+					OrderStatus: string(orderBook.EventTypeNew),
+				},
+			},
+		},
+		{
+			name: "Matching Buy and Sell Orders",
+			orders: []string{
+				`{"RequestType":0,"Order":{"id":"1","side":"buy","qty":"10","price":"100","instrument":"BTC/USDT"}}`,
+				`{"RequestType":0,"Order":{"id":"2","side":"sell","qty":"10","price":"100","instrument":"BTC/USDT"}}`,
+			},
+			expectedEvents: []model.OrderEvent{
+				{
+					EventType:   string(orderBook.EventTypeFill),
+					OrderID:     "1",
+					Instrument:  "BTC/USDT",
+					Price:       decimal.NewFromInt(100),
+					Quantity:    decimal.NewFromInt(10),
+					LeavesQty:   decimal.NewFromInt(0),
+					ExecQty:     decimal.NewFromInt(10),
+					IsBid:       true,
+					OrderStatus: string(orderBook.EventTypeFill),
+				},
+				{
+					EventType:   string(orderBook.EventTypeFill),
+					OrderID:     "2",
+					Instrument:  "BTC/USDT",
+					Price:       decimal.NewFromInt(100),
+					Quantity:    decimal.NewFromInt(10),
+					LeavesQty:   decimal.NewFromInt(0),
+					ExecQty:     decimal.NewFromInt(10),
+					IsBid:       false,
+					OrderStatus: string(orderBook.EventTypeFill),
+				},
+			},
+		},
 		{
 			name: "Cancel Order",
 			orders: []string{
@@ -105,31 +106,46 @@ func TestOrderFlowScenarios(t *testing.T) {
 			require.NoError(t, err)
 			defer ch.Close()
 
-			// Clean up before test
-			_, err = ch.QueuePurge("order_requests", false)
-			require.NoError(t, err)
-
 			test_util.ClearKafkaTopic("eventTopic")
 
-			// Send orders
-			for _, order := range tt.orders {
-				test_util.PublishOrder(ch, "order_requests", []byte(order))
+			// Clean up before test
+			_, err = ch.QueuePurge("order_requests", false)
+			if err != nil {
+				t.Fatalf("Failed to purge RabbitMQ queue: %v", err)
 			}
+
+			// Send orders
+			for i, order := range tt.orders {
+				log.Printf("Publishing order %d: %s", i+1, order)
+				test_util.PublishOrder(ch, "order_requests", []byte(order))
+				if i < len(tt.orders)-1 {
+					log.Printf("Waiting before sending next order...")
+					time.Sleep(1 * time.Second)  // Added a small delay between orders
+				}
+			}
+
+			log.Printf("All orders published, waiting for events...")
 
 			// Collect events
 			var receivedEvents []model.OrderEvent
-			timeout := time.After(5 * time.Second)
+			timeout := time.After(1 * time.Minute)
 			expectedCount := len(tt.expectedEvents)
 
+			startTime := time.Now()
 			for len(receivedEvents) < expectedCount {
 				select {
 				case message := <-test_util.ConsumeKafkaMessages("eventTopic"):
 					var event model.OrderEvent
 					err := json.Unmarshal([]byte(message), &event)
 					require.NoError(t, err)
+					log.Printf("[%v] Received event: Type=%s, OrderID=%s, Status=%s",
+						time.Since(startTime), event.EventType, event.OrderID, event.OrderStatus)
 					receivedEvents = append(receivedEvents, event)
 				case <-timeout:
-					t.Fatalf("Timeout waiting for events. Received events %d / Expected events %d ", len(receivedEvents), expectedCount)
+					log.Printf("Timeout after %v. Got %d/%d events",
+						time.Since(startTime), len(receivedEvents), expectedCount)
+					t.Fatalf("Timeout waiting for events. Received events %d / Expected events %d",
+						len(receivedEvents), expectedCount)
 				}
 			}
 

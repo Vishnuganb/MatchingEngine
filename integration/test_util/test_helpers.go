@@ -40,46 +40,68 @@ func ClearKafkaTopic(topic string) {
 	groupID := fmt.Sprintf("clear-group-%s-%d", topic, time.Now().UnixNano())
 
 	reader := kafka.NewReader(kafka.ReaderConfig{
-		Brokers: []string{brokers},
-		Topic:   topic,
-		GroupID: groupID,
+		Brokers:     []string{brokers},
+		Topic:       topic,
+		GroupID:     groupID,
+		StartOffset: kafka.FirstOffset,
 	})
-	defer reader.Close()
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer func() {
+		cancel()
+		if err := reader.Close(); err != nil {
+			log.Printf("Error closing reader during cleanup: %v", err)
+		}
+	}()
 
+	messagesCleared := 0
 	for {
 		_, err := reader.ReadMessage(ctx)
 		if err != nil {
+			log.Printf("Finished clearing topic %s: %v (cleared %d messages)",
+				topic, err, messagesCleared)
 			break
 		}
+		messagesCleared++
 	}
 }
 
 func ConsumeKafkaMessages(topic string) <-chan string {
 	brokers := os.Getenv("KAFKA_BROKER")
+	groupID := fmt.Sprintf("test-consumer-group-%d", time.Now().UnixNano())
 
 	reader := kafka.NewReader(kafka.ReaderConfig{
 		Brokers: []string{brokers},
 		Topic:   topic,
-		GroupID: "test-consumer-group",
+		GroupID: groupID,
 	})
 
 	messageChan := make(chan string, 100)
 
+	// Create a context with timeout
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+
 	go func() {
-		defer close(messageChan)
-		for {
-			msg, err := reader.ReadMessage(context.Background())
-
-			if err != nil {
-				log.Printf("Error reading Kafka message: %v", err)
-				close(messageChan)
-				return
+		defer func() {
+			cancel()
+			if err := reader.Close(); err != nil {
+				log.Printf("Error closing reader: %v", err)
 			}
-			messageChan <- string(msg.Value)
+			close(messageChan)
+		}()
 
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			default:
+				msg, err := reader.ReadMessage(ctx)
+				if err != nil {
+					log.Printf("Error reading message: %v", err)
+					return
+				}
+				messageChan <- string(msg.Value)
+			}
 		}
 	}()
 

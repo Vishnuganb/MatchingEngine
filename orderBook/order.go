@@ -135,5 +135,7 @@ func (o *Order) publishEvent(eventType EventType) {
 
 	if err := o.KafkaProducer.NotifyEventAndTrade(o.ID, eventJSON); err != nil {
 		log.Printf("Error publishing event: %v", err)
+	} else {
+		log.Printf("Event published for order %s: %s", o.ID, eventType)
 	}
 }

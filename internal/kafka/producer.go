@@ -28,6 +28,7 @@ func NewProducer(brokerAddr string, topic string) *Producer {
 
 func (p *Producer) NotifyEventAndTrade(key string, value json.RawMessage) error {
 	// Serialize the value to JSON
+	log.Printf("Publishing message to Kafka: Key=%s, Value=%s", key, string(value))
 	err := p.writer.WriteMessages(context.Background(), kafka.Message{
 		Key:   []byte(key),
 		Value: value,
