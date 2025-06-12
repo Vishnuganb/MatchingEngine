@@ -29,7 +29,7 @@ func NewOrderBook(producer EventNotifier) *OrderBook {
 	}
 }
 
-func (book *OrderBook) OnNewOrder(modelOrder model.Order, producer EventNotifier) model.Orders {
+func (book *OrderBook) OnNewOrder(modelOrder model.Order, producer EventNotifier) {
 	var trades []Trade
 	var orders Orders
 	order := mapModelOrderToOrderBookOrder(modelOrder)
@@ -60,18 +60,14 @@ func (book *OrderBook) OnNewOrder(modelOrder model.Order, producer EventNotifier
 		newOrder := newOrderEvent(&order, producer)
 		orders = append(orders, newOrder)
 	}
-
-	book.Orders = append(book.Orders, orders...)
-	return mapOrderBookOrdersToModelOrders(orders)
 }
 
-func (book *OrderBook) CancelOrder(orderID string, producer EventNotifier) model.Order {
+func (book *OrderBook) CancelOrder(orderID string, producer EventNotifier){
 	// Search for the order in bids
 	for i, order := range book.Bids {
 		if order.ID == orderID {
 			book.RemoveBuyOrder(i)
-			orderEvent := newCanceledOrderEvent(&order, producer)
-			return mapOrderBookOrderToModelOrder(orderEvent)
+			_ = newCanceledOrderEvent(&order, producer)
 		}
 	}
 
@@ -79,13 +75,9 @@ func (book *OrderBook) CancelOrder(orderID string, producer EventNotifier) model
 	for i, order := range book.Asks {
 		if order.ID == orderID {
 			book.RemoveSellOrder(i)
-			orderEvent := newCanceledOrderEvent(&order, producer)
-			return mapOrderBookOrderToModelOrder(orderEvent)
+			_ = newCanceledOrderEvent(&order, producer)
 		}
 	}
-
-	// If the order is not found, return an empty event
-	return model.Order{}
 }
 
 // Add the new Order to end of orderbook in bids

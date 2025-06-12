@@ -20,25 +20,25 @@ func TestOrderFlowScenarios(t *testing.T) {
 		orders         []string
 		expectedEvents []model.OrderEvent
 	}{
-		{
-			name: "New Buy Order",
-			orders: []string{
-				`{"RequestType":0,"Order":{"id":"1","side":"buy","qty":"10","price":"100","instrument":"BTC/USDT"}}`,
-			},
-			expectedEvents: []model.OrderEvent{
-				{
-					EventType:   string(orderBook.EventTypeNew),
-					OrderID:     "1",
-					Instrument:  "BTC/USDT",
-					Price:       decimal.NewFromInt(100),
-					Quantity:    decimal.NewFromInt(10),
-					LeavesQty:   decimal.NewFromInt(10),
-					ExecQty:     decimal.NewFromInt(0),
-					IsBid:       true,
-					OrderStatus: string(orderBook.EventTypeNew),
-				},
-			},
-		},
+		//{
+		//	name: "New Buy Order",
+		//	orders: []string{
+		//		`{"RequestType":0,"Order":{"id":"1","side":"buy","qty":"10","price":"100","instrument":"BTC/USDT"}}`,
+		//	},
+		//	expectedEvents: []model.OrderEvent{
+		//		{
+		//			EventType:   string(orderBook.EventTypeNew),
+		//			OrderID:     "1",
+		//			Instrument:  "BTC/USDT",
+		//			Price:       decimal.NewFromInt(100),
+		//			Quantity:    decimal.NewFromInt(10),
+		//			LeavesQty:   decimal.NewFromInt(10),
+		//			ExecQty:     decimal.NewFromInt(0),
+		//			IsBid:       true,
+		//			OrderStatus: string(orderBook.EventTypeNew),
+		//		},
+		//	},
+		//},
 		//{
 		//	name: "Matching Buy and Sell Orders",
 		//	orders: []string{
@@ -70,29 +70,29 @@ func TestOrderFlowScenarios(t *testing.T) {
 		//		},
 		//	},
 		//},
-		//{
-		//	name: "Cancel Order",
-		//	orders: []string{
-		//		`{"RequestType":0,"Order":{"id":"1","side":"buy","qty":"10","price":"100","instrument":"BTC/USDT"}}`,
-		//		`{"RequestType":1,"Order":{"id":"1","instrument":"BTC/USDT"}}`,
-		//	},
-		//	expectedEvents: []model.OrderEvent{
-		//		{
-		//			EventType:   string(orderBook.EventTypeNew),
-		//			OrderID:     "1",
-		//			Instrument:  "BTC/USDT",
-		//			LeavesQty:   decimal.NewFromInt(10),
-		//			OrderStatus: string(orderBook.EventTypeNew),
-		//		},
-		//		{
-		//			EventType:   string(orderBook.EventTypeCanceled),
-		//			OrderID:     "1",
-		//			Instrument:  "BTC/USDT",
-		//			LeavesQty:   decimal.NewFromInt(0),
-		//			OrderStatus: string(orderBook.EventTypeCanceled),
-		//		},
-		//	},
-		//},
+		{
+			name: "Cancel Order",
+			orders: []string{
+				`{"RequestType":0,"Order":{"id":"1","side":"buy","qty":"10","price":"100","instrument":"BTC/USDT"}}`,
+				`{"RequestType":1,"Order":{"id":"1","instrument":"BTC/USDT"}}`,
+			},
+			expectedEvents: []model.OrderEvent{
+				{
+					EventType:   string(orderBook.EventTypeNew),
+					OrderID:     "1",
+					Instrument:  "BTC/USDT",
+					LeavesQty:   decimal.NewFromInt(10),
+					OrderStatus: string(orderBook.EventTypeNew),
+				},
+				{
+					EventType:   string(orderBook.EventTypeCanceled),
+					OrderID:     "1",
+					Instrument:  "BTC/USDT",
+					LeavesQty:   decimal.NewFromInt(0),
+					OrderStatus: string(orderBook.EventTypeCanceled),
+				},
+			},
+		},
 	}
 
 	for _, tt := range tests {

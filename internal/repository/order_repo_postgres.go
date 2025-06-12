@@ -44,13 +44,19 @@ func (r *PostgresOrderRepository) SaveOrder(ctx context.Context, order model.Ord
 	if err != nil {
 		return model.Order{}, err
 	}
-
+	execQty, err := decimalToPgNumeric(order.ExecQty)
+	if err != nil {
+		return model.Order{}, err
+	}
 	activeOrder, err := r.queries.CreateActiveOrder(ctx, sqlc.CreateActiveOrderParams{
 		ID:         order.ID,
 		OrderQty:   qty,
 		LeavesQty:  leavesQty,
 		Price:      price,
 		Instrument: order.Instrument,
+		ExecQty: execQty,
+		OrderStatus: order.OrderStatus,
+		Type: order.ExecType,
 	})
 	if err != nil {
 		return model.Order{}, err

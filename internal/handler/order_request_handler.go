@@ -22,8 +22,8 @@ type OrderService interface {
 }
 
 type OrderBook interface {
-	OnNewOrder(order model.Order) model.Orders
-	CancelOrder(orderID string) model.Order
+	OnNewOrder(order model.Order, producer EventNotifier)
+	CancelOrder(orderID string, producer EventNotifier)
 }
 
 type EventNotifier interface {
@@ -108,8 +108,7 @@ func (h *OrderRequestHandler) handleNewOrder(book *orderBook.OrderBook, req rmq.
 }
 
 func (h *OrderRequestHandler) handleCancelOrder(book *orderBook.OrderBook, req rmq.OrderRequest) {
-	canceledOrder := book.CancelOrder(req.Order.ID, book.KafkaProducer)
-	log.Println("CanceledOrder", canceledOrder)
+	book.CancelOrder(req.Order.ID, book.KafkaProducer)
 }
 
 func (h *OrderRequestHandler) HandleEventMessages(message []byte) error {
