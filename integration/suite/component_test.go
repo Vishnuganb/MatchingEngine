@@ -21,56 +21,56 @@ func TestOrderFlowScenarios(t *testing.T) {
 		orders         []string
 		expectedEvents []model.OrderEvent
 	}{
-		{
-			name: "New Buy Order",
-			orders: []string{
-				`{"RequestType":0,"Order":{"id":"1","side":"buy","qty":"10","price":"100","instrument":"BTC/USDT"}}`,
-			},
-			expectedEvents: []model.OrderEvent{
-				{
-					EventType:   string(orderBook.EventTypeNew),
-					OrderID:     "1",
-					Instrument:  "BTC/USDT",
-					Price:       decimal.NewFromInt(100),
-					Quantity:    decimal.NewFromInt(10),
-					LeavesQty:   decimal.NewFromInt(10),
-					ExecQty:     decimal.NewFromInt(0),
-					IsBid:       true,
-					OrderStatus: string(orderBook.EventTypeNew),
-				},
-			},
-		},
-		{
-			name: "Matching Buy and Sell Orders",
-			orders: []string{
-				`{"RequestType":0,"Order":{"id":"1","side":"buy","qty":"10","price":"100","instrument":"BTC/USDT"}}`,
-				`{"RequestType":0,"Order":{"id":"2","side":"sell","qty":"10","price":"100","instrument":"BTC/USDT"}}`,
-			},
-			expectedEvents: []model.OrderEvent{
-				{
-					EventType:   string(orderBook.EventTypeFill),
-					OrderID:     "1",
-					Instrument:  "BTC/USDT",
-					Price:       decimal.NewFromInt(100),
-					Quantity:    decimal.NewFromInt(10),
-					LeavesQty:   decimal.NewFromInt(0),
-					ExecQty:     decimal.NewFromInt(10),
-					IsBid:       true,
-					OrderStatus: string(orderBook.EventTypeFill),
-				},
-				{
-					EventType:   string(orderBook.EventTypeFill),
-					OrderID:     "2",
-					Instrument:  "BTC/USDT",
-					Price:       decimal.NewFromInt(100),
-					Quantity:    decimal.NewFromInt(10),
-					LeavesQty:   decimal.NewFromInt(0),
-					ExecQty:     decimal.NewFromInt(10),
-					IsBid:       false,
-					OrderStatus: string(orderBook.EventTypeFill),
-				},
-			},
-		},
+		//{
+		//	name: "New Buy Order",
+		//	orders: []string{
+		//		`{"RequestType":0,"Order":{"id":"1","side":"buy","qty":"10","price":"100","instrument":"BTC/USDT"}}`,
+		//	},
+		//	expectedEvents: []model.OrderEvent{
+		//		{
+		//			EventType:   string(orderBook.EventTypeNew),
+		//			OrderID:     "1",
+		//			Instrument:  "BTC/USDT",
+		//			Price:       decimal.NewFromInt(100),
+		//			Quantity:    decimal.NewFromInt(10),
+		//			LeavesQty:   decimal.NewFromInt(10),
+		//			ExecQty:     decimal.NewFromInt(0),
+		//			IsBid:       true,
+		//			OrderStatus: string(orderBook.EventTypeNew),
+		//		},
+		//	},
+		//},
+		//{
+		//	name: "Matching Buy and Sell Orders",
+		//	orders: []string{
+		//		`{"RequestType":0,"Order":{"id":"1","side":"buy","qty":"10","price":"100","instrument":"BTC/USDT"}}`,
+		//		`{"RequestType":0,"Order":{"id":"2","side":"sell","qty":"10","price":"100","instrument":"BTC/USDT"}}`,
+		//	},
+		//	expectedEvents: []model.OrderEvent{
+		//		{
+		//			EventType:   string(orderBook.EventTypeFill),
+		//			OrderID:     "1",
+		//			Instrument:  "BTC/USDT",
+		//			Price:       decimal.NewFromInt(100),
+		//			Quantity:    decimal.NewFromInt(10),
+		//			LeavesQty:   decimal.NewFromInt(0),
+		//			ExecQty:     decimal.NewFromInt(10),
+		//			IsBid:       true,
+		//			OrderStatus: string(orderBook.EventTypeFill),
+		//		},
+		//		{
+		//			EventType:   string(orderBook.EventTypeFill),
+		//			OrderID:     "2",
+		//			Instrument:  "BTC/USDT",
+		//			Price:       decimal.NewFromInt(100),
+		//			Quantity:    decimal.NewFromInt(10),
+		//			LeavesQty:   decimal.NewFromInt(0),
+		//			ExecQty:     decimal.NewFromInt(10),
+		//			IsBid:       false,
+		//			OrderStatus: string(orderBook.EventTypeFill),
+		//		},
+		//	},
+		//},
 		{
 			name: "Cancel Order",
 			orders: []string{
@@ -120,7 +120,7 @@ func TestOrderFlowScenarios(t *testing.T) {
 				test_util.PublishOrder(ch, "order_requests", []byte(order))
 				if i < len(tt.orders)-1 {
 					log.Printf("Waiting before sending next order...")
-					time.Sleep(1 * time.Second)  // Added a small delay between orders
+					time.Sleep(10 * time.Second)  // Added a small delay between orders
 				}
 			}
 

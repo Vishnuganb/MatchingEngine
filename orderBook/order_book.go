@@ -63,25 +63,36 @@ func (book *OrderBook) OnNewOrder(modelOrder model.Order, producer EventNotifier
 }
 
 func (book *OrderBook) CancelOrder(orderID string, producer EventNotifier) {
+	found := false
 	// Search for the order in bids
 	for i, order := range book.Bids {
 		if order.ID == orderID {
 			log.Printf("Order found in Bids: %+v", order)
 			book.RemoveBuyOrder(i)
 			_ = newCanceledOrderEvent(&order, producer)
+			found = true
+			break
 		}
 	}
 
-	// Search for the order in asks
-	for i, order := range book.Asks {
-		if order.ID == orderID {
-			log.Printf("Order found in Asks: %+v", order)
-			book.RemoveSellOrder(i)
-			_ = newCanceledOrderEvent(&order, producer)
+	if !found {
+		// Search for the order in asks
+		for i, order := range book.Asks {
+			if order.ID == orderID {
+				log.Printf("Order found in Asks: %+v", order)
+				book.RemoveSellOrder(i)
+				_ = newCanceledOrderEvent(&order, producer)
+				found = true
+				break
+			}
 		}
 	}
-	log.Printf("Order with ID %s not found in order book", orderID)
+
+	if !found {
+		log.Printf("Order with ID %s not found in order book", orderID)
+	}
 }
+
 
 // Add the new Order to end of orderbook in bids
 func (book *OrderBook) AddBuyOrder(order Order) {
@@ -142,39 +153,39 @@ func (book *OrderBook) RemoveSellOrder(index int) {
 	book.Asks = append(book.Asks[:index], book.Asks[index+1:]...)
 }
 
-func mapOrderBookOrderToModelOrder(order Order) model.Order {
-	return model.Order{
-		ID:          order.ID,
-		Instrument:  order.Instrument,
-		Timestamp:   order.Timestamp,
-		ExecType:    string(order.ExecType),
-		IsBid:       order.IsBid,
-		Price:       order.Price,
-		OrderQty:    order.OrderQty,
-		LeavesQty:   order.LeavesQty,
-		ExecQty:     order.ExecQty,
-		OrderStatus: string(order.OrderStatus),
-	}
-}
-
-func mapOrderBookOrdersToModelOrders(orders Orders) model.Orders {
-	mappedEvents := make([]model.Order, len(orders))
-	for i, order := range orders {
-		mappedEvents[i] = model.Order{
-			ID:          order.ID,
-			Instrument:  order.Instrument,
-			Timestamp:   order.Timestamp,
-			ExecType:    string(order.ExecType),
-			IsBid:       order.IsBid,
-			Price:       order.Price,
-			OrderQty:    order.OrderQty,
-			LeavesQty:   order.LeavesQty,
-			ExecQty:     order.ExecQty,
-			OrderStatus: string(order.OrderStatus),
-		}
-	}
-	return mappedEvents
-}
+//func mapOrderBookOrderToModelOrder(order Order) model.Order {
+//	return model.Order{
+//		ID:          order.ID,
+//		Instrument:  order.Instrument,
+//		Timestamp:   order.Timestamp,
+//		ExecType:    string(order.ExecType),
+//		IsBid:       order.IsBid,
+//		Price:       order.Price,
+//		OrderQty:    order.OrderQty,
+//		LeavesQty:   order.LeavesQty,
+//		ExecQty:     order.ExecQty,
+//		OrderStatus: string(order.OrderStatus),
+//	}
+//}
+//
+//func mapOrderBookOrdersToModelOrders(orders Orders) model.Orders {
+//	mappedEvents := make([]model.Order, len(orders))
+//	for i, order := range orders {
+//		mappedEvents[i] = model.Order{
+//			ID:          order.ID,
+//			Instrument:  order.Instrument,
+//			Timestamp:   order.Timestamp,
+//			ExecType:    string(order.ExecType),
+//			IsBid:       order.IsBid,
+//			Price:       order.Price,
+//			OrderQty:    order.OrderQty,
+//			LeavesQty:   order.LeavesQty,
+//			ExecQty:     order.ExecQty,
+//			OrderStatus: string(order.OrderStatus),
+//		}
+//	}
+//	return mappedEvents
+//}
 
 func mapModelOrderToOrderBookOrder(order model.Order) Order {
 	return Order{

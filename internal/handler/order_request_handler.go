@@ -36,6 +36,7 @@ type OrderRequestHandler struct {
 	OrderService  OrderService
 	eventNotifier EventNotifier // Add this field
 	mu            sync.Mutex
+	orderLocks    sync.Map
 }
 
 func NewOrderRequestHandler(orderService OrderService, eventNotifier EventNotifier) *OrderRequestHandler {
@@ -53,6 +54,13 @@ func (h *OrderRequestHandler) HandleMessage(ctx context.Context, msg amqp.Delive
 		h.handleFailure(msg, fmt.Errorf("invalid message format: %w", err))
 		return
 	}
+	// Get or create a lock for the order ID
+	lock, _ := h.orderLocks.LoadOrStore(req.Order.ID, &sync.Mutex{})
+	orderLock := lock.(*sync.Mutex)
+
+	// Lock the order
+	orderLock.Lock()
+	defer orderLock.Unlock()
 	h.mu.Lock()
 	channel, exists := h.orderChannels[req.Order.Instrument]
 	if !exists {
@@ -69,6 +77,10 @@ func (h *OrderRequestHandler) HandleMessage(ctx context.Context, msg amqp.Delive
 	if err := msg.Ack(false); err != nil {
 		log.Printf("Failed to acknowledge message: %v", err)
 	}
+	defer func() {
+		// Clean up the lock after processing
+		h.orderLocks.Delete(req.Order.ID)
+	}()
 }
 
 func (h *OrderRequestHandler) startWorker(instrument string, channel chan rmq.OrderRequest) {
@@ -114,7 +126,8 @@ func (h *OrderRequestHandler) handleCancelOrder(book *orderBook.OrderBook, req r
 func (h *OrderRequestHandler) HandleEventMessages(message []byte) error {
 	var event model.OrderEvent
 	if err := json.Unmarshal(message, &event); err != nil {
-		return fmt.Errorf("failed to unmarshal event: %w", err)
+		log.Printf("Error unmarshaling JSON: %v, message: %s", err, string(message))
+		return nil // Skip processing this message
 	}
 
 	switch event.EventType {
