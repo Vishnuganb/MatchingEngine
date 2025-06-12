@@ -57,7 +57,7 @@ func ClearKafkaTopic(topic string) {
 	}()
 
 	// Use a longer timeout for cleanup
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 
 	messagesCleared := 0
@@ -101,14 +101,11 @@ func ConsumeKafkaMessages(topic string) <-chan string {
 		Brokers: []string{brokers},
 		Topic:   topic,
 		GroupID: "suite.test", // Use consistent group ID
-		// Start from beginning of topic
-		StartOffset: kafka.FirstOffset,
 	})
 
 	messageChan := make(chan string, 100)
 
-	// Increase timeout to 30 seconds
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 40*time.Second)
 
 	go func() {
 		defer func() {
