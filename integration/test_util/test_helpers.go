@@ -57,53 +57,31 @@ func ClearKafkaTopic(topic string) {
 	}
 }
 
-func ConsumeKafkaMessages(topic string) (<-chan string, func()) {
+func ConsumeKafkaMessages(topic string) <-chan string {
 	brokers := os.Getenv("KAFKA_BROKER")
-	groupID := fmt.Sprintf("test-consumer-%s-%d", topic, time.Now().UnixNano())
 
 	reader := kafka.NewReader(kafka.ReaderConfig{
-		Brokers:        []string{brokers},
-		Topic:          topic,
-		GroupID:        groupID,
-		CommitInterval: time.Second,
-		ReadBackoffMin: time.Millisecond * 100,
-		ReadBackoffMax: time.Second * 1,
+		Brokers: []string{brokers},
+		Topic:   topic,
+		GroupID: "test-consumer-group",
 	})
 
-	messageChan := make(chan string)
-	done := make(chan struct{})
-
-	cleanup := func() {
-		close(done)
-		reader.Close()
-	}
+	messageChan := make(chan string, 100)
 
 	go func() {
 		defer close(messageChan)
 		for {
-			select {
-			case <-done:
+			msg, err := reader.ReadMessage(context.Background())
+
+			if err != nil {
+				log.Printf("Error reading Kafka message: %v", err)
+				close(messageChan)
 				return
-			default:
-				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-				msg, err := reader.ReadMessage(ctx)
-				cancel()
-
-				if err != nil {
-					if err != context.DeadlineExceeded {
-						log.Printf("Error reading Kafka message: %v", err)
-					}
-					continue
-				}
-
-				select {
-				case messageChan <- string(msg.Value):
-				case <-done:
-					return
-				}
 			}
+			messageChan <- string(msg.Value)
+
 		}
 	}()
 
-	return messageChan, cleanup
+	return messageChan
 }

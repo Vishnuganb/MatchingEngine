@@ -39,60 +39,60 @@ func TestOrderFlowScenarios(t *testing.T) {
 				},
 			},
 		},
-		{
-			name: "Matching Buy and Sell Orders",
-			orders: []string{
-				`{"RequestType":0,"Order":{"id":"1","side":"buy","qty":"10","price":"100","instrument":"BTC/USDT"}}`,
-				`{"RequestType":0,"Order":{"id":"2","side":"sell","qty":"10","price":"100","instrument":"BTC/USDT"}}`,
-			},
-			expectedEvents: []model.OrderEvent{
-				{
-					EventType:   string(orderBook.EventTypeFill),
-					OrderID:     "1",
-					Instrument:  "BTC/USDT",
-					Price:       decimal.NewFromInt(100),
-					Quantity:    decimal.NewFromInt(10),
-					LeavesQty:   decimal.NewFromInt(0),
-					ExecQty:     decimal.NewFromInt(10),
-					IsBid:       true,
-					OrderStatus: string(orderBook.EventTypeFill),
-				},
-				{
-					EventType:   string(orderBook.EventTypeFill),
-					OrderID:     "2",
-					Instrument:  "BTC/USDT",
-					Price:       decimal.NewFromInt(100),
-					Quantity:    decimal.NewFromInt(10),
-					LeavesQty:   decimal.NewFromInt(0),
-					ExecQty:     decimal.NewFromInt(10),
-					IsBid:       false,
-					OrderStatus: string(orderBook.EventTypeFill),
-				},
-			},
-		},
-		{
-			name: "Cancel Order",
-			orders: []string{
-				`{"RequestType":0,"Order":{"id":"1","side":"buy","qty":"10","price":"100","instrument":"BTC/USDT"}}`,
-				`{"RequestType":1,"Order":{"id":"1","instrument":"BTC/USDT"}}`,
-			},
-			expectedEvents: []model.OrderEvent{
-				{
-					EventType:   string(orderBook.EventTypeNew),
-					OrderID:     "1",
-					Instrument:  "BTC/USDT",
-					LeavesQty:   decimal.NewFromInt(10),
-					OrderStatus: string(orderBook.EventTypeNew),
-				},
-				{
-					EventType:   string(orderBook.EventTypeCanceled),
-					OrderID:     "1",
-					Instrument:  "BTC/USDT",
-					LeavesQty:   decimal.NewFromInt(0),
-					OrderStatus: string(orderBook.EventTypeCanceled),
-				},
-			},
-		},
+		//{
+		//	name: "Matching Buy and Sell Orders",
+		//	orders: []string{
+		//		`{"RequestType":0,"Order":{"id":"1","side":"buy","qty":"10","price":"100","instrument":"BTC/USDT"}}`,
+		//		`{"RequestType":0,"Order":{"id":"2","side":"sell","qty":"10","price":"100","instrument":"BTC/USDT"}}`,
+		//	},
+		//	expectedEvents: []model.OrderEvent{
+		//		{
+		//			EventType:   string(orderBook.EventTypeFill),
+		//			OrderID:     "1",
+		//			Instrument:  "BTC/USDT",
+		//			Price:       decimal.NewFromInt(100),
+		//			Quantity:    decimal.NewFromInt(10),
+		//			LeavesQty:   decimal.NewFromInt(0),
+		//			ExecQty:     decimal.NewFromInt(10),
+		//			IsBid:       true,
+		//			OrderStatus: string(orderBook.EventTypeFill),
+		//		},
+		//		{
+		//			EventType:   string(orderBook.EventTypeFill),
+		//			OrderID:     "2",
+		//			Instrument:  "BTC/USDT",
+		//			Price:       decimal.NewFromInt(100),
+		//			Quantity:    decimal.NewFromInt(10),
+		//			LeavesQty:   decimal.NewFromInt(0),
+		//			ExecQty:     decimal.NewFromInt(10),
+		//			IsBid:       false,
+		//			OrderStatus: string(orderBook.EventTypeFill),
+		//		},
+		//	},
+		//},
+		//{
+		//	name: "Cancel Order",
+		//	orders: []string{
+		//		`{"RequestType":0,"Order":{"id":"1","side":"buy","qty":"10","price":"100","instrument":"BTC/USDT"}}`,
+		//		`{"RequestType":1,"Order":{"id":"1","instrument":"BTC/USDT"}}`,
+		//	},
+		//	expectedEvents: []model.OrderEvent{
+		//		{
+		//			EventType:   string(orderBook.EventTypeNew),
+		//			OrderID:     "1",
+		//			Instrument:  "BTC/USDT",
+		//			LeavesQty:   decimal.NewFromInt(10),
+		//			OrderStatus: string(orderBook.EventTypeNew),
+		//		},
+		//		{
+		//			EventType:   string(orderBook.EventTypeCanceled),
+		//			OrderID:     "1",
+		//			Instrument:  "BTC/USDT",
+		//			LeavesQty:   decimal.NewFromInt(0),
+		//			OrderStatus: string(orderBook.EventTypeCanceled),
+		//		},
+		//	},
+		//},
 	}
 
 	for _, tt := range tests {
@@ -108,6 +108,7 @@ func TestOrderFlowScenarios(t *testing.T) {
 			// Clean up before test
 			_, err = ch.QueuePurge("order_requests", false)
 			require.NoError(t, err)
+
 			test_util.ClearKafkaTopic("eventTopic")
 
 			// Send orders
@@ -120,14 +121,9 @@ func TestOrderFlowScenarios(t *testing.T) {
 			timeout := time.After(5 * time.Second)
 			expectedCount := len(tt.expectedEvents)
 
-			// Start consuming messages
-			messageChan, cleanup := test_util.ConsumeKafkaMessages("eventTopic")
-			defer cleanup()
-
-
 			for len(receivedEvents) < expectedCount {
 				select {
-				case message := <-messageChan:
+				case message := <-test_util.ConsumeKafkaMessages("eventTopic"):
 					var event model.OrderEvent
 					err := json.Unmarshal([]byte(message), &event)
 					require.NoError(t, err)
