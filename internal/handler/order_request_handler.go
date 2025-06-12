@@ -57,51 +57,34 @@ func (h *OrderRequestHandler) HandleMessage(ctx context.Context, msg amqp.Delive
 	// Get or create a lock for the order ID
 	lock, _ := h.orderLocks.LoadOrStore(req.Order.ID, &sync.Mutex{})
 	orderLock := lock.(*sync.Mutex)
-
-	// Lock the order
 	orderLock.Lock()
-	defer orderLock.Unlock()
-	h.mu.Lock()
-	channel, exists := h.orderChannels[req.Order.Instrument]
-	if !exists {
-		channel = make(chan rmq.OrderRequest, 100) // Buffer size of 100
-		h.orderChannels[req.Order.Instrument] = channel
+	defer func() {
+		orderLock.Unlock()
+		h.orderLocks.Delete(req.Order.ID)
+	}()
 
-		// Start a worker for the instrument
-		go h.startWorker(req.Order.Instrument, channel)
+	// Get or create the order book for the instrument
+	h.mu.Lock()
+	book, exists := h.orderBooks[req.Order.Instrument]
+	if !exists {
+		book = orderBook.NewOrderBook(h.eventNotifier)
+		h.orderBooks[req.Order.Instrument] = book
 	}
 	h.mu.Unlock()
 
-	// Send the request to the channel
-	channel <- req
+	// Process the request immediately (synchronously)
+	switch req.RequestType {
+	case rmq.ReqTypeNew:
+		h.handleNewOrder(book, req)
+	case rmq.ReqTypeCancel:
+		h.handleCancelOrder(book, req)
+	default:
+		log.Printf("Unknown request type: %v", req.RequestType)
+	}
+
+	// Acknowledge a message after successful processing
 	if err := msg.Ack(false); err != nil {
 		log.Printf("Failed to acknowledge message: %v", err)
-	}
-	defer func() {
-		// Clean up the lock after processing
-		h.orderLocks.Delete(req.Order.ID)
-	}()
-}
-
-func (h *OrderRequestHandler) startWorker(instrument string, channel chan rmq.OrderRequest) {
-	for req := range channel {
-		h.mu.Lock()
-		book, exists := h.orderBooks[instrument]
-		if !exists {
-			book = orderBook.NewOrderBook(h.eventNotifier)
-			h.orderBooks[instrument] = book
-		}
-		h.mu.Unlock()
-
-		switch req.RequestType {
-		case rmq.ReqTypeNew:
-			h.handleNewOrder(book, req)
-		case rmq.ReqTypeCancel:
-			h.handleCancelOrder(book, req)
-		default:
-			log.Printf("Unknown request type: %v", req.RequestType)
-		}
-		log.Printf("Processed request of type %d", req.RequestType)
 	}
 }
 

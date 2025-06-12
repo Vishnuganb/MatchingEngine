@@ -91,6 +91,7 @@ func newFillOrderEvent(order *Order, qty, tradePrice decimal.Decimal, producer E
 }
 
 func newCanceledOrderEvent(order *Order, producer EventNotifier) Order {
+	log.Printf("Creating canceled event for order: %s", order.ID)
 	o := newBaseOrderEvent(EventTypeCanceled, order, producer)
 	o.LeavesQty = decimal.Zero
 	o.OrderStatus = EventTypeCanceled

@@ -69,6 +69,7 @@ func (book *OrderBook) CancelOrder(orderID string, producer EventNotifier) {
 		if order.ID == orderID {
 			log.Printf("Order found in Bids: %+v", order)
 			book.RemoveBuyOrder(i)
+			log.Printf("Publishing canceled event for order: %s", orderID)
 			_ = newCanceledOrderEvent(&order, producer)
 			found = true
 			break
@@ -81,6 +82,7 @@ func (book *OrderBook) CancelOrder(orderID string, producer EventNotifier) {
 			if order.ID == orderID {
 				log.Printf("Order found in Asks: %+v", order)
 				book.RemoveSellOrder(i)
+				log.Printf("Publishing canceled event for order: %s", orderID)
 				_ = newCanceledOrderEvent(&order, producer)
 				found = true
 				break

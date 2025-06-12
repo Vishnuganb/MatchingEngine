@@ -30,5 +30,4 @@ type OrderEvent struct {
 	IsBid       bool            `json:"is_bid"`
 	OrderStatus string          `json:"order_status"`
 	ExecType    string          `json:"exec_type"`
-	Timestamp   int64           `json:"timestamp"`
 }

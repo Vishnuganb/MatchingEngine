@@ -104,7 +104,6 @@ func TestHandleEventMessages(t *testing.T) {
 				IsBid:       true,
 				OrderStatus: tt.eventType,
 				ExecType:    tt.eventType,
-				Timestamp:   time.Now().UnixNano(),
 			}
 
 			eventJSON, _ := json.Marshal(event)
@@ -157,17 +156,6 @@ func TestHandleMessage_WorkerCreation(t *testing.T) {
 	// First message should create a new worker
 	handler.HandleMessage(context.Background(), msg)
 
-	// Verify channel was created
-	handler.mu.Lock()
-	channel, exists := handler.orderChannels[instrument]
-	handler.mu.Unlock()
-
-	assert.True(t, exists)
-	assert.NotNil(t, channel)
-
-	// Let the worker process the message
-	time.Sleep(100 * time.Millisecond)
-
 	// Verify order book was created
 	handler.mu.Lock()
 	book, bookExists := handler.orderBooks[instrument]
@@ -203,9 +191,6 @@ func TestWorkerProcessing(t *testing.T) {
 	handler.orderChannels[instrument] = channel
 	handler.orderBooks[instrument] = book
 	handler.mu.Unlock()
-
-	// Start the worker
-	go handler.startWorker(instrument, channel)
 
 	// Send a new order request
 	orderReq := rmq.OrderRequest{

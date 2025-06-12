@@ -2,6 +2,7 @@ package test_util
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -57,7 +58,7 @@ func ClearKafkaTopic(topic string) {
 	}()
 
 	// Use a longer timeout for cleanup
-	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	messagesCleared := 0
@@ -100,39 +101,47 @@ func ConsumeKafkaMessages(topic string) <-chan string {
 	reader := kafka.NewReader(kafka.ReaderConfig{
 		Brokers: []string{brokers},
 		Topic:   topic,
-		GroupID: "suite.test", // Use consistent group ID
+		GroupID: fmt.Sprintf("test-group-%d", time.Now().UnixNano()), // Unique group ID per test
 	})
 
 	messageChan := make(chan string, 100)
-
-	ctx, cancel := context.WithTimeout(context.Background(), 40*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 
 	go func() {
 		defer func() {
 			cancel()
+			close(messageChan)
 			if err := reader.Close(); err != nil {
 				log.Printf("Error closing reader: %v", err)
 			}
-			close(messageChan)
 		}()
 
 		for {
 			select {
 			case <-ctx.Done():
-				log.Printf("Consumer context done: %v", ctx.Err())
 				return
 			default:
 				msg, err := reader.ReadMessage(ctx)
 				if err != nil {
-					log.Printf("Error reading message: %v", err)
 					if err == context.DeadlineExceeded {
 						return
 					}
-					time.Sleep(100 * time.Millisecond) // Add small delay on error
+					if !errors.Is(err, context.Canceled) {
+						log.Printf("Error reading message: %v", err)
+					}
+					return
+				}
+
+				if len(msg.Value) == 0 {
 					continue
 				}
+
 				log.Printf("Consumer received message: %s", string(msg.Value))
-				messageChan <- string(msg.Value)
+				select {
+				case messageChan <- string(msg.Value):
+				case <-ctx.Done():
+					return
+				}
 			}
 		}
 	}()
