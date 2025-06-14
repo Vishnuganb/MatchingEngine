@@ -7,12 +7,15 @@ import (
 // Config stores all configuration of the application.
 // The values are read by viper from a config file or environment variable.
 type Config struct {
-	Environment string `mapstructure:"ENVIRONMENT"`
-	DBSource    string `mapstructure:"DB_SOURCE"`
-	DBDriver    string `mapstructure:"DB_DRIVER"`
-	KafkaBroker string `mapstructure:"KAFKA_BROKER"`
-	KafkaTopic  string `mapstructure:"KAFKA_TOPIC"`
-	RmqHost     string `mapstructure:"RMQ_URL"`
+	Environment         string `mapstructure:"ENVIRONMENT"`
+	DBSource            string `mapstructure:"DB_SOURCE"`
+	DBDriver            string `mapstructure:"DB_DRIVER"`
+	KafkaBroker         string `mapstructure:"KAFKA_BROKER"`
+	KafkaDBUpdateTopic  string `mapstructure:"KAFKA_DB_UPDATE_TOPIC"`
+	KafkaExecutionTopic string `mapstructure:"KAFKA_EXECUTION_TOPIC"`
+	KafkaConsumerGroup  string `mapstructure:"KAFKA_CONSUMER_GROUP"`
+	RmqHost             string `mapstructure:"RMQ_URL"`
+	RmqQueueName        string `mapstructure:"RMQ_QUEUE_NAME"`
 }
 
 // LoadConfig reads configuration from file or environment variables.

@@ -177,10 +177,8 @@ func TestOrderFlowScenarios(t *testing.T) {
 			require.NoError(t, err)
 			defer ch.Close()
 
-			test_util.ClearKafkaTopic("eventTopic")
-
 			// Clean up before test
-			_, err = ch.QueuePurge("order_requests", false)
+			_, err = ch.QueuePurge("orderRequests", false)
 			if err != nil {
 				t.Fatalf("Failed to purge RabbitMQ queue: %v", err)
 			}
@@ -188,7 +186,7 @@ func TestOrderFlowScenarios(t *testing.T) {
 			// Send orders
 			for i, order := range tt.orders {
 				log.Printf("Publishing order %d: %s", i+1, order)
-				test_util.PublishOrder(ch, "order_requests", []byte(order))
+				test_util.PublishOrder(ch, "orderRequests", []byte(order))
 				if i < len(tt.orders)-1 {
 					log.Printf("Waiting before sending next order...")
 					time.Sleep(10 * time.Second) // Added a small delay between orders
@@ -198,7 +196,7 @@ func TestOrderFlowScenarios(t *testing.T) {
 			log.Printf("All orders published, waiting for events...")
 
 			// Collect events
-			messageChan := test_util.ConsumeKafkaMessages("eventTopic")
+			messageChan := test_util.ConsumeKafkaMessages("executionTopic")
 			var receivedEvents []interface{}
 			timeout := time.After(30 * time.Second)
 			expectedCount := len(tt.expectedEvents)
@@ -228,8 +226,6 @@ func TestOrderFlowScenarios(t *testing.T) {
 							log.Printf("Failed to unmarshal OrderEvent: %v", err)
 							continue
 						}
-						//log.Printf("[%v] Received order event: Type=%s, OrderID=%s, Status=%s",
-						//	time.Since(startTime), event.EventType, event.OrderID, event.OrderStatus)
 						receivedEvents = append(receivedEvents, event)
 					} else {
 						var trade model.Trade
@@ -237,8 +233,6 @@ func TestOrderFlowScenarios(t *testing.T) {
 							log.Printf("Failed to unmarshal Trade: %v", err)
 							continue
 						}
-						//log.Printf("[%v] Received trade: Buyer=%s, Seller=%s, Qty=%d, Price=%d",
-						//	time.Since(startTime), trade.BuyerOrderID, trade.SellerOrderID, trade.Quantity, trade.Price)
 						receivedEvents = append(receivedEvents, trade)
 					}
 
@@ -254,9 +248,9 @@ func TestOrderFlowScenarios(t *testing.T) {
 			}
 
 			assert.Equal(t, len(tt.expectedEvents), len(receivedEvents))
-			for _, event := range receivedEvents {
-				log.Printf("Received event: %+v", event)
-			}
+			//for _, event := range receivedEvents {
+			//	log.Printf("Received event: %+v", event)
+			//}
 			for i, exp := range tt.expectedEvents {
 				switch expected := exp.(type) {
 				case model.OrderEvent:

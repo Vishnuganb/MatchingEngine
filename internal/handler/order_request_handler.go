@@ -55,6 +55,7 @@ func (h *OrderRequestHandler) HandleMessage(ctx context.Context, msg amqp.Delive
 		return
 	}
 	// Get or create a lock for the order ID
+	// It returns the value associated with the key
 	lock, _ := h.orderLocks.LoadOrStore(req.Order.ID, &sync.Mutex{})
 	orderLock := lock.(*sync.Mutex)
 	orderLock.Lock()

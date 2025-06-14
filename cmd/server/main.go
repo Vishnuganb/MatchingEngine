@@ -37,7 +37,7 @@ func main() {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	kafkaProducer := kafka.NewProducer(config.KafkaBroker, config.KafkaTopic)
+	kafkaProducer := kafka.NewProducer(config.KafkaBroker, config.KafkaDBUpdateTopic, config.KafkaExecutionTopic)
 	if kafkaProducer == nil {
 		log.Fatal("Failed to initialize Kafka producer")
 	}
@@ -48,8 +48,8 @@ func main() {
 
 	consumerOpts := rmq.ConsumerOpts{
 		RabbitMQURL: config.RmqHost,
-		QueueName:   "order_requests",
-		Prefetch:    10,
+		QueueName:   config.RmqQueueName,
+		Prefetch:    1,
 	}
 	consumer := rmq.NewConsumer(consumerOpts, requestHandler)
 
@@ -59,7 +59,11 @@ func main() {
 		}
 	}()
 
-	kafkaConsumerOpts := kafka.ConsumerOpts{BrokerAddrs: config.KafkaBroker, Topic: config.KafkaTopic, GroupID: "order-service-group"}
+	kafkaConsumerOpts := kafka.ConsumerOpts{
+		BrokerAddrs: config.KafkaBroker,
+		Topic:       config.KafkaDBUpdateTopic,
+		GroupID:     config.KafkaConsumerGroup,
+	}
 	kafkaConsumer := kafka.NewConsumer(kafkaConsumerOpts, requestHandler)
 
 	go func() {
