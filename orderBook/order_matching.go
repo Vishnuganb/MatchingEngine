@@ -1,7 +1,6 @@
 package orderBook
 
 import (
-	"encoding/json"
 	"log"
 
 	"github.com/shopspring/decimal"
@@ -96,9 +95,10 @@ func getOrderID(order, matchingOrder *Order, isBuy bool) string {
 
 func (book *OrderBook) publishExecutionReport(trade Trade) {
 	if book.KafkaProducer != nil {
-		err := book.KafkaProducer.NotifyEventAndTrade(trade.BuyerOrderID, json.RawMessage(trade.ToJSON()))
-		if err != nil {
-			return
+		if err := book.KafkaProducer.NotifyEventAndTrade(trade.BuyerOrderID, trade.ToJSON()); err != nil {
+			log.Printf("Error publishing event: %v", err)
+		} else {
+			log.Printf("Trade published BuyerId %s: SellerId %s", trade.BuyerOrderID, trade.SellerOrderID)
 		}
 	}
 }

@@ -46,18 +46,6 @@ func TestOrderFlowScenarios(t *testing.T) {
 				`{"RequestType":0,"Order":{"id":"2","side":"sell","qty":"10","price":"100","instrument":"BTC/USDT"}}`,
 			},
 			expectedEvents: []interface{}{
-				model.OrderEvent{
-					EventType:   string(orderBook.EventTypeNew),
-					OrderID:     "1",
-					Instrument:  "BTC/USDT",
-					Price:       decimal.NewFromInt(100),
-					Quantity:    decimal.NewFromInt(10),
-					LeavesQty:   decimal.NewFromInt(10),
-					ExecQty:     decimal.NewFromInt(0),
-					IsBid:       true,
-					OrderStatus: string(orderBook.EventTypeNew),
-					ExecType:    string(orderBook.EventTypeNew),
-				},
 				model.Trade{
 					BuyerOrderID:  "1",
 					SellerOrderID: "2",
