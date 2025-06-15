@@ -2,7 +2,6 @@ package test_util
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -58,31 +57,24 @@ func ConsumeKafkaMessages(topic string) <-chan string {
 		}()
 
 		for {
+			msg, err := reader.ReadMessage(ctx)
+			if err != nil {
+				if ctx.Err() != nil {
+					return // context canceled or deadline
+				}
+				log.Printf("Error reading message: %v", err)
+				return
+			}
+
+			if len(msg.Value) == 0 {
+				continue
+			}
+
 			select {
+			case messageChan <- string(msg.Value):
+				log.Printf("Consumer received message: %s", string(msg.Value))
 			case <-ctx.Done():
 				return
-			default:
-				msg, err := reader.ReadMessage(ctx)
-				if err != nil {
-					if err == context.DeadlineExceeded {
-						return
-					}
-					if !errors.Is(err, context.Canceled) {
-						log.Printf("Error reading message: %v", err)
-					}
-					return
-				}
-
-				if len(msg.Value) == 0 {
-					continue
-				}
-
-				log.Printf("Consumer received message: %s", string(msg.Value))
-				select {
-				case messageChan <- string(msg.Value):
-				case <-ctx.Done():
-					return
-				}
 			}
 		}
 	}()

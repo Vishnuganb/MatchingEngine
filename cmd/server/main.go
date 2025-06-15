@@ -35,6 +35,12 @@ func main() {
 	}
 	defer conn.Close()
 
+	topics := []string{config.KafkaDBUpdateTopic, config.KafkaExecutionTopic}
+	err = kafka.InitializeTopics(config.KafkaBroker, topics)
+	if err != nil {
+		log.Fatalf("Failed to initialize Kafka topics: %v", err)
+	}
+
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	kafkaProducer := kafka.NewProducer(config.KafkaBroker, config.KafkaDBUpdateTopic, config.KafkaExecutionTopic)

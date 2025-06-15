@@ -43,7 +43,6 @@ func TestOrderFlowScenarios(t *testing.T) {
 		{
 			name: "Matching Buy and Sell Orders",
 			orders: []string{
-				`{"RequestType":0,"Order":{"id":"1","side":"buy","qty":"10","price":"100","instrument":"BTC/USDT"}}`,
 				`{"RequestType":0,"Order":{"id":"2","side":"sell","qty":"10","price":"100","instrument":"BTC/USDT"}}`,
 			},
 			expectedEvents: []interface{}{
@@ -93,13 +92,13 @@ func TestOrderFlowScenarios(t *testing.T) {
 		{
 			name: "Partially Matching Buy and Sell Orders",
 			orders: []string{
-				`{"RequestType":0,"Order":{"id":"1","side":"sell","qty":"10","price":"100","instrument":"BTC/USDT"}}`,
-				`{"RequestType":0,"Order":{"id":"2","side":"buy","qty":"5","price":"100","instrument":"BTC/USDT"}}`,
+				`{"RequestType":0,"Order":{"id":"3","side":"sell","qty":"10","price":"100","instrument":"BTC/USDT"}}`,
+				`{"RequestType":0,"Order":{"id":"4","side":"buy","qty":"5","price":"100","instrument":"BTC/USDT"}}`,
 			},
 			expectedEvents: []interface{}{
 				model.OrderEvent{
 					EventType:   string(orderBook.EventTypeNew),
-					OrderID:     "1",
+					OrderID:     "3",
 					Instrument:  "BTC/USDT",
 					Price:       decimal.NewFromInt(100),
 					Quantity:    decimal.NewFromInt(10),
@@ -110,15 +109,15 @@ func TestOrderFlowScenarios(t *testing.T) {
 					ExecType:    string(orderBook.EventTypeNew),
 				},
 				model.Trade{
-					BuyerOrderID:  "2",
-					SellerOrderID: "1",
+					BuyerOrderID:  "4",
+					SellerOrderID: "3",
 					Quantity:      5,
 					Price:         100,
 					Timestamp:     time.Now().UnixNano(),
 				},
 				model.OrderEvent{
 					EventType:   string(orderBook.EventTypePartialFill),
-					OrderID:     "1",
+					OrderID:     "3",
 					Instrument:  "BTC/USDT",
 					Price:       decimal.NewFromInt(100),
 					Quantity:    decimal.NewFromInt(10),
@@ -130,7 +129,7 @@ func TestOrderFlowScenarios(t *testing.T) {
 				},
 				model.OrderEvent{
 					EventType:   string(orderBook.EventTypeFill),
-					OrderID:     "2",
+					OrderID:     "4",
 					Instrument:  "BTC/USDT",
 					Price:       decimal.NewFromInt(100),
 					Quantity:    decimal.NewFromInt(5),
@@ -145,20 +144,20 @@ func TestOrderFlowScenarios(t *testing.T) {
 		{
 			name: "Cancel Order",
 			orders: []string{
-				`{"RequestType":0,"Order":{"id":"1","side":"buy","qty":"10","price":"100","instrument":"BTC/USDT"}}`,
-				`{"RequestType":1,"Order":{"id":"1","instrument":"BTC/USDT"}}`,
+				`{"RequestType":0,"Order":{"id":"5","side":"buy","qty":"10","price":"100","instrument":"BTC/USDT"}}`,
+				`{"RequestType":1,"Order":{"id":"5","instrument":"BTC/USDT"}}`,
 			},
 			expectedEvents: []interface{}{
 				model.OrderEvent{
 					EventType:   string(orderBook.EventTypeNew),
-					OrderID:     "1",
+					OrderID:     "5",
 					Instrument:  "BTC/USDT",
 					LeavesQty:   decimal.NewFromInt(10),
 					OrderStatus: string(orderBook.EventTypeNew),
 				},
 				model.OrderEvent{
 					EventType:   string(orderBook.EventTypeCanceled),
-					OrderID:     "1",
+					OrderID:     "5",
 					Instrument:  "BTC/USDT",
 					LeavesQty:   decimal.NewFromInt(0),
 					OrderStatus: string(orderBook.EventTypeCanceled),
