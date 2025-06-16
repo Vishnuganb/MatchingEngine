@@ -10,7 +10,7 @@ CREATE TABLE active_orders
     price        numeric NOT NULL,
     instrument   text    NOT NULL,
     type         text    NOT NULL,
-    exec_qty     numeric NOT NULL,
+    cum_qty     numeric NOT NULL,
     order_status text    NOT NULL,
     PRIMARY KEY (id)
 );

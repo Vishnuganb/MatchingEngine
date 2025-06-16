@@ -107,7 +107,7 @@ func (h *OrderRequestHandler) handleNewOrder(book *orderBook.OrderBook, req rmq.
 		OrderQty:    decimal.RequireFromString(req.Order.Qty),
 		Instrument:  req.Order.Instrument,
 		Timestamp:   time.Now().UnixNano(),
-		OrderStatus: string(orderBook.EventTypePendingNew),
+		OrderStatus: string(orderBook.OrderStatusPendingNew),
 		IsBid:       req.Order.Side == orderBook.Buy,
 	}
 
@@ -126,10 +126,10 @@ func (h *OrderRequestHandler) HandleEventMessages(message []byte) error {
 	}
 
 	switch event.EventType {
-	case string(orderBook.EventTypeNew), string(orderBook.EventTypePendingNew):
+	case string(orderBook.ExecTypeNew), string(orderBook.ExecTypePendingNew):
 		h.OrderService.SaveOrderAsync(h.convertEventToOrder(event))
-	case string(orderBook.EventTypeFill), string(orderBook.EventTypePartialFill),
-		string(orderBook.EventTypeCanceled), string(orderBook.EventTypeRejected):
+	case string(orderBook.ExecTypeFill), string(orderBook.ExecTypePartialFill),
+		string(orderBook.ExecTypeCanceled), string(orderBook.ExecTypeRejected):
 		h.OrderService.UpdateOrderAsync(
 			event.OrderID,
 			event.OrderStatus,

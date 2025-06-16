@@ -55,21 +55,12 @@ func (book *OrderBook) processOrder(order *Order) {
 			match := &orderList.Orders[i]
 			matchQty := decimal.Min(order.LeavesQty, match.LeavesQty)
 
-			trade := Trade{
-				BuyerOrderID:  getOrderID(order, match, isBuy),
-				SellerOrderID: getOrderID(order, match, !isBuy),
-				Quantity:      matchQty.BigInt().Uint64(),
-				Price:         price.BigInt().Uint64(),
-				Timestamp:     order.Timestamp,
-			}
-
-			book.publishTrade(trade)
+			book.publishTrade(order, match, matchQty)
 
 			order.LeavesQty = order.LeavesQty.Sub(matchQty)
 			match.LeavesQty = match.LeavesQty.Sub(matchQty)
 
-			newFillOrderEvent(order, matchQty, price)
-			newFillOrderEvent(match, matchQty, price)
+			NewFillOrderEvent(order, match, matchQty)
 
 			if match.LeavesQty.IsZero() {
 				orderList.Orders = append(orderList.Orders[:i], orderList.Orders[i+1:]...)
@@ -92,14 +83,31 @@ func (book *OrderBook) processOrder(order *Order) {
 	}
 }
 
-func getOrderID(order, matchingOrder *Order, isBuy bool) string {
-	if isBuy {
-		return order.ID
-	}
-	return matchingOrder.ID
-}
+func (book *OrderBook) publishTrade(order, match *Order, qty decimal.Decimal) {
+	isBuy := order.IsBid
 
-func (book *OrderBook) publishTrade(trade Trade) {
+	var buyerID, sellerID string
+	if isBuy {
+		buyerID = order.ID
+		sellerID = match.ID
+	} else {
+		buyerID = match.ID
+		sellerID = order.ID
+	}
+
+	price := match.Price
+	if price.IsZero() {
+		price = order.Price // fallback
+	}
+
+	trade := Trade{
+		BuyerOrderID:  buyerID,
+		SellerOrderID: sellerID,
+		Quantity:      qty.BigInt().Uint64(),
+		Price:         price.BigInt().Uint64(),
+		Timestamp:     order.Timestamp,
+	}
+
 	if book.TradeNotifier != nil {
 		if err := book.TradeNotifier.NotifyEventAndTrade(trade.BuyerOrderID, trade.ToJSON()); err != nil {
 			log.Printf("Error publishing event: %v", err)

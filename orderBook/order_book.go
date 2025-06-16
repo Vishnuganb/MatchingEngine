@@ -31,16 +31,19 @@ func NewOrderBook(tradeNotifier TradeNotifier) *OrderBook {
 
 func (book *OrderBook) OnNewOrder(modelOrder model.Order) {
 	order := mapModelOrderToOrderBookOrder(modelOrder)
+	order.ExecutionNotifier = book.TradeNotifier
 	book.processOrder(&order)
+	NewOrderEvent(&order)
 }
 
 func (book *OrderBook) CancelOrder(orderID string) {
 	for price, list := range book.Bids {
 		for i, order := range list.Orders {
 			if order.ID == orderID {
+				order.ExecutionNotifier = book.TradeNotifier
 				list.Orders = append(list.Orders[:i], list.Orders[i+1:]...)
 				log.Printf("Canceled order %s from Bids at price %s", orderID, price)
-				newCanceledOrderEvent(&order)
+				NewCanceledOrderEvent(&order)
 				return
 			}
 		}
@@ -49,9 +52,10 @@ func (book *OrderBook) CancelOrder(orderID string) {
 	for price, list := range book.Asks {
 		for i, order := range list.Orders {
 			if order.ID == orderID {
+				order.ExecutionNotifier = book.TradeNotifier
 				list.Orders = append(list.Orders[:i], list.Orders[i+1:]...)
 				log.Printf("Canceled order %s from Asks at price %s", orderID, price)
-				newCanceledOrderEvent(&order)
+				NewCanceledOrderEvent(&order)
 				return
 			}
 		}
@@ -80,12 +84,12 @@ func mapModelOrderToOrderBookOrder(order model.Order) Order {
 		ID:          order.ID,
 		Instrument:  order.Instrument,
 		Timestamp:   order.Timestamp,
-		ExecType:    EventType(order.ExecType),
+		ExecType:    ExecType(order.ExecType),
 		IsBid:       order.IsBid,
 		Price:       order.Price,
 		OrderQty:    order.OrderQty,
 		LeavesQty:   order.OrderQty, // Assume full qty on entry
-		ExecQty:     order.ExecQty,
-		OrderStatus: EventType(order.OrderStatus),
+		CumQty:      order.ExecQty,
+		OrderStatus: OrderStatus(order.OrderStatus),
 	}
 }
