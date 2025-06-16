@@ -158,9 +158,8 @@ func (s *OrderRequestHandler) convertEventToOrder(event model.OrderEvent) model.
 		Price:       event.Price,
 		OrderQty:    event.Quantity,
 		LeavesQty:   event.LeavesQty,
-		ExecQty:     event.ExecQty,
+		CumQty:     event.ExecQty,
 		IsBid:       event.IsBid,
 		OrderStatus: event.OrderStatus,
-		ExecType:    event.ExecType,
 	}
 }

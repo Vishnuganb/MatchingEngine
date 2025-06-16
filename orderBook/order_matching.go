@@ -43,6 +43,8 @@ func (book *OrderBook) processOrder(order *Order) {
 		return pi.GreaterThan(pj) // descending for bids
 	})
 
+	orderMatched := false
+
 	for _, priceStr := range priceKeys {
 		price := decimal.RequireFromString(priceStr)
 		if !priceComp(price, order.Price) {
@@ -62,6 +64,8 @@ func (book *OrderBook) processOrder(order *Order) {
 
 			NewFillOrderEvent(order, match, matchQty)
 
+			orderMatched = true
+
 			if match.LeavesQty.IsZero() {
 				orderList.Orders = append(orderList.Orders[:i], orderList.Orders[i+1:]...)
 			} else {
@@ -80,6 +84,9 @@ func (book *OrderBook) processOrder(order *Order) {
 
 	if order.LeavesQty.IsPositive() {
 		book.addOrderToBook(*order)
+		if !orderMatched {
+			NewOrderEvent(order)
+		}
 	}
 }
 
@@ -97,7 +104,7 @@ func (book *OrderBook) publishTrade(order, match *Order, qty decimal.Decimal) {
 
 	price := match.Price
 	if price.IsZero() {
-		price = order.Price // fallback
+		price = order.Price
 	}
 
 	trade := Trade{
