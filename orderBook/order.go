@@ -56,8 +56,8 @@ func newBaseOrder(t EventType, orderID string, price decimal.Decimal, isBid bool
 	return o
 }
 
-func newBaseOrderEvent(t EventType, order *Order, producer EventNotifier) Order {
-	o := newBaseOrder(t, order.ID, order.Price, order.IsBid, producer)
+func newBaseOrderEvent(t EventType, order *Order) Order {
+	o := newBaseOrder(t, order.ID, order.Price, order.IsBid)
 	o.OrderQty = order.OrderQty
 	o.LeavesQty = order.LeavesQty
 	if o.Price.IsPositive() {
@@ -68,16 +68,16 @@ func newBaseOrderEvent(t EventType, order *Order, producer EventNotifier) Order 
 	return o
 }
 
-func newOrderEvent(order *Order, producer EventNotifier) Order {
-	o := newBaseOrderEvent(EventTypeNew, order, producer)
+func newOrderEvent(order *Order) Order {
+	o := newBaseOrderEvent(EventTypeNew, order)
 	o.ExecQty = decimal.Zero
 	o.OrderStatus = EventTypeNew
 	o.publishEvent(EventTypeNew)
 	return o
 }
 
-func newFillOrderEvent(order *Order, qty, tradePrice decimal.Decimal, producer EventNotifier) Order {
-	o := newBaseOrderEvent(EventTypeFill, order, producer)
+func newFillOrderEvent(order *Order, qty, tradePrice decimal.Decimal) Order {
+	o := newBaseOrderEvent(EventTypeFill, order)
 	o.OrderStatus = EventTypeFill
 	if order.LeavesQty.IsPositive() {
 		o.OrderStatus = EventTypePartialFill
@@ -90,16 +90,16 @@ func newFillOrderEvent(order *Order, qty, tradePrice decimal.Decimal, producer E
 	return o
 }
 
-func newCanceledOrderEvent(order *Order, producer EventNotifier) {
+func newCanceledOrderEvent(order *Order) {
 	log.Printf("Creating canceled event for order: %s", order.ID)
-	o := newBaseOrderEvent(EventTypeCanceled, order, producer)
+	o := newBaseOrderEvent(EventTypeCanceled, order)
 	o.LeavesQty = decimal.Zero
 	o.OrderStatus = EventTypeCanceled
 	o.publishEvent(EventTypeCanceled)
 }
 
-func newRejectedOrderEvent(or *OrderRequest, producer EventNotifier) Order {
-	o := newBaseOrder(EventTypeRejected, or.ID, or.Price, or.Side == Buy, producer)
+func newRejectedOrderEvent(or *OrderRequest) Order {
+	o := newBaseOrder(EventTypeRejected, or.ID, or.Price, or.Side == Buy)
 	o.OrderQty = or.Qty
 	o.LeavesQty = decimal.Zero
 	o.OrderStatus = EventTypeRejected

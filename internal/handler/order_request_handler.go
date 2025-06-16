@@ -34,9 +34,8 @@ type OrderRequestHandler struct {
 	orderBooks    map[string]*orderBook.OrderBook
 	orderChannels map[string]chan rmq.OrderRequest
 	OrderService  OrderService
-	eventNotifier EventNotifier // Add this field
+	eventNotifier EventNotifier
 	mu            sync.Mutex
-	orderLocks    sync.Map
 }
 
 func NewOrderRequestHandler(orderService OrderService, eventNotifier EventNotifier) *OrderRequestHandler {
@@ -54,38 +53,50 @@ func (h *OrderRequestHandler) HandleMessage(ctx context.Context, msg amqp.Delive
 		h.handleFailure(msg, fmt.Errorf("invalid message format: %w", err))
 		return
 	}
-	// Get or create a lock for the order ID
-	// It returns the value associated with the key
-	lock, _ := h.orderLocks.LoadOrStore(req.Order.ID, &sync.Mutex{})
-	orderLock := lock.(*sync.Mutex)
-	orderLock.Lock()
-	defer func() {
-		orderLock.Unlock()
-		h.orderLocks.Delete(req.Order.ID)
-	}()
-
-	// Get or create the order book for the instrument
+	// Get or create the order channel for the instrument
 	h.mu.Lock()
-	book, exists := h.orderBooks[req.Order.Instrument]
+	orderChannel, exists := h.orderChannels[req.Order.Instrument]
 	if !exists {
-		book = orderBook.NewOrderBook(h.eventNotifier)
-		h.orderBooks[req.Order.Instrument] = book
+		orderChannel = make(chan rmq.OrderRequest, 100)
+		h.orderChannels[req.Order.Instrument] = orderChannel
+		go h.startInstrumentWorker(req.Order.Instrument, orderChannel)
 	}
 	h.mu.Unlock()
 
-	// Process the request immediately (synchronously)
-	switch req.RequestType {
-	case rmq.ReqTypeNew:
-		h.handleNewOrder(book, req)
-	case rmq.ReqTypeCancel:
-		h.handleCancelOrder(book, req)
+	// Send the order to the instrument-specific channel
+	select {
+	case orderChannel <- req:
+		// Successfully Added to th already running worker
 	default:
-		log.Printf("Unknown request type: %v", req.RequestType)
+		log.Printf("Order channel for instrument %s is full, dropping order: %v", req.Order.Instrument, req)
 	}
 
 	// Acknowledge a message after successful processing
 	if err := msg.Ack(false); err != nil {
 		log.Printf("Failed to acknowledge message: %v", err)
+	}
+}
+
+func (h *OrderRequestHandler) startInstrumentWorker(instrument string, orderChannel chan rmq.OrderRequest) {
+	for req := range orderChannel {
+		// Get or create the order book for the instrument
+		h.mu.Lock()
+		book, exists := h.orderBooks[instrument]
+		if !exists {
+			book = orderBook.NewOrderBook(h.eventNotifier)
+			h.orderBooks[instrument] = book
+		}
+		h.mu.Unlock()
+
+		// Process the request
+		switch req.RequestType {
+		case rmq.ReqTypeNew:
+			h.handleNewOrder(book, req)
+		case rmq.ReqTypeCancel:
+			h.handleCancelOrder(book, req)
+		default:
+			log.Printf("Unknown request type: %v", req.RequestType)
+		}
 	}
 }
 
@@ -100,11 +111,11 @@ func (h *OrderRequestHandler) handleNewOrder(book *orderBook.OrderBook, req rmq.
 		IsBid:       req.Order.Side == orderBook.Buy,
 	}
 
-	book.OnNewOrder(order, book.KafkaProducer)
+	book.OnNewOrder(order)
 }
 
 func (h *OrderRequestHandler) handleCancelOrder(book *orderBook.OrderBook, req rmq.OrderRequest) {
-	book.CancelOrder(req.Order.ID, book.KafkaProducer)
+	book.CancelOrder(req.Order.ID)
 }
 
 func (h *OrderRequestHandler) HandleEventMessages(message []byte) error {

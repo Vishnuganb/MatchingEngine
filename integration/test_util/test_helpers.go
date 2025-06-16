@@ -2,7 +2,6 @@ package test_util
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"os"
 	"time"
@@ -41,7 +40,7 @@ func ConsumeKafkaMessages(topic string) <-chan string {
 	reader := kafka.NewReader(kafka.ReaderConfig{
 		Brokers: []string{brokers},
 		Topic:   topic,
-		GroupID: fmt.Sprintf("test-group-%d", time.Now().UnixNano()),
+		GroupID: "event_consumer_group",
 	})
 
 	messageChan := make(chan string, 100)
@@ -69,10 +68,9 @@ func ConsumeKafkaMessages(topic string) <-chan string {
 			if len(msg.Value) == 0 {
 				continue
 			}
-
+			log.Printf("Consumer received message: %s", string(msg.Value))
 			select {
 			case messageChan <- string(msg.Value):
-				log.Printf("Consumer received message: %s", string(msg.Value))
 			case <-ctx.Done():
 				return
 			}
