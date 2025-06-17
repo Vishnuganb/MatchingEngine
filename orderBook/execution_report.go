@@ -14,4 +14,5 @@ type ExecutionReport struct {
 	Instrument string          `json:"instrument"`
 	IsBid      bool            `json:"is_bid"`
 	Timestamp  int64           `json:"timestamp"`
+	OrderStatus string          `json:"order_status"`
 }

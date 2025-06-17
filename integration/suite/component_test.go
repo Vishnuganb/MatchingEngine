@@ -27,11 +27,11 @@ func TestOrderFlowScenarios(t *testing.T) {
 				`{"RequestType":0,"Order":{"id":"1","side":"buy","qty":"10","price":"100","instrument":"BTC/USDT"}}`,
 			},
 			expectedEvents: []interface{}{
-				model.OrderEvent{
+				model.ExecutionReport{
 					OrderID:     "1",
 					Instrument:  "BTC/USDT",
 					Price:       decimal.NewFromInt(100),
-					Quantity:    decimal.NewFromInt(10),
+					OrderQty:    decimal.NewFromInt(10),
 					LeavesQty:   decimal.NewFromInt(10),
 					CumQty:      decimal.NewFromInt(0),
 					IsBid:       true,
@@ -52,22 +52,22 @@ func TestOrderFlowScenarios(t *testing.T) {
 					Quantity:      10,
 					Price:         100,
 				},
-				model.OrderEvent{
+				model.ExecutionReport{
 					OrderID:     "1",
 					Instrument:  "BTC/USDT",
 					Price:       decimal.NewFromInt(100),
-					Quantity:    decimal.NewFromInt(10),
+					OrderQty:    decimal.NewFromInt(10),
 					LeavesQty:   decimal.NewFromInt(0),
 					CumQty:      decimal.NewFromInt(10),
 					IsBid:       true,
 					OrderStatus: string(orderBook.OrderStatusFill),
 					ExecType:    string(orderBook.ExecTypeFill),
 				},
-				model.OrderEvent{
+				model.ExecutionReport{
 					OrderID:     "2",
 					Instrument:  "BTC/USDT",
 					Price:       decimal.NewFromInt(100),
-					Quantity:    decimal.NewFromInt(10),
+					OrderQty:    decimal.NewFromInt(10),
 					LeavesQty:   decimal.NewFromInt(0),
 					CumQty:      decimal.NewFromInt(10),
 					IsBid:       false,
@@ -83,11 +83,11 @@ func TestOrderFlowScenarios(t *testing.T) {
 				`{"RequestType":0,"Order":{"id":"4","side":"buy","qty":"5","price":"100","instrument":"BTC/USDT"}}`,
 			},
 			expectedEvents: []interface{}{
-				model.OrderEvent{
+				model.ExecutionReport{
 					OrderID:     "3",
 					Instrument:  "BTC/USDT",
 					Price:       decimal.NewFromInt(100),
-					Quantity:    decimal.NewFromInt(10),
+					OrderQty:    decimal.NewFromInt(10),
 					LeavesQty:   decimal.NewFromInt(10),
 					CumQty:      decimal.NewFromInt(0),
 					IsBid:       false,
@@ -100,22 +100,22 @@ func TestOrderFlowScenarios(t *testing.T) {
 					Quantity:      5,
 					Price:         100,
 				},
-				model.OrderEvent{
+				model.ExecutionReport{
 					OrderID:     "3",
 					Instrument:  "BTC/USDT",
 					Price:       decimal.NewFromInt(100),
-					Quantity:    decimal.NewFromInt(10),
+					OrderQty:    decimal.NewFromInt(10),
 					LeavesQty:   decimal.NewFromInt(5),
 					CumQty:      decimal.NewFromInt(5),
 					IsBid:       false,
 					OrderStatus: string(orderBook.OrderStatusPartialFill),
 					ExecType:    string(orderBook.ExecTypeFill),
 				},
-				model.OrderEvent{
+				model.ExecutionReport{
 					OrderID:     "4",
 					Instrument:  "BTC/USDT",
 					Price:       decimal.NewFromInt(100),
-					Quantity:    decimal.NewFromInt(5),
+					OrderQty:    decimal.NewFromInt(5),
 					LeavesQty:   decimal.NewFromInt(0),
 					CumQty:      decimal.NewFromInt(5),
 					IsBid:       true,
@@ -131,14 +131,14 @@ func TestOrderFlowScenarios(t *testing.T) {
 				`{"RequestType":1,"Order":{"id":"5","instrument":"BTC/USDT"}}`,
 			},
 			expectedEvents: []interface{}{
-				model.OrderEvent{
+				model.ExecutionReport{
 					OrderID:     "5",
 					Instrument:  "BTC/USDT",
 					LeavesQty:   decimal.NewFromInt(10),
 					OrderStatus: string(orderBook.OrderStatusNew),
 					ExecType:    string(orderBook.ExecTypeNew),
 				},
-				model.OrderEvent{
+				model.ExecutionReport{
 					OrderID:     "5",
 					Instrument:  "BTC/USDT",
 					LeavesQty:   decimal.NewFromInt(0),
@@ -203,9 +203,9 @@ func TestOrderFlowScenarios(t *testing.T) {
 					}
 
 					if _, isTrade := raw["buyer_order_id"]; !isTrade {
-						var event model.OrderEvent
+						var event model.ExecutionReport
 						if err := json.Unmarshal([]byte(message), &event); err != nil {
-							log.Printf("Failed to unmarshal OrderEvent: %v", err)
+							log.Printf("Failed to unmarshal ExecutionReport: %v", err)
 							continue
 						}
 						receivedEvents = append(receivedEvents, event)
@@ -235,9 +235,9 @@ func TestOrderFlowScenarios(t *testing.T) {
 			}
 			for i, exp := range tt.expectedEvents {
 				switch expected := exp.(type) {
-				case model.OrderEvent:
-					actual, ok := receivedEvents[i].(model.OrderEvent)
-					require.True(t, ok, "received event is not of type model.OrderEvent")
+				case model.ExecutionReport:
+					actual, ok := receivedEvents[i].(model.ExecutionReport)
+					require.True(t, ok, "received event is not of type model.ExecutionReport")
 
 					assert.Equal(t, expected.OrderID, actual.OrderID)
 					assert.Equal(t, expected.Instrument, actual.Instrument)

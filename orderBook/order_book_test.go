@@ -34,6 +34,7 @@ func TestOnNewOrder_ValidOrder(t *testing.T) {
 		OrderQty:   decimal.NewFromInt(10),
 		Instrument: "BTC/USDT",
 		Timestamp:  time.Now().UnixNano(),
+		OrderStatus: OrderStatusPendingNew,
 		IsBid:      true,
 	}
 
@@ -55,6 +56,7 @@ func TestOnNewOrder_InvalidOrder(t *testing.T) {
 		OrderQty:   decimal.NewFromInt(10),
 		Instrument: "BTC/USDT",
 		Timestamp:  time.Now().UnixNano(),
+		OrderStatus: OrderStatusPendingNew,
 		IsBid:      true,
 	}
 
@@ -74,6 +76,7 @@ func TestCancelOrder_ExistingOrder(t *testing.T) {
 		OrderQty:   decimal.NewFromInt(10),
 		Instrument: "BTC/USDT",
 		Timestamp:  time.Now().UnixNano(),
+		OrderStatus: OrderStatusPendingNew,
 		IsBid:      true,
 	}
 
@@ -105,6 +108,7 @@ func TestAddOrderToBook_BuyOrder(t *testing.T) {
 		OrderQty:   decimal.NewFromInt(10),
 		Instrument: "BTC/USDT",
 		Timestamp:  time.Now().UnixNano(),
+		OrderStatus: OrderStatusPendingNew,
 		IsBid:      true,
 	}
 
@@ -126,6 +130,7 @@ func TestAddOrderToBook_SellOrder(t *testing.T) {
 		OrderQty:   decimal.NewFromInt(5),
 		Instrument: "BTC/USDT",
 		Timestamp:  time.Now().UnixNano(),
+		OrderStatus: OrderStatusPendingNew,
 		IsBid:      false,
 	}
 

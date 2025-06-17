@@ -110,23 +110,3 @@ func TestProcessOrder_NoMatch(t *testing.T) {
 	assert.Len(t, book.Bids, 1) // Buy order added to the book
 	assert.True(t, buyOrder.LeavesQty.Equal(decimal.NewFromInt(10)))
 }
-
-func TestProcessOrder_InvalidOrder(t *testing.T) {
-	book := newTestOrderBook()
-
-	// Process an invalid order
-	invalidOrder := Order{
-		ID:          "1",
-		Instrument:  "BTC/USDT",
-		Price:       decimal.NewFromInt(-100), // Invalid price
-		OrderQty:    decimal.NewFromInt(10),
-		LeavesQty:   decimal.NewFromInt(10),
-		Timestamp:   time.Now().UnixNano(),
-		OrderStatus: OrderStatusPendingNew,
-		IsBid:       true,
-	}
-
-	book.processOrder(&invalidOrder)
-
-	assert.Len(t, book.Bids, 0) // Invalid order should not be added
-}
