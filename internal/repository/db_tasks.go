@@ -24,12 +24,11 @@ func (t SaveOrderTask) Execute(ctx context.Context, repo OrderRepository) error 
 type UpdateOrderTask struct {
 	OrderID     string
 	OrderStatus string
-	ExecType    string
 	LeavesQty   decimal.Decimal
-	ExecQty     decimal.Decimal
+	CumQty      decimal.Decimal
 }
 
 func (t UpdateOrderTask) Execute(ctx context.Context, repo OrderRepository) error {
-	_, err := repo.UpdateOrder(ctx, t.OrderID, t.OrderStatus, t.ExecType, t.LeavesQty, t.ExecQty)
+	_, err := repo.UpdateOrder(ctx, t.OrderID, t.OrderStatus, t.LeavesQty, t.CumQty)
 	return err
 }

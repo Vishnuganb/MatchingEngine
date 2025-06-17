@@ -12,8 +12,8 @@ import (
 )
 
 const createActiveOrder = `-- name: CreateActiveOrder :one
-INSERT INTO active_orders (id, side, order_qty, leaves_qty, price, instrument, exec_qty, type, order_status)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id, side, order_qty, leaves_qty, price, instrument, type, exec_qty, order_status
+INSERT INTO active_orders (id, side, order_qty, leaves_qty, price, instrument, cum_qty, type, order_status)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id, side, order_qty, leaves_qty, price, instrument, type, cum_qty, order_status
 `
 
 type CreateActiveOrderParams struct {
@@ -23,7 +23,7 @@ type CreateActiveOrderParams struct {
 	LeavesQty   pgtype.Numeric `json:"leaves_qty"`
 	Price       pgtype.Numeric `json:"price"`
 	Instrument  string         `json:"instrument"`
-	ExecQty     pgtype.Numeric `json:"exec_qty"`
+	CumQty      pgtype.Numeric `json:"cum_qty"`
 	Type        string         `json:"type"`
 	OrderStatus string         `json:"order_status"`
 }
@@ -36,7 +36,7 @@ func (q *Queries) CreateActiveOrder(ctx context.Context, arg CreateActiveOrderPa
 		arg.LeavesQty,
 		arg.Price,
 		arg.Instrument,
-		arg.ExecQty,
+		arg.CumQty,
 		arg.Type,
 		arg.OrderStatus,
 	)
@@ -49,7 +49,7 @@ func (q *Queries) CreateActiveOrder(ctx context.Context, arg CreateActiveOrderPa
 		&i.Price,
 		&i.Instrument,
 		&i.Type,
-		&i.ExecQty,
+		&i.CumQty,
 		&i.OrderStatus,
 	)
 	return i, err
@@ -58,7 +58,7 @@ func (q *Queries) CreateActiveOrder(ctx context.Context, arg CreateActiveOrderPa
 const deleteActiveOrder = `-- name: DeleteActiveOrder :one
 DELETE
 FROM active_orders
-WHERE id = $1 RETURNING id, side, order_qty, leaves_qty, price, instrument, type, exec_qty, order_status
+WHERE id = $1 RETURNING id, side, order_qty, leaves_qty, price, instrument, type, cum_qty, order_status
 `
 
 func (q *Queries) DeleteActiveOrder(ctx context.Context, id string) (ActiveOrder, error) {
@@ -72,14 +72,14 @@ func (q *Queries) DeleteActiveOrder(ctx context.Context, id string) (ActiveOrder
 		&i.Price,
 		&i.Instrument,
 		&i.Type,
-		&i.ExecQty,
+		&i.CumQty,
 		&i.OrderStatus,
 	)
 	return i, err
 }
 
 const getActiveOrder = `-- name: GetActiveOrder :one
-SELECT id, side, order_qty, leaves_qty, price, instrument, type, exec_qty, order_status
+SELECT id, side, order_qty, leaves_qty, price, instrument, type, cum_qty, order_status
 FROM active_orders
 WHERE id = $1
 `
@@ -95,14 +95,14 @@ func (q *Queries) GetActiveOrder(ctx context.Context, id string) (ActiveOrder, e
 		&i.Price,
 		&i.Instrument,
 		&i.Type,
-		&i.ExecQty,
+		&i.CumQty,
 		&i.OrderStatus,
 	)
 	return i, err
 }
 
 const listActiveOrders = `-- name: ListActiveOrders :many
-SELECT id, side, order_qty, leaves_qty, price, instrument, type, exec_qty, order_status
+SELECT id, side, order_qty, leaves_qty, price, instrument, type, cum_qty, order_status
 FROM active_orders
 ORDER BY id
 `
@@ -124,7 +124,7 @@ func (q *Queries) ListActiveOrders(ctx context.Context) ([]ActiveOrder, error) {
 			&i.Price,
 			&i.Instrument,
 			&i.Type,
-			&i.ExecQty,
+			&i.CumQty,
 			&i.OrderStatus,
 		); err != nil {
 			return nil, err
@@ -141,16 +141,16 @@ const updateActiveOrder = `-- name: UpdateActiveOrder :one
 UPDATE active_orders
 SET type         = COALESCE($2, type),
     leaves_qty   = COALESCE($3, leaves_qty),
-    exec_qty     = COALESCE($4, exec_qty),
+    cum_qty     = COALESCE($4, cum_qty),
     order_status = COALESCE($5, order_status)
-WHERE id = $1 RETURNING id, side, order_qty, leaves_qty, price, instrument, type, exec_qty, order_status
+WHERE id = $1 RETURNING id, side, order_qty, leaves_qty, price, instrument, type, cum_qty, order_status
 `
 
 type UpdateActiveOrderParams struct {
 	ID          string         `json:"id"`
 	Type        pgtype.Text    `json:"type"`
 	LeavesQty   pgtype.Numeric `json:"leaves_qty"`
-	ExecQty     pgtype.Numeric `json:"exec_qty"`
+	CumQty      pgtype.Numeric `json:"cum_qty"`
 	OrderStatus pgtype.Text    `json:"order_status"`
 }
 
@@ -159,7 +159,7 @@ func (q *Queries) UpdateActiveOrder(ctx context.Context, arg UpdateActiveOrderPa
 		arg.ID,
 		arg.Type,
 		arg.LeavesQty,
-		arg.ExecQty,
+		arg.CumQty,
 		arg.OrderStatus,
 	)
 	var i ActiveOrder
@@ -171,7 +171,7 @@ func (q *Queries) UpdateActiveOrder(ctx context.Context, arg UpdateActiveOrderPa
 		&i.Price,
 		&i.Instrument,
 		&i.Type,
-		&i.ExecQty,
+		&i.CumQty,
 		&i.OrderStatus,
 	)
 	return i, err

@@ -22,7 +22,7 @@ type Consumer struct {
 }
 
 type MessageHandler interface {
-	HandleEventMessages(message []byte) error
+	HandleExecutionReport(message []byte) error
 }
 
 func NewConsumer(opts ConsumerOpts, requestHandler MessageHandler) *Consumer {
@@ -98,7 +98,7 @@ func (c *Consumer) processBatchPeriodically(ctx context.Context) {
 			if len(messages) > 0 {
 				log.Printf("Processing batch of %d messages", len(messages))
 				for _, msg := range messages {
-					if err := c.requestHandler.HandleEventMessages(msg); err != nil {
+					if err := c.requestHandler.HandleExecutionReport(msg); err != nil {
 						log.Printf("Error handling message: %v", err)
 					}
 				}

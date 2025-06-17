@@ -15,7 +15,7 @@ type ConsumerOpts struct {
 }
 
 type MessageHandler interface {
-	HandleMessage(ctx context.Context, msg amqp.Delivery)
+	HandleOrderMessage(msg amqp.Delivery)
 }
 
 type Consumer struct {
@@ -68,7 +68,7 @@ func (c *Consumer) Start(ctx context.Context) error {
 			case <-ctx.Done():
 				return
 			case msg := <-msgs:
-				c.requestHandler.HandleMessage(ctx, msg)
+				c.requestHandler.HandleOrderMessage(msg)
 			}
 		}
 	}()

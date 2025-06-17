@@ -44,7 +44,7 @@ func (r *PostgresOrderRepository) SaveOrder(ctx context.Context, order model.Ord
 	if err != nil {
 		return model.Order{}, err
 	}
-	execQty, err := decimalToPgNumeric(order.ExecQty)
+	cumQty, err := decimalToPgNumeric(order.CumQty)
 	if err != nil {
 		return model.Order{}, err
 	}
@@ -54,9 +54,8 @@ func (r *PostgresOrderRepository) SaveOrder(ctx context.Context, order model.Ord
 		LeavesQty:   leavesQty,
 		Price:       price,
 		Instrument:  order.Instrument,
-		ExecQty:     execQty,
+		CumQty:     cumQty,
 		OrderStatus: order.OrderStatus,
-		Type:        order.ExecType,
 	})
 	if err != nil {
 		return model.Order{}, err
@@ -70,22 +69,20 @@ func (r *PostgresOrderRepository) SaveOrder(ctx context.Context, order model.Ord
 	return mappedOrder, nil
 }
 
-func (r *PostgresOrderRepository) UpdateOrder(ctx context.Context, orderID, orderStatus, execType string, leavesQty, execQty decimal.Decimal) (model.Order, error) {
+func (r *PostgresOrderRepository) UpdateOrder(ctx context.Context, orderID, orderStatus string, leavesQty, cumQty decimal.Decimal) (model.Order, error) {
 	leavesQtyNumeric, err := decimalToPgNumeric(leavesQty)
 	if err != nil {
 		return model.Order{}, err
 	}
-	execQtyNumeric, _ := decimalToPgNumeric(execQty)
+	cumQtyNumeric, _ := decimalToPgNumeric(cumQty)
 
 	pgOrderStatus := pgtype.Text{String: orderStatus, Valid: true}
-	pgExecType := pgtype.Text{String: execType, Valid: true}
 
 	activeOrder, err := r.queries.UpdateActiveOrder(ctx, sqlc.UpdateActiveOrderParams{
 		ID:          orderID,
 		LeavesQty:   leavesQtyNumeric,
-		ExecQty:     execQtyNumeric,
+		CumQty:     cumQtyNumeric,
 		OrderStatus: pgOrderStatus,
-		Type:        pgExecType,
 	})
 	if err != nil {
 		return model.Order{}, err
@@ -112,7 +109,7 @@ func MapActiveOrderToOrder(activeOrder sqlc.ActiveOrder) (model.Order, error) {
 	if err != nil {
 		return model.Order{}, fmt.Errorf("converting leavesQty: %w", err)
 	}
-	execQty, err := pgNumericToDecimal(activeOrder.ExecQty)
+	cumQty, err := pgNumericToDecimal(activeOrder.CumQty)
 	if err != nil {
 		return model.Order{}, fmt.Errorf("converting execQty: %w", err)
 	}
@@ -124,8 +121,7 @@ func MapActiveOrderToOrder(activeOrder sqlc.ActiveOrder) (model.Order, error) {
 		Instrument:  activeOrder.Instrument,
 		LeavesQty:   leavesQty,
 		IsBid:       activeOrder.Side == string(orderBook.Buy),
-		ExecType:    activeOrder.Type,
-		ExecQty:     execQty,
+		CumQty:     cumQty,
 		OrderStatus: activeOrder.OrderStatus,
 	}, nil
 }

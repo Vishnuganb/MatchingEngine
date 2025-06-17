@@ -23,13 +23,12 @@ func (s *OrderService) SaveOrderAsync(order model.Order) {
 	})
 }
 
-func (s *OrderService) UpdateOrderAsync(orderID, orderStatus, execType string, leavesQty, execQty decimal.Decimal) {
+func (s *OrderService) UpdateOrderAsync(orderID, orderStatus string, leavesQty, cumQty decimal.Decimal) {
 	task := repository.UpdateOrderTask{
 		OrderID:     orderID,
 		OrderStatus: orderStatus,
-		ExecType:    execType,
 		LeavesQty:   leavesQty,
-		ExecQty:     execQty,
+		CumQty:     cumQty,
 	}
 	s.asyncWriter.EnqueueTask(task)
 }

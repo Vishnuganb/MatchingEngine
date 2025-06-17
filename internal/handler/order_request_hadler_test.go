@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"context"
 	"encoding/json"
 	"testing"
 	"time"
@@ -24,128 +23,42 @@ func (m *MockOrderService) SaveOrderAsync(order model.Order) {
 	m.Called(order)
 }
 
-func (m *MockOrderService) UpdateOrderAsync(orderID, orderStatus, execType string, leavesQty, execQty decimal.Decimal) {
-	m.Called(orderID, orderStatus, execType, leavesQty, execQty)
+func (m *MockOrderService) UpdateOrderAsync(orderID, orderStatus string, leavesQty, cumQty decimal.Decimal) {
+	m.Called(orderID, orderStatus, leavesQty, cumQty)
 }
 
 type mockAcknowledger struct{}
 
-func (m *mockAcknowledger) Ack(tag uint64, multiple bool) error {
+func (m *mockAcknowledger) Ack(uint64, bool) error {
 	return nil
 }
 
-func (m *mockAcknowledger) Nack(tag uint64, multiple, requeue bool) error {
+func (m *mockAcknowledger) Nack(uint64, bool, bool) error {
 	return nil
 }
 
-func (m *mockAcknowledger) Reject(tag uint64, requeue bool) error {
+func (m *mockAcknowledger) Reject(uint64, bool) error {
 	return nil
 }
 
-type MockEventNotifier struct{}
+type MockTradeNotifier struct{}
 
-func (m *MockEventNotifier) NotifyEventAndTrade(orderID string, value json.RawMessage) error {
+func (m *MockTradeNotifier) NotifyEventAndTrade(string, json.RawMessage) error {
 	return nil
 }
 
-func TestHandleEventMessages(t *testing.T) {
-	tests := []struct {
-		name         string
-		eventType    string
-		expectSave   bool
-		expectUpdate bool
-	}{
-		{
-			name:         "New Order Event",
-			eventType:    string(orderBook.EventTypeNew),
-			expectSave:   true,
-			expectUpdate: false,
-		},
-		{
-			name:         "Pending New Order Event",
-			eventType:    string(orderBook.EventTypePendingNew),
-			expectSave:   true,
-			expectUpdate: false,
-		},
-		{
-			name:         "Fill Order Event",
-			eventType:    string(orderBook.EventTypeFill),
-			expectSave:   false,
-			expectUpdate: true,
-		},
-		{
-			name:         "Partial Fill Order Event",
-			eventType:    string(orderBook.EventTypePartialFill),
-			expectSave:   false,
-			expectUpdate: true,
-		},
-		{
-			name:         "Cancel Order Event",
-			eventType:    string(orderBook.EventTypeCanceled),
-			expectSave:   false,
-			expectUpdate: true,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			mockService := new(MockOrderService)
-			mockNotifier := new(MockEventNotifier)
-			handler := NewOrderRequestHandler(mockService, mockNotifier)
-
-			event := model.OrderEvent{
-				EventType:   tt.eventType,
-				OrderID:     "test-order-id",
-				Price:       decimal.NewFromInt(100),
-				Quantity:    decimal.NewFromInt(10),
-				LeavesQty:   decimal.NewFromInt(5),
-				ExecQty:     decimal.NewFromInt(5),
-				Instrument:  "BTC/USDT",
-				IsBid:       true,
-				OrderStatus: tt.eventType,
-				ExecType:    tt.eventType,
-			}
-
-			eventJSON, _ := json.Marshal(event)
-
-			if tt.expectSave {
-				mockService.On("SaveOrderAsync", mock.MatchedBy(func(order model.Order) bool {
-					return order.ID == event.OrderID &&
-						order.Price.Equal(event.Price) &&
-						order.OrderQty.Equal(event.Quantity)
-				})).Return()
-			}
-
-			if tt.expectUpdate {
-				mockService.On("UpdateOrderAsync",
-					event.OrderID,
-					event.OrderStatus,
-					event.ExecType,
-					event.LeavesQty,
-					event.ExecQty,
-				).Return()
-			}
-
-			err := handler.HandleEventMessages(eventJSON)
-			assert.NoError(t, err)
-			mockService.AssertExpectations(t)
-		})
-	}
-}
-
-func TestHandleMessage_WorkerCreation(t *testing.T) {
+func TestHandleOrderMessage_ValidOrder(t *testing.T) {
 	mockService := new(MockOrderService)
-	mockNotifier := new(MockEventNotifier)
+	mockNotifier := new(MockTradeNotifier)
 	handler := NewOrderRequestHandler(mockService, mockNotifier)
 
-	instrument := "BTC/USDT"
 	orderReq := rmq.OrderRequest{
 		RequestType: rmq.ReqTypeNew,
 		Order: rmq.TraderOrder{
 			ID:         "1",
 			Price:      "100",
 			Qty:        "10",
-			Instrument: instrument,
+			Instrument: "BTC/USDT",
 			Side:       orderBook.Buy,
 		},
 	}
@@ -153,21 +66,19 @@ func TestHandleMessage_WorkerCreation(t *testing.T) {
 	body, _ := json.Marshal(orderReq)
 	msg := amqp.Delivery{Body: body, Acknowledger: &mockAcknowledger{}}
 
-	// First message should create a new worker
-	handler.HandleMessage(context.Background(), msg)
+	handler.HandleOrderMessage(msg)
 
-	// Verify order book was created
 	handler.mu.Lock()
-	book, bookExists := handler.orderBooks[instrument]
+	orderChannel, exists := handler.orderChannels["BTC/USDT"]
 	handler.mu.Unlock()
 
-	assert.True(t, bookExists)
-	assert.NotNil(t, book)
+	assert.True(t, exists)
+	assert.NotNil(t, orderChannel)
 }
 
-func TestHandleMessage_InvalidJSON(t *testing.T) {
+func TestHandleOrderMessage_InvalidJSON(t *testing.T) {
 	mockService := new(MockOrderService)
-	mockNotifier := new(MockEventNotifier)
+	mockNotifier := new(MockTradeNotifier)
 	handler := NewOrderRequestHandler(mockService, mockNotifier)
 
 	msg := amqp.Delivery{
@@ -175,24 +86,19 @@ func TestHandleMessage_InvalidJSON(t *testing.T) {
 		Acknowledger: &mockAcknowledger{},
 	}
 
-	handler.HandleMessage(context.Background(), msg)
+	handler.HandleOrderMessage(msg)
+
+	handler.mu.Lock()
+	assert.Equal(t, 0, len(handler.orderChannels), "No order channels should be created for invalid JSON")
+	handler.mu.Unlock()
 }
 
-func TestWorkerProcessing(t *testing.T) {
+func TestStartOrderWorkerForInstrument(t *testing.T) {
 	mockService := new(MockOrderService)
-	mockNotifier := new(MockEventNotifier)
+	mockNotifier := new(MockTradeNotifier)
 	handler := NewOrderRequestHandler(mockService, mockNotifier)
 
 	instrument := "BTC/USDT"
-	channel := make(chan rmq.OrderRequest, 100)
-	book := orderBook.NewOrderBook(mockNotifier)
-
-	handler.mu.Lock()
-	handler.orderChannels[instrument] = channel
-	handler.orderBooks[instrument] = book
-	handler.mu.Unlock()
-
-	// Send a new order request
 	orderReq := rmq.OrderRequest{
 		RequestType: rmq.ReqTypeNew,
 		Order: rmq.TraderOrder{
@@ -204,15 +110,47 @@ func TestWorkerProcessing(t *testing.T) {
 		},
 	}
 
-	channel <- orderReq
-
-	// Give the worker time to process
-	time.Sleep(100 * time.Millisecond)
-
-	// Verify the order book state
+	channel := make(chan rmq.OrderRequest, 100)
 	handler.mu.Lock()
-	book = handler.orderBooks[instrument]
+	handler.orderChannels[instrument] = channel
 	handler.mu.Unlock()
 
+	go handler.startOrderWorkerForInstrument(instrument, channel)
+
+	channel <- orderReq
+
+	time.Sleep(100 * time.Millisecond)
+
+	handler.mu.Lock()
+	book, exists := handler.orderBooks[instrument]
+	handler.mu.Unlock()
+
+	assert.True(t, exists)
 	assert.NotNil(t, book)
+}
+
+func TestHandleExecutionReport(t *testing.T) {
+	mockService := new(MockOrderService)
+	mockNotifier := new(MockTradeNotifier)
+	handler := NewOrderRequestHandler(mockService, mockNotifier)
+
+	event := model.OrderEvent{
+		OrderID:     "1",
+		Instrument:  "BTC/USDT",
+		Price:       decimal.NewFromInt(100),
+		Quantity:    decimal.NewFromInt(10),
+		LeavesQty:   decimal.NewFromInt(5),
+		CumQty:      decimal.NewFromInt(5),
+		IsBid:       true,
+		OrderStatus: string(orderBook.OrderStatusFill),
+		ExecType:    string(orderBook.ExecTypeFill),
+	}
+
+	eventJSON, _ := json.Marshal(event)
+
+	mockService.On("UpdateOrderAsync", event.OrderID, event.OrderStatus, event.LeavesQty, event.CumQty).Return()
+
+	err := handler.HandleExecutionReport(eventJSON)
+	assert.NoError(t, err)
+	mockService.AssertExpectations(t)
 }

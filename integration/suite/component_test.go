@@ -28,15 +28,15 @@ func TestOrderFlowScenarios(t *testing.T) {
 			},
 			expectedEvents: []interface{}{
 				model.OrderEvent{
-					EventType:   string(orderBook.ExecTypeNew),
 					OrderID:     "1",
 					Instrument:  "BTC/USDT",
 					Price:       decimal.NewFromInt(100),
 					Quantity:    decimal.NewFromInt(10),
 					LeavesQty:   decimal.NewFromInt(10),
-					ExecQty:     decimal.NewFromInt(0),
+					CumQty:      decimal.NewFromInt(0),
 					IsBid:       true,
 					OrderStatus: string(orderBook.OrderStatusNew),
+					ExecType: string(orderBook.ExecTypeNew),
 				},
 			},
 		},
@@ -51,29 +51,28 @@ func TestOrderFlowScenarios(t *testing.T) {
 					SellerOrderID: "2",
 					Quantity:      10,
 					Price:         100,
-					Timestamp:     time.Now().UnixNano(),
 				},
 				model.OrderEvent{
-					EventType:   string(orderBook.ExecTypeNew),
 					OrderID:     "1",
 					Instrument:  "BTC/USDT",
 					Price:       decimal.NewFromInt(100),
 					Quantity:    decimal.NewFromInt(10),
 					LeavesQty:   decimal.NewFromInt(0),
-					ExecQty:     decimal.NewFromInt(10),
+					CumQty:      decimal.NewFromInt(10),
 					IsBid:       true,
-					OrderStatus: string(orderBook.OrderStatusNew),
+					OrderStatus: string(orderBook.OrderStatusFill),
+					ExecType:    string(orderBook.ExecTypeFill),
 				},
 				model.OrderEvent{
-					EventType:   string(orderBook.ExecTypeFill),
 					OrderID:     "2",
 					Instrument:  "BTC/USDT",
 					Price:       decimal.NewFromInt(100),
 					Quantity:    decimal.NewFromInt(10),
 					LeavesQty:   decimal.NewFromInt(0),
-					ExecQty:     decimal.NewFromInt(10),
+					CumQty:      decimal.NewFromInt(10),
 					IsBid:       false,
 					OrderStatus: string(orderBook.ExecTypeFill),
+					ExecType:    string(orderBook.ExecTypeFill),
 				},
 			},
 		},
@@ -85,13 +84,12 @@ func TestOrderFlowScenarios(t *testing.T) {
 			},
 			expectedEvents: []interface{}{
 				model.OrderEvent{
-					EventType:   string(orderBook.ExecTypeNew),
 					OrderID:     "3",
 					Instrument:  "BTC/USDT",
 					Price:       decimal.NewFromInt(100),
 					Quantity:    decimal.NewFromInt(10),
 					LeavesQty:   decimal.NewFromInt(10),
-					ExecQty:     decimal.NewFromInt(0),
+					CumQty:      decimal.NewFromInt(0),
 					IsBid:       false,
 					OrderStatus: string(orderBook.OrderStatusNew),
 					ExecType:    string(orderBook.ExecTypeNew),
@@ -101,28 +99,25 @@ func TestOrderFlowScenarios(t *testing.T) {
 					SellerOrderID: "3",
 					Quantity:      5,
 					Price:         100,
-					Timestamp:     time.Now().UnixNano(),
 				},
 				model.OrderEvent{
-					EventType:   string(orderBook.ExecTypePartialFill),
 					OrderID:     "3",
 					Instrument:  "BTC/USDT",
 					Price:       decimal.NewFromInt(100),
 					Quantity:    decimal.NewFromInt(10),
 					LeavesQty:   decimal.NewFromInt(5),
-					ExecQty:     decimal.NewFromInt(5),
+					CumQty:      decimal.NewFromInt(5),
 					IsBid:       false,
 					OrderStatus: string(orderBook.ExecTypePartialFill),
 					ExecType:    string(orderBook.ExecTypeFill),
 				},
 				model.OrderEvent{
-					EventType:   string(orderBook.ExecTypeFill),
 					OrderID:     "4",
 					Instrument:  "BTC/USDT",
 					Price:       decimal.NewFromInt(100),
 					Quantity:    decimal.NewFromInt(5),
 					LeavesQty:   decimal.NewFromInt(0),
-					ExecQty:     decimal.NewFromInt(5),
+					CumQty:      decimal.NewFromInt(5),
 					IsBid:       true,
 					OrderStatus: string(orderBook.OrderStatusFill),
 					ExecType:    string(orderBook.ExecTypeFill),
@@ -137,18 +132,18 @@ func TestOrderFlowScenarios(t *testing.T) {
 			},
 			expectedEvents: []interface{}{
 				model.OrderEvent{
-					EventType:   string(orderBook.ExecTypeNew),
 					OrderID:     "5",
 					Instrument:  "BTC/USDT",
 					LeavesQty:   decimal.NewFromInt(10),
 					OrderStatus: string(orderBook.OrderStatusNew),
+					ExecType:    string(orderBook.ExecTypeNew),
 				},
 				model.OrderEvent{
-					EventType:   string(orderBook.ExecTypeCanceled),
 					OrderID:     "5",
 					Instrument:  "BTC/USDT",
 					LeavesQty:   decimal.NewFromInt(0),
 					OrderStatus: string(orderBook.OrderStatusCanceled),
+					ExecType:    string(orderBook.ExecTypeCanceled),
 				},
 			},
 		},
@@ -185,7 +180,7 @@ func TestOrderFlowScenarios(t *testing.T) {
 			// Collect events
 			messageChan := test_util.ConsumeKafkaMessages("executionTopic")
 			var receivedEvents []interface{}
-			timeout := time.After(2* time.Minute)
+			timeout := time.After(2 * time.Minute)
 			expectedCount := len(tt.expectedEvents)
 
 			startTime := time.Now()
@@ -244,7 +239,6 @@ func TestOrderFlowScenarios(t *testing.T) {
 					actual, ok := receivedEvents[i].(model.OrderEvent)
 					require.True(t, ok, "received event is not of type model.OrderEvent")
 
-					assert.Equal(t, expected.EventType, actual.EventType)
 					assert.Equal(t, expected.OrderID, actual.OrderID)
 					assert.Equal(t, expected.Instrument, actual.Instrument)
 					assert.Equal(t, expected.OrderStatus, actual.OrderStatus)

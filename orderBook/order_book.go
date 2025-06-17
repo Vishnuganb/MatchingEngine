@@ -38,7 +38,6 @@ func NewOrderBook(tradeNotifier TradeNotifier) *OrderBook {
 }
 
 func (book *OrderBook) OnNewOrder(modelOrder model.Order) {
-	// Basic validation
 	if !modelOrder.OrderQty.IsPositive() || modelOrder.Price.IsNegative() {
 		log.Printf("Rejecting invalid order: %+v", modelOrder)
 		NewRejectedOrderEvent(&OrderRequest{
@@ -79,7 +78,7 @@ func (book *OrderBook) CancelOrder(orderID string) {
 	order := list.Orders[ref.Index]
 	order.ExecutionNotifier = book.TradeNotifier
 
-	// Remove order from list efficiently (swap with last, then pop)
+	// Remove order from list (swap with last, then pop)
 	last := len(list.Orders) - 1
 	if ref.Index != last {
 		list.Orders[ref.Index] = list.Orders[last]
@@ -134,7 +133,7 @@ func mapModelOrderToOrderBookOrder(order model.Order) Order {
 		IsBid:       order.IsBid,
 		Price:       order.Price,
 		OrderQty:    order.OrderQty,
-		LeavesQty:   order.OrderQty, // Assume full qty on entry
+		LeavesQty:   order.OrderQty,
 		CumQty:      order.CumQty,
 		OrderStatus: OrderStatus(order.OrderStatus),
 	}

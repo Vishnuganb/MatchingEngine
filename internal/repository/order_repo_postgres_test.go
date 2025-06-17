@@ -1,11 +1,11 @@
 package repository
 
 import (
+	"MatchingEngine/internal/model"
 	"context"
 	"testing"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/assert"
@@ -33,29 +33,38 @@ func TestSaveOrder(t *testing.T) {
 	mockQueries := new(MockQueries)
 	repo := NewPostgresOrderRepository(mockQueries)
 
-	order := orderBook.Order{
-		ID:         "1",
-		Instrument: "BTC/USDT",
-		Price:      decimal.NewFromInt(100),
-		OrderQty:   decimal.NewFromInt(10),
-		LeavesQty:  decimal.NewFromInt(10),
-		Timestamp:  time.Now().UnixNano(),
-		IsBid:      true,
+	order := model.Order{
+		ID:          "1",
+		Instrument:  "BTC/USDT",
+		Price:       decimal.NewFromInt(100),
+		OrderQty:    decimal.NewFromInt(10),
+		LeavesQty:   decimal.NewFromInt(10),
+		CumQty:      decimal.NewFromInt(0),
+		OrderStatus: string(orderBook.OrderStatusNew),
+		Timestamp:   time.Now().UnixNano(),
+		IsBid:       true,
 	}
 
 	mockQueries.On("CreateActiveOrder", mock.Anything, mock.Anything).Return(sqlc.ActiveOrder{
-		ID:         order.ID,
-		Instrument: order.Instrument,
-		Price:      pgtypeNumeric(order.Price),
-		Qty:        pgtypeNumeric(order.Qty),
-		LeavesQty:  pgtypeNumeric(order.LeavesQty),
-		Side:       "buy",
+		ID:          order.ID,
+		Instrument:  order.Instrument,
+		Price:       pgtypeNumeric(order.Price),
+		OrderQty:    pgtypeNumeric(order.OrderQty),
+		LeavesQty:   pgtypeNumeric(order.LeavesQty),
+		CumQty:      pgtypeNumeric(order.CumQty),
+		OrderStatus: order.OrderStatus,
+		Side:        "buy",
 	}, nil)
 
 	savedOrder, err := repo.SaveOrder(context.Background(), order)
 
 	assert.NoError(t, err)
 	assert.Equal(t, order.ID, savedOrder.ID)
+	assert.Equal(t, order.Instrument, savedOrder.Instrument)
+	assert.True(t, order.Price.Equal(savedOrder.Price))
+	assert.True(t, order.OrderQty.Equal(savedOrder.OrderQty))
+	assert.True(t, order.LeavesQty.Equal(savedOrder.LeavesQty))
+	assert.Equal(t, order.OrderStatus, savedOrder.OrderStatus)
 	mockQueries.AssertExpectations(t)
 }
 
@@ -64,83 +73,25 @@ func TestUpdateOrder(t *testing.T) {
 	repo := NewPostgresOrderRepository(mockQueries)
 
 	orderID := "1"
+	orderStatus := string(orderBook.OrderStatusFill)
 	leavesQty := decimal.NewFromInt(5)
+	cumQty := decimal.NewFromInt(10)
 
 	mockQueries.On("UpdateActiveOrder", mock.Anything, mock.Anything).Return(sqlc.ActiveOrder{
-		ID:        orderID,
-		Qty:       pgtypeNumeric(decimal.NewFromInt(10)),
-		Price:     pgtypeNumeric(decimal.NewFromInt(100)),
-		LeavesQty: pgtypeNumeric(leavesQty),
+		ID:          orderID,
+		LeavesQty:   pgtypeNumeric(leavesQty),
+		CumQty:      pgtypeNumeric(cumQty),
+		Price:       pgtypeNumeric(decimal.NewFromInt(100)),
+		OrderStatus: orderStatus,
 	}, nil)
 
-	updatedOrder, err := repo.UpdateOrder(context.Background(), orderID, leavesQty)
+	updatedOrder, err := repo.UpdateOrder(context.Background(), orderID, orderStatus, leavesQty, cumQty)
 
 	assert.NoError(t, err)
 	assert.Equal(t, orderID, updatedOrder.ID)
-	assert.Equal(t, leavesQty, updatedOrder.LeavesQty)
-	mockQueries.AssertExpectations(t)
-}
-
-func TestSaveEvent(t *testing.T) {
-	mockQueries := new(MockQueries)
-	repo := NewPostgresOrderRepository(mockQueries)
-
-	event := orderBook.Event{
-		ID:         uuid.New().String(),
-		OrderID:    "1",
-		Instrument: "BTC/USDT",
-		Type:       orderBook.EventTypeNew,
-		OrderQty:   decimal.NewFromInt(10),
-		LeavesQty:  decimal.NewFromInt(10),
-		Price:      decimal.NewFromInt(100),
-	}
-
-	mockQueries.On("CreateEvent", mock.Anything, mock.Anything).Return(sqlc.Event{
-		ID:         uuid.MustParse(event.ID),
-		OrderID:    event.OrderID,
-		Instrument: event.Instrument,
-		Type:       string(event.Type),
-		OrderQty:   pgtypeNumeric(event.OrderQty),
-		LeavesQty:  pgtypeNumeric(event.LeavesQty),
-		Price:      pgtypeNumeric(event.Price),
-	}, nil)
-
-	savedEvent, err := repo.SaveEvent(context.Background(), event)
-
-	assert.NoError(t, err)
-	assert.Equal(t, event.ID, savedEvent.ID)
-	mockQueries.AssertExpectations(t)
-}
-
-func TestUpdateEvent(t *testing.T) {
-	mockQueries := new(MockQueries)
-	repo := NewPostgresOrderRepository(mockQueries)
-
-	event := orderBook.Event{
-		ID:         uuid.New().String(),
-		OrderID:    "1",
-		Instrument: "BTC/USDT",
-		Type:       orderBook.EventTypePartialFill,
-		OrderQty:   decimal.NewFromInt(10),
-		LeavesQty:  decimal.NewFromInt(5),
-		Price:      decimal.NewFromInt(100),
-	}
-
-	mockQueries.On("UpdateEvent", mock.Anything, mock.Anything).Return(sqlc.Event{
-		ID:         uuid.MustParse(event.ID),
-		OrderID:    event.OrderID,
-		Instrument: event.Instrument,
-		Type:       string(event.Type),
-		OrderQty:   pgtypeNumeric(event.OrderQty),
-		LeavesQty:  pgtypeNumeric(event.LeavesQty),
-		Price:      pgtypeNumeric(event.Price),
-	}, nil)
-
-	updatedEvent, err := repo.UpdateEvent(context.Background(), event)
-
-	assert.NoError(t, err)
-	assert.Equal(t, event.ID, updatedEvent.ID)
-	assert.Equal(t, event.Type, updatedEvent.Type)
+	assert.True(t, leavesQty.Equal(updatedOrder.LeavesQty))
+	assert.True(t, cumQty.Equal(updatedOrder.CumQty))
+	assert.Equal(t, orderStatus, updatedOrder.OrderStatus)
 	mockQueries.AssertExpectations(t)
 }
 

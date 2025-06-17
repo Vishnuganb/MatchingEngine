@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -18,36 +17,36 @@ import (
 
 type OrderService interface {
 	SaveOrderAsync(order model.Order)
-	UpdateOrderAsync(orderID, orderStatus, execType string, leavesQty, execQty decimal.Decimal)
+	UpdateOrderAsync(orderID, orderStatus string, leavesQty, cumQty decimal.Decimal)
 }
 
 type OrderBook interface {
-	OnNewOrder(order model.Order, producer EventNotifier)
-	CancelOrder(orderID string, producer EventNotifier)
+	OnNewOrder(order model.Order)
+	CancelOrder(orderID string)
 }
 
-type EventNotifier interface {
+type TradeNotifier interface {
 	NotifyEventAndTrade(orderID string, value json.RawMessage) error
 }
 
 type OrderRequestHandler struct {
-	orderBooks    map[string]*orderBook.OrderBook
+	orderBooks    map[string]OrderBook
 	orderChannels map[string]chan rmq.OrderRequest
 	OrderService  OrderService
-	eventNotifier EventNotifier
+	TradeNotifier TradeNotifier
 	mu            sync.Mutex
 }
 
-func NewOrderRequestHandler(orderService OrderService, eventNotifier EventNotifier) *OrderRequestHandler {
+func NewOrderRequestHandler(orderService OrderService, tradeNotifier TradeNotifier) *OrderRequestHandler {
 	return &OrderRequestHandler{
-		orderBooks:    make(map[string]*orderBook.OrderBook),
+		orderBooks:    make(map[string]OrderBook),
 		orderChannels: make(map[string]chan rmq.OrderRequest),
 		OrderService:  orderService,
-		eventNotifier: eventNotifier,
+		TradeNotifier: tradeNotifier,
 	}
 }
 
-func (h *OrderRequestHandler) HandleMessage(ctx context.Context, msg amqp.Delivery) {
+func (h *OrderRequestHandler) HandleOrderMessage(msg amqp.Delivery) {
 	var req rmq.OrderRequest
 	if err := json.Unmarshal(msg.Body, &req); err != nil {
 		h.handleFailure(msg, fmt.Errorf("invalid message format: %w", err))
@@ -59,7 +58,7 @@ func (h *OrderRequestHandler) HandleMessage(ctx context.Context, msg amqp.Delive
 	if !exists {
 		orderChannel = make(chan rmq.OrderRequest, 100)
 		h.orderChannels[req.Order.Instrument] = orderChannel
-		go h.startInstrumentWorker(req.Order.Instrument, orderChannel)
+		go h.startOrderWorkerForInstrument(req.Order.Instrument, orderChannel)
 	}
 	h.mu.Unlock()
 
@@ -77,13 +76,13 @@ func (h *OrderRequestHandler) HandleMessage(ctx context.Context, msg amqp.Delive
 	}
 }
 
-func (h *OrderRequestHandler) startInstrumentWorker(instrument string, orderChannel chan rmq.OrderRequest) {
+func (h *OrderRequestHandler) startOrderWorkerForInstrument(instrument string, orderChannel chan rmq.OrderRequest) {
 	for req := range orderChannel {
 		// Get or create the order book for the instrument
 		h.mu.Lock()
 		book, exists := h.orderBooks[instrument]
 		if !exists {
-			book = orderBook.NewOrderBook(h.eventNotifier)
+			book = orderBook.NewOrderBook(h.TradeNotifier)
 			h.orderBooks[instrument] = book
 		}
 		h.mu.Unlock()
@@ -100,7 +99,7 @@ func (h *OrderRequestHandler) startInstrumentWorker(instrument string, orderChan
 	}
 }
 
-func (h *OrderRequestHandler) handleNewOrder(book *orderBook.OrderBook, req rmq.OrderRequest) {
+func (h *OrderRequestHandler) handleNewOrder(book OrderBook, req rmq.OrderRequest) {
 	order := model.Order{
 		ID:          req.Order.ID,
 		Price:       decimal.RequireFromString(req.Order.Price),
@@ -114,18 +113,18 @@ func (h *OrderRequestHandler) handleNewOrder(book *orderBook.OrderBook, req rmq.
 	book.OnNewOrder(order)
 }
 
-func (h *OrderRequestHandler) handleCancelOrder(book *orderBook.OrderBook, req rmq.OrderRequest) {
+func (h *OrderRequestHandler) handleCancelOrder(book OrderBook, req rmq.OrderRequest) {
 	book.CancelOrder(req.Order.ID)
 }
 
-func (h *OrderRequestHandler) HandleEventMessages(message []byte) error {
+func (h *OrderRequestHandler) HandleExecutionReport(message []byte) error {
 	var event model.OrderEvent
 	if err := json.Unmarshal(message, &event); err != nil {
 		log.Printf("Error unmarshaling JSON: %v, message: %s", err, string(message))
 		return nil // Skip processing this message
 	}
 
-	switch event.EventType {
+	switch event.ExecType {
 	case string(orderBook.ExecTypeNew), string(orderBook.ExecTypePendingNew):
 		h.OrderService.SaveOrderAsync(h.convertEventToOrder(event))
 	case string(orderBook.ExecTypeFill), string(orderBook.ExecTypePartialFill),
@@ -133,9 +132,8 @@ func (h *OrderRequestHandler) HandleEventMessages(message []byte) error {
 		h.OrderService.UpdateOrderAsync(
 			event.OrderID,
 			event.OrderStatus,
-			event.ExecType,
 			event.LeavesQty,
-			event.ExecQty,
+			event.CumQty,
 		)
 	default:
 		return fmt.Errorf("unknown event type: %s", event.EventType)
@@ -158,7 +156,7 @@ func (s *OrderRequestHandler) convertEventToOrder(event model.OrderEvent) model.
 		Price:       event.Price,
 		OrderQty:    event.Quantity,
 		LeavesQty:   event.LeavesQty,
-		CumQty:     event.ExecQty,
+		CumQty:      event.CumQty,
 		IsBid:       event.IsBid,
 		OrderStatus: event.OrderStatus,
 	}

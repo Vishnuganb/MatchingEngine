@@ -46,13 +46,12 @@ func TestUpdateOrderAsync(t *testing.T) {
 
 	orderID := "1"
 	leavesQty := decimal.NewFromInt(5)
-	execQty := decimal.NewFromInt(10)
+	cumQty := decimal.NewFromInt(10)
 	orderStatus := "partially_fill"
-	execType := "fill"
 
-	mockWriter.On("EnqueueTask", repository.UpdateOrderTask{OrderID: orderID, LeavesQty: leavesQty, OrderStatus: orderStatus, ExecQty: execQty, ExecType: execType}).Return()
+	mockWriter.On("EnqueueTask", repository.UpdateOrderTask{OrderID: orderID, LeavesQty: leavesQty, OrderStatus: orderStatus, CumQty: cumQty}).Return()
 
-	orderService.UpdateOrderAsync(orderID, orderStatus, execType, leavesQty, execQty)
+	orderService.UpdateOrderAsync(orderID, orderStatus, leavesQty, cumQty)
 
-	mockWriter.AssertCalled(t, "EnqueueTask", repository.UpdateOrderTask{OrderID: orderID, LeavesQty: leavesQty, OrderStatus: orderStatus, ExecQty: execQty, ExecType: execType})
+	mockWriter.AssertCalled(t, "EnqueueTask", repository.UpdateOrderTask{OrderID: orderID, LeavesQty: leavesQty, OrderStatus: orderStatus, CumQty: cumQty})
 }
