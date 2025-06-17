@@ -142,7 +142,8 @@ UPDATE active_orders
 SET type         = COALESCE($2, type),
     leaves_qty   = COALESCE($3, leaves_qty),
     cum_qty     = COALESCE($4, cum_qty),
-    order_status = COALESCE($5, order_status)
+    price        = COALESCE($5, price),
+    order_status = COALESCE($6, order_status)
 WHERE id = $1 RETURNING id, side, order_qty, leaves_qty, price, instrument, type, cum_qty, order_status
 `
 
@@ -151,6 +152,7 @@ type UpdateActiveOrderParams struct {
 	Type        pgtype.Text    `json:"type"`
 	LeavesQty   pgtype.Numeric `json:"leaves_qty"`
 	CumQty      pgtype.Numeric `json:"cum_qty"`
+	Price       pgtype.Numeric `json:"price"`
 	OrderStatus pgtype.Text    `json:"order_status"`
 }
 
@@ -160,6 +162,7 @@ func (q *Queries) UpdateActiveOrder(ctx context.Context, arg UpdateActiveOrderPa
 		arg.Type,
 		arg.LeavesQty,
 		arg.CumQty,
+		arg.Price,
 		arg.OrderStatus,
 	)
 	var i ActiveOrder

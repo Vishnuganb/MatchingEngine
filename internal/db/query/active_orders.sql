@@ -17,6 +17,7 @@ UPDATE active_orders
 SET type         = COALESCE(sqlc.narg(type), type),
     leaves_qty   = COALESCE(sqlc.narg(leaves_qty), leaves_qty),
     cum_qty     = COALESCE(sqlc.narg(cum_qty), cum_qty),
+    price        = COALESCE(sqlc.narg(price), price),
     order_status = COALESCE(sqlc.narg(order_status), order_status)
 WHERE id = $1 RETURNING *;
 

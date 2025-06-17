@@ -76,21 +76,24 @@ func TestUpdateOrder(t *testing.T) {
 	orderStatus := string(orderBook.OrderStatusFill)
 	leavesQty := decimal.NewFromInt(5)
 	cumQty := decimal.NewFromInt(10)
+	price := decimal.NewFromInt(100)
 
 	mockQueries.On("UpdateActiveOrder", mock.Anything, mock.Anything).Return(sqlc.ActiveOrder{
 		ID:          orderID,
 		LeavesQty:   pgtypeNumeric(leavesQty),
 		CumQty:      pgtypeNumeric(cumQty),
-		Price:       pgtypeNumeric(decimal.NewFromInt(100)),
+		Price:       pgtypeNumeric(price),
+		OrderQty: pgtypeNumeric(decimal.NewFromInt(15)),
 		OrderStatus: orderStatus,
 	}, nil)
 
-	updatedOrder, err := repo.UpdateOrder(context.Background(), orderID, orderStatus, leavesQty, cumQty)
+	updatedOrder, err := repo.UpdateOrder(context.Background(), orderID, orderStatus, leavesQty, cumQty, price)
 
 	assert.NoError(t, err)
 	assert.Equal(t, orderID, updatedOrder.ID)
 	assert.True(t, leavesQty.Equal(updatedOrder.LeavesQty))
 	assert.True(t, cumQty.Equal(updatedOrder.CumQty))
+	assert.True(t, price.Equal(updatedOrder.Price))
 	assert.Equal(t, orderStatus, updatedOrder.OrderStatus)
 	mockQueries.AssertExpectations(t)
 }

@@ -26,9 +26,10 @@ type UpdateOrderTask struct {
 	OrderStatus string
 	LeavesQty   decimal.Decimal
 	CumQty      decimal.Decimal
+	Price       decimal.Decimal
 }
 
 func (t UpdateOrderTask) Execute(ctx context.Context, repo OrderRepository) error {
-	_, err := repo.UpdateOrder(ctx, t.OrderID, t.OrderStatus, t.LeavesQty, t.CumQty)
+	_, err := repo.UpdateOrder(ctx, t.OrderID, t.OrderStatus, t.LeavesQty, t.CumQty, t.Price)
 	return err
 }

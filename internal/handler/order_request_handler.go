@@ -17,7 +17,7 @@ import (
 
 type OrderService interface {
 	SaveOrderAsync(order model.Order)
-	UpdateOrderAsync(orderID, orderStatus string, leavesQty, cumQty decimal.Decimal)
+	UpdateOrderAsync(orderID, orderStatus string, leavesQty, cumQty, price decimal.Decimal)
 }
 
 type OrderBook interface {
@@ -134,6 +134,7 @@ func (h *OrderRequestHandler) HandleExecutionReport(message []byte) error {
 			event.OrderStatus,
 			event.LeavesQty,
 			event.CumQty,
+			event.Price,
 		)
 	default:
 		return fmt.Errorf("unknown event type: %s", event.EventType)

@@ -23,8 +23,8 @@ func (m *MockOrderService) SaveOrderAsync(order model.Order) {
 	m.Called(order)
 }
 
-func (m *MockOrderService) UpdateOrderAsync(orderID, orderStatus string, leavesQty, cumQty decimal.Decimal) {
-	m.Called(orderID, orderStatus, leavesQty, cumQty)
+func (m *MockOrderService) UpdateOrderAsync(orderID, orderStatus string, leavesQty, cumQty, price decimal.Decimal) {
+	m.Called(orderID, orderStatus, leavesQty, cumQty, price)
 }
 
 type mockAcknowledger struct{}
@@ -148,7 +148,7 @@ func TestHandleExecutionReport(t *testing.T) {
 
 	eventJSON, _ := json.Marshal(event)
 
-	mockService.On("UpdateOrderAsync", event.OrderID, event.OrderStatus, event.LeavesQty, event.CumQty).Return()
+	mockService.On("UpdateOrderAsync", event.OrderID, event.OrderStatus, event.LeavesQty, event.CumQty, event.Price).Return()
 
 	err := handler.HandleExecutionReport(eventJSON)
 	assert.NoError(t, err)

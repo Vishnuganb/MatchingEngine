@@ -54,7 +54,7 @@ func (r *PostgresOrderRepository) SaveOrder(ctx context.Context, order model.Ord
 		LeavesQty:   leavesQty,
 		Price:       price,
 		Instrument:  order.Instrument,
-		CumQty:     cumQty,
+		CumQty:      cumQty,
 		OrderStatus: order.OrderStatus,
 	})
 	if err != nil {
@@ -69,20 +69,28 @@ func (r *PostgresOrderRepository) SaveOrder(ctx context.Context, order model.Ord
 	return mappedOrder, nil
 }
 
-func (r *PostgresOrderRepository) UpdateOrder(ctx context.Context, orderID, orderStatus string, leavesQty, cumQty decimal.Decimal) (model.Order, error) {
+func (r *PostgresOrderRepository) UpdateOrder(ctx context.Context, orderID, orderStatus string, leavesQty, cumQty, price decimal.Decimal) (model.Order, error) {
 	leavesQtyNumeric, err := decimalToPgNumeric(leavesQty)
 	if err != nil {
 		return model.Order{}, err
 	}
-	cumQtyNumeric, _ := decimalToPgNumeric(cumQty)
+	cumQtyNumeric, err := decimalToPgNumeric(cumQty)
+	if err != nil {
+		return model.Order{}, err
+	}
+	priceNumeric, err := decimalToPgNumeric(price)
+	if err != nil {
+		return model.Order{}, err
+	}
 
 	pgOrderStatus := pgtype.Text{String: orderStatus, Valid: true}
 
 	activeOrder, err := r.queries.UpdateActiveOrder(ctx, sqlc.UpdateActiveOrderParams{
 		ID:          orderID,
 		LeavesQty:   leavesQtyNumeric,
-		CumQty:     cumQtyNumeric,
+		CumQty:      cumQtyNumeric,
 		OrderStatus: pgOrderStatus,
+		Price:       priceNumeric,
 	})
 	if err != nil {
 		return model.Order{}, err
@@ -121,7 +129,7 @@ func MapActiveOrderToOrder(activeOrder sqlc.ActiveOrder) (model.Order, error) {
 		Instrument:  activeOrder.Instrument,
 		LeavesQty:   leavesQty,
 		IsBid:       activeOrder.Side == string(orderBook.Buy),
-		CumQty:     cumQty,
+		CumQty:      cumQty,
 		OrderStatus: activeOrder.OrderStatus,
 	}, nil
 }
