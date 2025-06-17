@@ -2,9 +2,8 @@ package orderBook
 
 import (
 	"encoding/json"
+	"github.com/shopspring/decimal"
 	"log"
-
-	"MatchingEngine/internal/model"
 )
 
 type TradeNotifier interface {
@@ -12,14 +11,14 @@ type TradeNotifier interface {
 }
 
 type OrderRef struct {
-	PriceLevel string
+	PriceLevel decimal.Decimal
 	IsBid      bool
 	Index      int
 }
 
 type OrderBook struct {
-	Bids          map[string]*OrderList // descending prices
-	Asks          map[string]*OrderList // ascending prices
+	Bids          map[decimal.Decimal]*OrderList // descending prices
+	Asks          map[decimal.Decimal]*OrderList // ascending prices
 	TradeNotifier TradeNotifier
 	orderIndex    map[string]*OrderRef
 }
@@ -30,27 +29,26 @@ type OrderList struct {
 
 func NewOrderBook(tradeNotifier TradeNotifier) *OrderBook {
 	return &OrderBook{
-		Bids:          make(map[string]*OrderList),
-		Asks:          make(map[string]*OrderList),
+		Bids:          make(map[decimal.Decimal]*OrderList),
+		Asks:          make(map[decimal.Decimal]*OrderList),
 		TradeNotifier: tradeNotifier,
 		orderIndex:    make(map[string]*OrderRef),
 	}
 }
 
-func (book *OrderBook) OnNewOrder(modelOrder model.Order) {
-	if !modelOrder.OrderQty.IsPositive() || modelOrder.Price.IsNegative() {
-		log.Printf("Rejecting invalid order: %+v", modelOrder)
+func (book *OrderBook) OnNewOrder(order Order) {
+	if !order.OrderQty.IsPositive() || order.Price.IsNegative() {
+		log.Printf("Rejecting invalid order: %+v", order)
 		NewRejectedOrderEvent(&OrderRequest{
-			ID:        modelOrder.ID,
-			Price:     modelOrder.Price,
-			Qty:       modelOrder.OrderQty,
-			Side:      ternary(modelOrder.IsBid, Buy, Sell),
-			Timestamp: modelOrder.Timestamp,
+			ID:        order.ID,
+			Price:     order.Price,
+			Qty:       order.OrderQty,
+			Side:      ternary(order.IsBid, Buy, Sell),
+			Timestamp: order.Timestamp,
 		})
 		return
 	}
 
-	order := mapModelOrderToOrderBookOrder(modelOrder)
 	order.ExecutionNotifier = book.TradeNotifier
 	book.processOrder(&order)
 }
@@ -102,7 +100,7 @@ func (book *OrderBook) CancelOrder(orderID string) {
 }
 
 func (book *OrderBook) addOrderToBook(order Order) {
-	priceKey := order.Price.String()
+	priceKey := order.Price
 	var list *OrderList
 
 	if order.IsBid {
@@ -122,20 +120,6 @@ func (book *OrderBook) addOrderToBook(order Order) {
 		PriceLevel: priceKey,
 		IsBid:      order.IsBid,
 		Index:      len(list.Orders) - 1,
-	}
-}
-
-func mapModelOrderToOrderBookOrder(order model.Order) Order {
-	return Order{
-		ID:          order.ID,
-		Instrument:  order.Instrument,
-		Timestamp:   order.Timestamp,
-		IsBid:       order.IsBid,
-		Price:       order.Price,
-		OrderQty:    order.OrderQty,
-		LeavesQty:   order.OrderQty,
-		CumQty:      order.CumQty,
-		OrderStatus: OrderStatus(order.OrderStatus),
 	}
 }
 

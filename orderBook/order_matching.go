@@ -9,7 +9,7 @@ import (
 
 func (book *OrderBook) processOrder(order *Order) {
 	var (
-		matchingBook map[string]*OrderList
+		matchingBook map[decimal.Decimal]*OrderList
 		isBuy        = order.IsBid
 		priceComp    func(decimal.Decimal, decimal.Decimal) bool
 	)
@@ -28,30 +28,27 @@ func (book *OrderBook) processOrder(order *Order) {
 
 	order.LeavesQty = order.OrderQty
 	// collecting all the price levels from the matchingBook
-	priceKeys := make([]string, 0, len(matchingBook))
+	priceKeys := make([]decimal.Decimal, 0, len(matchingBook))
 	for price := range matchingBook {
 		priceKeys = append(priceKeys, price)
 	}
 
 	// Prepare a sorted list of price levels from the matching side of the book
 	sort.Slice(priceKeys, func(i, j int) bool {
-		pi := decimal.RequireFromString(priceKeys[i])
-		pj := decimal.RequireFromString(priceKeys[j])
 		if isBuy {
-			return pi.LessThan(pj) // ascending for asks
+			return priceKeys[i].LessThan(priceKeys[j]) // ascending for asks
 		}
-		return pi.GreaterThan(pj) // descending for bids
+		return priceKeys[i].GreaterThan(priceKeys[j]) // descending for bids
 	})
 
 	orderMatched := false
 
-	for _, priceStr := range priceKeys {
-		price := decimal.RequireFromString(priceStr)
+	for _, price := range priceKeys {
 		if !priceComp(price, order.Price) {
 			break
 		}
 
-		orderList := matchingBook[priceStr]
+		orderList := matchingBook[price]
 		i := 0
 		for i < len(orderList.Orders) && order.LeavesQty.IsPositive() {
 			match := &orderList.Orders[i]
@@ -74,7 +71,7 @@ func (book *OrderBook) processOrder(order *Order) {
 		}
 
 		if len(orderList.Orders) == 0 {
-			delete(matchingBook, priceStr)
+			delete(matchingBook, price)
 		}
 
 		if !order.LeavesQty.IsPositive() {

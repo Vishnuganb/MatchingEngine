@@ -3,12 +3,10 @@ package handler
 import (
 	"encoding/json"
 	"fmt"
-	"log"
-	"sync"
-	"time"
-
 	"github.com/shopspring/decimal"
 	"github.com/streadway/amqp"
+	"log"
+	"sync"
 
 	"MatchingEngine/internal/model"
 	"MatchingEngine/internal/rmq"
@@ -21,7 +19,7 @@ type OrderService interface {
 }
 
 type OrderBook interface {
-	OnNewOrder(order model.Order)
+	OnNewOrder(order orderBook.Order)
 	CancelOrder(orderID string)
 }
 
@@ -65,7 +63,7 @@ func (h *OrderRequestHandler) HandleOrderMessage(msg amqp.Delivery) {
 	// Send the order to the instrument-specific channel
 	select {
 	case orderChannel <- req:
-		// Successfully Added to th already running worker
+		// Successfully Added to the already running worker
 	default:
 		log.Printf("Order channel for instrument %s is full, dropping order: %v", req.Order.Instrument, req)
 	}
@@ -100,17 +98,8 @@ func (h *OrderRequestHandler) startOrderWorkerForInstrument(instrument string, o
 }
 
 func (h *OrderRequestHandler) handleNewOrder(book OrderBook, req rmq.OrderRequest) {
-	order := model.Order{
-		ID:          req.Order.ID,
-		Price:       decimal.RequireFromString(req.Order.Price),
-		OrderQty:    decimal.RequireFromString(req.Order.Qty),
-		Instrument:  req.Order.Instrument,
-		Timestamp:   time.Now().UnixNano(),
-		OrderStatus: string(orderBook.OrderStatusPendingNew),
-		IsBid:       req.Order.Side == orderBook.Buy,
-	}
-
-	book.OnNewOrder(order)
+	internalOrder := toInternalOrder(req)
+	book.OnNewOrder(internalOrder)
 }
 
 func (h *OrderRequestHandler) handleCancelOrder(book OrderBook, req rmq.OrderRequest) {
