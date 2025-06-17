@@ -14,7 +14,6 @@ const (
 	ExecTypePendingNew  ExecType = "A"
 	ExecTypeNew         ExecType = "0"
 	ExecTypeFill        ExecType = "2"
-	ExecTypePartialFill ExecType = "1"
 	ExecTypeCanceled    ExecType = "4"
 	ExecTypeRejected    ExecType = "8"
 )
@@ -45,7 +44,6 @@ func newFillEvent(order *Order, price, qty decimal.Decimal, isBid bool) {
 	typ := ExecTypeFill
 	orderStatus := OrderStatusFill
 	if order.LeavesQty.IsPositive() {
-		typ = ExecTypePartialFill
 		orderStatus = OrderStatusPartialFill
 	}
 	e := newBaseEvent(order, typ)

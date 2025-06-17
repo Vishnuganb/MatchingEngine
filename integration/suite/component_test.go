@@ -108,7 +108,7 @@ func TestOrderFlowScenarios(t *testing.T) {
 					LeavesQty:   decimal.NewFromInt(5),
 					CumQty:      decimal.NewFromInt(5),
 					IsBid:       false,
-					OrderStatus: string(orderBook.ExecTypePartialFill),
+					OrderStatus: string(orderBook.OrderStatusPartialFill),
 					ExecType:    string(orderBook.ExecTypeFill),
 				},
 				model.OrderEvent{

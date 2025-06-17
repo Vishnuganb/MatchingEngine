@@ -117,8 +117,7 @@ func (h *OrderRequestHandler) HandleExecutionReport(message []byte) error {
 	switch event.ExecType {
 	case string(orderBook.ExecTypeNew), string(orderBook.ExecTypePendingNew):
 		h.OrderService.SaveOrderAsync(h.convertEventToOrder(event))
-	case string(orderBook.ExecTypeFill), string(orderBook.ExecTypePartialFill),
-		string(orderBook.ExecTypeCanceled), string(orderBook.ExecTypeRejected):
+	case string(orderBook.ExecTypeFill), string(orderBook.ExecTypeCanceled), string(orderBook.ExecTypeRejected):
 		h.OrderService.UpdateOrderAsync(
 			event.OrderID,
 			event.OrderStatus,

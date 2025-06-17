@@ -1,6 +1,7 @@
 package orderBook
 
 import (
+	"log"
 	"testing"
 	"time"
 
@@ -9,113 +10,124 @@ import (
 )
 
 func newTestOrderBook() *OrderBook {
-	mockProducer := &MockKafkaProducer{}
-	book := NewOrderBook(mockProducer)
-	return book
+	mockNotifier := &MockTradeNotifier{}
+	return NewOrderBook(mockNotifier)
 }
 
-func TestProcessBuyOrder_FullMatch(t *testing.T) {
+func TestProcessOrder_FullMatch(t *testing.T) {
 	book := newTestOrderBook()
 
 	// Add a sell order to the order book
-	book.AddSellOrder(Order{
-		ID:        "1",
-		Price:     decimal.NewFromInt(100),
-		OrderQty:  decimal.NewFromInt(10),
-		LeavesQty: decimal.NewFromInt(10),
-		Timestamp: time.Now().UnixNano(),
-		IsBid:     false,
-	})
+	sellOrder := Order{
+		ID:                "1",
+		Instrument:        "BTC/USDT",
+		Price:             decimal.NewFromInt(100),
+		OrderQty:          decimal.NewFromInt(10),
+		LeavesQty:         decimal.NewFromInt(10),
+		Timestamp:         time.Now().UnixNano(),
+		OrderStatus:       OrderStatusPendingNew,
+		IsBid:             false,
+		ExecutionNotifier: book.TradeNotifier, // Assign notifier
+	}
+	book.addOrderToBook(sellOrder)
 
 	// Process a buy order that fully matches the sell order
 	buyOrder := Order{
-		ID:        "2",
-		Price:     decimal.NewFromInt(100),
-		OrderQty:  decimal.NewFromInt(10),
-		LeavesQty: decimal.NewFromInt(10),
-		Timestamp: time.Now().UnixNano(),
-		IsBid:     true,
+		ID:                "2",
+		Instrument:        "BTC/USDT",
+		Price:             decimal.NewFromInt(100),
+		OrderQty:          decimal.NewFromInt(10),
+		LeavesQty:         decimal.NewFromInt(10),
+		Timestamp:         time.Now().UnixNano(),
+		OrderStatus:       OrderStatusPendingNew,
+		IsBid:             true,
+		ExecutionNotifier: book.TradeNotifier, // Assign notifier
 	}
+	book.processOrder(&buyOrder)
 
-	trades := book.processBuyOrder(&buyOrder)
-
-	assert.Len(t, trades, 1)
-	assert.Equal(t, "2", trades[0].BuyerOrderID)
-	assert.Equal(t, "1", trades[0].SellerOrderID)
-	assert.Equal(t, uint64(10), trades[0].Quantity)
-	assert.Equal(t, uint64(100), trades[0].Price)
+	// Assert that the sell order is removed and the buy order is fully matched
 	assert.Len(t, book.Asks, 0) // Sell order should be removed
+	assert.True(t, buyOrder.LeavesQty.Equal(decimal.Zero))
+	assert.Equal(t, OrderStatusFill, buyOrder.OrderStatus)
 }
 
-func TestProcessSellOrder_PartialMatch(t *testing.T) {
+func TestProcessOrder_PartialMatch(t *testing.T) {
 	book := newTestOrderBook()
 
-	// Add a buy order to the order book
-	book.AddBuyOrder(Order{
-		ID:        "1",
-		Price:     decimal.NewFromInt(100),
-		OrderQty:  decimal.NewFromInt(10),
-		LeavesQty: decimal.NewFromInt(10),
-		Timestamp: time.Now().UnixNano(),
-		IsBid:     true,
-	})
-
-	// Process a sell order that partially matches the buy order
+	// Add a sell order to the order book
 	sellOrder := Order{
-		ID:        "2",
-		Price:     decimal.NewFromInt(100),
-		OrderQty:  decimal.NewFromInt(5),
-		LeavesQty: decimal.NewFromInt(5),
-		Timestamp: time.Now().UnixNano(),
-		IsBid:     false,
+		ID:                "1",
+		Instrument:        "BTC/USDT",
+		Price:             decimal.NewFromInt(100),
+		OrderQty:          decimal.NewFromInt(10),
+		LeavesQty:         decimal.NewFromInt(10),
+		Timestamp:         time.Now().UnixNano(),
+		OrderStatus:       OrderStatusPendingNew,
+		IsBid:             false,
+		ExecutionNotifier: book.TradeNotifier, // Assign notifier
+	}
+	book.processOrder(&sellOrder)
+
+	// Process a buy order that partially matches the sell order
+	buyOrder := Order{
+		ID:         "2",
+		Instrument: "BTC/USDT",
+		Price:      decimal.NewFromInt(100),
+		OrderQty:   decimal.NewFromInt(5),
+		LeavesQty:  decimal.NewFromInt(5),
+		Timestamp:  time.Now().UnixNano(),
+		OrderStatus:       OrderStatusPendingNew,
+		IsBid:      true,
+		ExecutionNotifier: book.TradeNotifier, // Assign notifier
 	}
 
-	trades := book.processSellOrder(&sellOrder)
+	book.processOrder(&buyOrder)
 
-	assert.Len(t, trades, 1)
-	assert.Equal(t, "1", trades[0].BuyerOrderID)
-	assert.Equal(t, "2", trades[0].SellerOrderID)
-	assert.Equal(t, uint64(5), trades[0].Quantity)
-	assert.Equal(t, uint64(100), trades[0].Price)
-	assert.Len(t, book.Bids, 1)                                    // Buy order remains
-	assert.Equal(t, decimal.NewFromInt(5), book.Bids[0].LeavesQty) // 5 remaining
+	log.Printf("Seller Order: %+v", sellOrder)
+
+	assert.Len(t, book.Asks, 1)
+	assert.True(t, buyOrder.LeavesQty.Equal(decimal.Zero))
+	assert.Equal(t, OrderStatusFill, buyOrder.OrderStatus)
+	assert.Equal(t, OrderStatusPartialFill, sellOrder.OrderStatus)
 }
 
 func TestProcessOrder_NoMatch(t *testing.T) {
 	book := newTestOrderBook()
 
+	// Process a buy order with no matching sell orders
 	buyOrder := Order{
-		ID:        "1",
-		Price:     decimal.NewFromInt(100),
-		OrderQty:  decimal.NewFromInt(10),
-		LeavesQty: decimal.NewFromInt(10),
-		Timestamp: time.Now().UnixNano(),
-		IsBid:     true,
+		ID:         "1",
+		Instrument: "BTC/USDT",
+		Price:      decimal.NewFromInt(50),
+		OrderQty:   decimal.NewFromInt(10),
+		LeavesQty:  decimal.NewFromInt(10),
+		Timestamp:  time.Now().UnixNano(),
+		OrderStatus:       OrderStatusPendingNew,
+		IsBid:      true,
 	}
 
-	trades := book.processBuyOrder(&buyOrder)
+	book.processOrder(&buyOrder)
 
-	assert.Len(t, trades, 0)
-	assert.Len(t, book.Bids, 0)
+	assert.Len(t, book.Bids, 1) // Buy order added to the book
+	assert.Equal(t, decimal.NewFromInt(10), book.Bids[decimal.NewFromInt(50)].Orders[0].LeavesQty)
 }
 
 func TestProcessOrder_InvalidOrder(t *testing.T) {
 	book := newTestOrderBook()
 
+	// Process an invalid order
 	invalidOrder := Order{
-		ID:        "1",
-		Price:     decimal.NewFromInt(-100),
-		OrderQty:  decimal.NewFromInt(10),
-		LeavesQty: decimal.NewFromInt(10),
-		Timestamp: time.Now().UnixNano(),
-		IsBid:     true,
+		ID:         "1",
+		Instrument: "BTC/USDT",
+		Price:      decimal.NewFromInt(-100), // Invalid price
+		OrderQty:   decimal.NewFromInt(10),
+		LeavesQty:  decimal.NewFromInt(10),
+		Timestamp:  time.Now().UnixNano(),
+		OrderStatus:       OrderStatusPendingNew,
+		IsBid:      true,
 	}
 
-	trades := book.processBuyOrder(&invalidOrder)
+	book.processOrder(&invalidOrder)
 
-	assert.Len(t, trades, 0)
-	assert.Len(t, book.Bids, 0)
-	assert.Len(t, book.Orders, 1)
-	assert.Equal(t, EventTypeRejected, book.Orders[0].ExecType)
-	assert.Equal(t, "1", book.Orders[0].ID)
+	assert.Len(t, book.Bids, 0) // Invalid order should not be added
 }
