@@ -10,12 +10,12 @@ import (
 type OrderStatus string
 
 const (
-	OrderStatusNew         OrderStatus = "2"
-	OrderStatusFill        OrderStatus = "8"
-	OrderStatusPartialFill OrderStatus = "4"
-	OrderStatusCanceled    OrderStatus = "5"
-	OrderStatusRejected    OrderStatus = "2"
-	OrderStatusPendingNew  OrderStatus = "2"
+	OrderStatusNew         OrderStatus = "0"
+	OrderStatusFill        OrderStatus = "2"
+	OrderStatusPartialFill OrderStatus = "1"
+	OrderStatusCanceled    OrderStatus = "4"
+	OrderStatusRejected    OrderStatus = "8"
+	OrderStatusPendingNew  OrderStatus = "A"
 )
 
 type ExecutionNotifier interface {
