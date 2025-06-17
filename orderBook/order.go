@@ -43,15 +43,16 @@ func (o *Order) publishExecutionReport(e Event) {
 	}
 
 	report := ExecutionReport{
-		ExecType:   string(e.ExecType),
-		OrderID:    e.OrderID,
-		Instrument: e.Instrument,
-		Price:      e.Price,
-		OrderQty:   e.OrderQty,
-		LeavesQty:  e.LeavesQty,
-		CumQty:     e.CumQty,
-		IsBid:      e.IsBid,
-		Timestamp:  e.Timestamp,
+		ExecType:    string(e.ExecType),
+		OrderID:     e.OrderID,
+		Instrument:  e.Instrument,
+		Price:       e.Price,
+		OrderQty:    e.OrderQty,
+		LeavesQty:   e.LeavesQty,
+		CumQty:      e.CumQty,
+		IsBid:       e.IsBid,
+		Timestamp:   e.Timestamp,
+		OrderStatus: string(e.OrderStatus),
 	}
 
 	payload, err := json.Marshal(report)
@@ -63,6 +64,6 @@ func (o *Order) publishExecutionReport(e Event) {
 	if err := o.ExecutionNotifier.NotifyEventAndTrade(e.ID, payload); err != nil {
 		log.Printf("Error publishing execution report: %v", err)
 	} else {
-		log.Printf("Execution report published for order %s [%s]", e.ID, e.ExecType)
+		log.Printf("Execution report published for event %s [%s]", e.ID, e.ExecType)
 	}
 }
