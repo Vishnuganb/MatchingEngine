@@ -108,7 +108,7 @@ func (h *OrderRequestHandler) handleCancelOrder(book OrderBook, req rmq.OrderReq
 }
 
 func (h *OrderRequestHandler) HandleExecutionReport(message []byte) error {
-	var event model.OrderEvent
+	var event model.ExecutionReport
 	if err := json.Unmarshal(message, &event); err != nil {
 		log.Printf("Error unmarshaling JSON: %v, message: %s", err, string(message))
 		return nil // Skip processing this message
@@ -126,7 +126,7 @@ func (h *OrderRequestHandler) HandleExecutionReport(message []byte) error {
 			event.Price,
 		)
 	default:
-		return fmt.Errorf("unknown event type: %s", event.EventType)
+		return fmt.Errorf("unknown execution type: %s", event.ExecType)
 	}
 
 	return nil
@@ -139,15 +139,15 @@ func (h *OrderRequestHandler) handleFailure(msg amqp.Delivery, err error) {
 	}
 }
 
-func (s *OrderRequestHandler) convertEventToOrder(event model.OrderEvent) model.Order {
+func (s *OrderRequestHandler) convertEventToOrder(execution model.ExecutionReport) model.Order {
 	return model.Order{
-		ID:          event.OrderID,
-		Instrument:  event.Instrument,
-		Price:       event.Price,
-		OrderQty:    event.Quantity,
-		LeavesQty:   event.LeavesQty,
-		CumQty:      event.CumQty,
-		IsBid:       event.IsBid,
-		OrderStatus: event.OrderStatus,
+		ID:          execution.OrderID,
+		Instrument:  execution.Instrument,
+		Price:       execution.Price,
+		OrderQty:    execution.OrderQty,
+		LeavesQty:   execution.LeavesQty,
+		CumQty:      execution.CumQty,
+		IsBid:       execution.IsBid,
+		OrderStatus: execution.OrderStatus,
 	}
 }

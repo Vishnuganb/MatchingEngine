@@ -64,6 +64,6 @@ func (o *Order) publishExecutionReport(e Event) {
 	if err := o.ExecutionNotifier.NotifyEventAndTrade(e.ID, payload); err != nil {
 		log.Printf("Error publishing execution report: %v", err)
 	} else {
-		log.Printf("Execution report published for event %s [%s]", e.ID, e.ExecType)
+		log.Printf("Execution report published for event %s [%s]", e.ID, e.OrderStatus)
 	}
 }
