@@ -9,7 +9,7 @@ import (
 )
 
 type Producer struct {
-	dbWriter       *kafka.Writer
+	dbWriter        *kafka.Writer
 	executionWriter *kafka.Writer
 }
 

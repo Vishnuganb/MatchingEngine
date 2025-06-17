@@ -1,10 +1,12 @@
 package handler
 
 import (
+	"time"
+
+	"github.com/shopspring/decimal"
+
 	"MatchingEngine/internal/rmq"
 	"MatchingEngine/orderBook"
-	"github.com/shopspring/decimal"
-	"time"
 )
 
 func toInternalOrder(req rmq.OrderRequest) orderBook.Order {

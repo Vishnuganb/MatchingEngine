@@ -3,7 +3,7 @@ package kafka
 import (
 	"log"
 
-	"github.com/segmentio/kafka-go"
+	kafka "github.com/segmentio/kafka-go"
 )
 
 func InitializeTopics(brokerAddr string, topics []string) error {

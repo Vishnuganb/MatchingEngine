@@ -36,7 +36,7 @@ func TestOrderFlowScenarios(t *testing.T) {
 					CumQty:      decimal.NewFromInt(0),
 					IsBid:       true,
 					OrderStatus: string(orderBook.OrderStatusNew),
-					ExecType: string(orderBook.ExecTypeNew),
+					ExecType:    string(orderBook.ExecTypeNew),
 				},
 			},
 		},

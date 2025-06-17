@@ -1,7 +1,6 @@
 package repository
 
 import (
-	"MatchingEngine/internal/model"
 	"context"
 	"testing"
 	"time"
@@ -12,6 +11,7 @@ import (
 	"github.com/stretchr/testify/mock"
 
 	sqlc "MatchingEngine/internal/db/sqlc"
+	"MatchingEngine/internal/model"
 	"MatchingEngine/orderBook"
 )
 
@@ -83,7 +83,7 @@ func TestUpdateOrder(t *testing.T) {
 		LeavesQty:   pgtypeNumeric(leavesQty),
 		CumQty:      pgtypeNumeric(cumQty),
 		Price:       pgtypeNumeric(price),
-		OrderQty: pgtypeNumeric(decimal.NewFromInt(15)),
+		OrderQty:    pgtypeNumeric(decimal.NewFromInt(15)),
 		OrderStatus: orderStatus,
 	}, nil)
 

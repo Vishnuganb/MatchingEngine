@@ -2,8 +2,9 @@ package orderBook
 
 import (
 	"encoding/json"
-	"github.com/shopspring/decimal"
 	"log"
+
+	"github.com/shopspring/decimal"
 )
 
 type TradeNotifier interface {

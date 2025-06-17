@@ -3,10 +3,11 @@ package handler
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/shopspring/decimal"
-	"github.com/streadway/amqp"
 	"log"
 	"sync"
+
+	"github.com/shopspring/decimal"
+	"github.com/streadway/amqp"
 
 	"MatchingEngine/internal/model"
 	"MatchingEngine/internal/rmq"

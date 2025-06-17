@@ -1,10 +1,10 @@
 package orderBook
 
 import (
-	"github.com/google/uuid"
 	"log"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
 )
 

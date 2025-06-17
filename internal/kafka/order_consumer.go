@@ -5,7 +5,7 @@ import (
 	"log"
 	"time"
 
-	kafka "github.com/segmentio/kafka-go"
+	"github.com/segmentio/kafka-go"
 )
 
 type ConsumerOpts struct {

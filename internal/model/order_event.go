@@ -13,7 +13,7 @@ type Order struct {
 	Timestamp   int64           `json:"timestamp"`
 	IsBid       bool            `json:"is_bid"`
 	OrderStatus string          `json:"order_status"`
-	CumQty     decimal.Decimal `json:"cum_qty"`
+	CumQty      decimal.Decimal `json:"cum_qty"`
 }
 
 type Orders []Order
@@ -25,7 +25,7 @@ type OrderEvent struct {
 	Price       decimal.Decimal `json:"price"`
 	Quantity    decimal.Decimal `json:"quantity"`
 	LeavesQty   decimal.Decimal `json:"leaves_qty"`
-	CumQty     decimal.Decimal `json:"exec_qty"`
+	CumQty      decimal.Decimal `json:"exec_qty"`
 	IsBid       bool            `json:"is_bid"`
 	OrderStatus string          `json:"order_status"`
 	ExecType    string          `json:"exec_type"`
