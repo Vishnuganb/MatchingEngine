@@ -127,7 +127,7 @@ func TestOrderFlowScenarios(t *testing.T) {
 		{
 			name: "Cancel Order",
 			orders: []string{
-				`{"RequestType":0,"Order":{"id":"5","side":"buy","qty":"10","price":"100","instrument":"BTC/USDT"}}`,
+				`{"RequestType":0,"Order":{"id":"5","side":"sell","qty":"10","price":"100","instrument":"BTC/USDT"}}`,
 				`{"RequestType":1,"Order":{"id":"5","instrument":"BTC/USDT"}}`,
 			},
 			expectedEvents: []interface{}{
@@ -135,6 +135,8 @@ func TestOrderFlowScenarios(t *testing.T) {
 					OrderID:     "5",
 					Instrument:  "BTC/USDT",
 					LeavesQty:   decimal.NewFromInt(10),
+					IsBid: false,
+					Price:       decimal.NewFromInt(100),
 					OrderStatus: string(orderBook.OrderStatusNew),
 					ExecType:    string(orderBook.ExecTypeNew),
 				},
@@ -142,6 +144,8 @@ func TestOrderFlowScenarios(t *testing.T) {
 					OrderID:     "5",
 					Instrument:  "BTC/USDT",
 					LeavesQty:   decimal.NewFromInt(0),
+					IsBid: false,
+					Price:       decimal.NewFromInt(100),
 					OrderStatus: string(orderBook.OrderStatusCanceled),
 					ExecType:    string(orderBook.ExecTypeCanceled),
 				},
