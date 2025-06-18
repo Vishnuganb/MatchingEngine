@@ -46,7 +46,7 @@ func TestProcessOrder_FullMatch(t *testing.T) {
 	book.processOrder(&buyOrder)
 
 	// Assert that the sell order is removed and the buy order is fully matched
-	assert.Len(t, book.Asks, 0) // Sell order should be removed
+	assert.Equal(t, 0, book.Asks.Size()) // Sell order should be removed
 	assert.True(t, buyOrder.LeavesQty.Equal(decimal.Zero))
 	assert.Equal(t, OrderStatusFill, buyOrder.OrderStatus)
 }
@@ -85,7 +85,7 @@ func TestProcessOrder_PartialMatch(t *testing.T) {
 
 	log.Printf("Seller Order: %+v", sellOrder)
 
-	assert.Len(t, book.Asks, 1)
+	assert.Equal(t, 1, book.Asks.Size())
 	assert.True(t, buyOrder.LeavesQty.Equal(decimal.Zero))
 	assert.Equal(t, OrderStatusFill, buyOrder.OrderStatus)
 }
@@ -107,6 +107,6 @@ func TestProcessOrder_NoMatch(t *testing.T) {
 
 	book.processOrder(&buyOrder)
 
-	assert.Len(t, book.Bids, 1) // Buy order added to the book
+	assert.Equal(t, 1, book.Bids.Size()) // Buy order added to the book
 	assert.True(t, buyOrder.LeavesQty.Equal(decimal.NewFromInt(10)))
 }

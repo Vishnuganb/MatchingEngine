@@ -47,9 +47,9 @@ func main() {
 	if kafkaProducer == nil {
 		log.Fatal("Failed to initialize Kafka producer")
 	}
-	orderRepo := repository.NewPostgresExecutionRepository(sqlc.New(conn))
+	executionRepo := repository.NewPostgresExecutionRepository(sqlc.New(conn))
 	tradeRepo := repository.NewPostgresTradeRepository(sqlc.New(conn))
-	asyncWriter := repository.NewAsyncDBWriter(orderRepo, tradeRepo, 10)
+	asyncWriter := repository.NewAsyncDBWriter(executionRepo, tradeRepo, 10)
 	execService := service.NewExecutionService(asyncWriter)
 	tradeService := service.NewTradeService(asyncWriter)
 	requestHandler := handler.NewOrderRequestHandler(execService, tradeService, kafkaProducer)

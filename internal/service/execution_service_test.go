@@ -24,7 +24,7 @@ func TestSaveOrderAsync(t *testing.T) {
 	orderService := NewExecutionService(mockWriter)
 
 	exec := model.ExecutionReport{
-		OrderID:         "1",
+		OrderID:    "1",
 		Instrument: "BTC/USDT",
 		Price:      decimal.NewFromInt(100),
 		OrderQty:   decimal.NewFromInt(10),

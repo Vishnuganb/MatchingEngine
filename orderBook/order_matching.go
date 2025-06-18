@@ -2,53 +2,43 @@ package orderBook
 
 import (
 	"log"
-	"sort"
 
+	"github.com/emirpasic/gods/maps/treemap"
 	"github.com/shopspring/decimal"
 )
 
 func (book *OrderBook) processOrder(order *Order) {
 	var (
-		matchingBook map[decimal.Decimal]*OrderList
+		matchingBook *treemap.Map
 		isBuy        = order.IsBid
-		priceComp    func(decimal.Decimal, decimal.Decimal) bool
+		priceComp    func(price decimal.Decimal) bool
 	)
 
 	if isBuy {
 		matchingBook = book.Asks
-		priceComp = func(bookPrice, orderPrice decimal.Decimal) bool {
-			return bookPrice.LessThanOrEqual(orderPrice)
+		priceComp = func(price decimal.Decimal) bool {
+			return price.LessThanOrEqual(order.Price)
 		}
 	} else {
 		matchingBook = book.Bids
-		priceComp = func(bookPrice, orderPrice decimal.Decimal) bool {
-			return bookPrice.GreaterThanOrEqual(orderPrice)
+		priceComp = func(price decimal.Decimal) bool {
+			return price.GreaterThanOrEqual(order.Price)
 		}
 	}
 
 	order.LeavesQty = order.OrderQty
-	// collecting all the price levels from the matchingBook
-	priceKeys := make([]decimal.Decimal, 0, len(matchingBook))
-	for price := range matchingBook {
-		priceKeys = append(priceKeys, price)
-	}
-
-	// Prepare a sorted list of price levels from the matching side of the book
-	sort.Slice(priceKeys, func(i, j int) bool {
-		if isBuy {
-			return priceKeys[i].LessThan(priceKeys[j]) // ascending for asks
-		}
-		return priceKeys[i].GreaterThan(priceKeys[j]) // descending for bids
-	})
+	it := matchingBook.Iterator()
+	it.Begin()
 
 	orderMatched := false
 
-	for _, price := range priceKeys {
-		if !priceComp(price, order.Price) {
+	for it.Next() {
+		price := it.Key().(decimal.Decimal)
+		if !priceComp(price) {
 			break
 		}
 
-		orderList := matchingBook[price]
+		orderList := it.Value().(*OrderList)
 		i := 0
 		for i < len(orderList.Orders) && order.LeavesQty.IsPositive() {
 			match := &orderList.Orders[i]
@@ -71,7 +61,7 @@ func (book *OrderBook) processOrder(order *Order) {
 		}
 
 		if len(orderList.Orders) == 0 {
-			delete(matchingBook, price)
+			matchingBook.Remove(price)
 		}
 
 		if !order.LeavesQty.IsPositive() {

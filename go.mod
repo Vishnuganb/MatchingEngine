@@ -3,6 +3,7 @@ module MatchingEngine
 go 1.24
 
 require (
+	github.com/emirpasic/gods v1.18.1
 	github.com/google/uuid v1.6.0
 	github.com/jackc/pgx/v5 v5.7.5
 	github.com/segmentio/kafka-go v0.4.48

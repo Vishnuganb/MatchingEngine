@@ -19,8 +19,8 @@ func TestNewOrderBook(t *testing.T) {
 	mockNotifier := &MockTradeNotifier{}
 	book := NewOrderBook(mockNotifier)
 	assert.NotNil(t, book)
-	assert.Empty(t, book.Bids)
-	assert.Empty(t, book.Asks)
+	assert.Equal(t, 0, book.Bids.Size())
+	assert.Equal(t, 0, book.Asks.Size())
 	assert.Empty(t, book.orderIndex)
 }
 
@@ -39,9 +39,10 @@ func TestOnNewOrder_ValidOrder(t *testing.T) {
 
 	book.OnNewOrder(order)
 
-	assert.Len(t, book.Bids, 1)
-	assert.Contains(t, book.Bids, order.Price)
-	assert.Equal(t, book.Bids[order.Price].Orders[0].ID, "1")
+	val, ok := book.Bids.Get(order.Price)
+	assert.True(t, ok)
+	orderList := val.(*OrderList)
+	assert.Equal(t, "1", orderList.Orders[0].ID)
 	assert.Contains(t, book.orderIndex, "1")
 }
 
@@ -60,7 +61,7 @@ func TestOnNewOrder_InvalidOrder(t *testing.T) {
 
 	book.OnNewOrder(order)
 
-	assert.Empty(t, book.Bids)
+	assert.Equal(t, 0, book.Bids.Size())
 	assert.NotContains(t, book.orderIndex, "2")
 }
 
@@ -80,7 +81,7 @@ func TestCancelOrder_ExistingOrder(t *testing.T) {
 	book.OnNewOrder(order)
 	book.CancelOrder("1")
 
-	assert.Empty(t, book.Bids)
+	assert.Equal(t, 0, book.Bids.Size())
 	assert.NotContains(t, book.orderIndex, "1")
 }
 
@@ -90,8 +91,8 @@ func TestCancelOrder_NonExistingOrder(t *testing.T) {
 
 	book.CancelOrder("999") // Non-existing order
 
-	assert.Empty(t, book.Bids)
-	assert.Empty(t, book.Asks)
+	assert.Equal(t, 0, book.Bids.Size())
+	assert.Equal(t, 0, book.Asks.Size())
 	assert.Empty(t, book.orderIndex)
 }
 
@@ -111,9 +112,10 @@ func TestAddOrderToBook_BuyOrder(t *testing.T) {
 
 	book.addOrderToBook(order)
 
-	assert.Len(t, book.Bids, 1)
-	assert.Contains(t, book.Bids, order.Price)
-	assert.Equal(t, book.Bids[order.Price].Orders[0].ID, "1")
+	val, ok := book.Bids.Get(order.Price)
+	assert.True(t, ok)
+	orderList := val.(*OrderList)
+	assert.Equal(t, "1", orderList.Orders[0].ID)
 	assert.Contains(t, book.orderIndex, "1")
 }
 
@@ -133,8 +135,9 @@ func TestAddOrderToBook_SellOrder(t *testing.T) {
 
 	book.addOrderToBook(order)
 
-	assert.Len(t, book.Asks, 1)
-	assert.Contains(t, book.Asks, order.Price)
-	assert.Equal(t, book.Asks[order.Price].Orders[0].ID, "2")
+	val, ok := book.Asks.Get(order.Price)
+	assert.True(t, ok)
+	orderList := val.(*OrderList)
+	assert.Equal(t, "2", orderList.Orders[0].ID)
 	assert.Contains(t, book.orderIndex, "2")
 }

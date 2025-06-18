@@ -4,21 +4,6 @@ import (
 	"github.com/shopspring/decimal"
 )
 
-type Order struct {
-	ID          string          `json:"id"`
-	Instrument  string          `json:"instrument"`
-	Price       decimal.Decimal `json:"price"`
-	OrderQty    decimal.Decimal `json:"order_qty"`
-	LeavesQty   decimal.Decimal `json:"leaves_qty"`
-	Timestamp   int64           `json:"timestamp"`
-	IsBid       bool            `json:"is_bid"`
-	OrderStatus string          `json:"order_status"`
-	ExecType    string          `json:"exec_type"`
-	CumQty      decimal.Decimal `json:"cum_qty"`
-}
-
-type Orders []Order
-
 type ExecutionReport struct {
 	OrderID     string          `json:"order_id"`
 	ExecType    string          `json:"exec_type"`

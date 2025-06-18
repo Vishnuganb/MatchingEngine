@@ -31,21 +31,21 @@ type TradeNotifier interface {
 }
 
 type OrderRequestHandler struct {
-	orderBooks    map[string]OrderBook
-	orderChannels map[string]chan rmq.OrderRequest
-	ExecutionService  ExecutionService
-	TradeService  TradeService
-	TradeNotifier TradeNotifier
-	mu            sync.Mutex
+	orderBooks       map[string]OrderBook
+	orderChannels    map[string]chan rmq.OrderRequest
+	ExecutionService ExecutionService
+	TradeService     TradeService
+	TradeNotifier    TradeNotifier
+	mu               sync.Mutex
 }
 
 func NewOrderRequestHandler(executionService ExecutionService, tradeService TradeService, tradeNotifier TradeNotifier) *OrderRequestHandler {
 	return &OrderRequestHandler{
-		orderBooks:    make(map[string]OrderBook),
-		orderChannels: make(map[string]chan rmq.OrderRequest),
-		ExecutionService:  executionService,
-		TradeService:  tradeService,
-		TradeNotifier: tradeNotifier,
+		orderBooks:       make(map[string]OrderBook),
+		orderChannels:    make(map[string]chan rmq.OrderRequest),
+		ExecutionService: executionService,
+		TradeService:     tradeService,
+		TradeNotifier:    tradeNotifier,
 	}
 }
 
@@ -142,7 +142,7 @@ func (h *OrderRequestHandler) HandleExecutionReport(message []byte) error {
 		return err
 	}
 	log.Printf("Received execution report: %+v", execReport)
-	
+
 	h.ExecutionService.SaveExecutionAsync(execReport)
 
 	return nil

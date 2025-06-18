@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log"
 
+	"github.com/emirpasic/gods/maps/treemap"
 	"github.com/shopspring/decimal"
 )
 
@@ -18,8 +19,8 @@ type OrderRef struct {
 }
 
 type OrderBook struct {
-	Bids          map[decimal.Decimal]*OrderList // descending prices
-	Asks          map[decimal.Decimal]*OrderList // ascending prices
+	Bids          *treemap.Map // sorted descending // descending prices
+	Asks          *treemap.Map // ascending prices
 	TradeNotifier TradeNotifier
 	orderIndex    map[string]*OrderRef
 }
@@ -30,11 +31,25 @@ type OrderList struct {
 
 func NewOrderBook(tradeNotifier TradeNotifier) *OrderBook {
 	return &OrderBook{
-		Bids:          make(map[decimal.Decimal]*OrderList),
-		Asks:          make(map[decimal.Decimal]*OrderList),
+		Bids:          treemap.NewWith(DecimalDescComparator),
+		Asks:          treemap.NewWith(DecimalAscComparator),
 		TradeNotifier: tradeNotifier,
 		orderIndex:    make(map[string]*OrderRef),
 	}
+}
+
+// Ascending Comparator (for Asks)
+func DecimalAscComparator(a, b interface{}) int {
+	d1 := a.(decimal.Decimal)
+	d2 := b.(decimal.Decimal)
+	return d1.Cmp(d2) // d1 < d2 → -1, d1 == d2 → 0, d1 > d2 → 1
+}
+
+// Descending Comparator (for Bids)
+func DecimalDescComparator(a, b interface{}) int {
+	d1 := a.(decimal.Decimal)
+	d2 := b.(decimal.Decimal)
+	return d2.Cmp(d1) // Reversed: d2 < d1 → -1 → means d1 > d2
 }
 
 func (book *OrderBook) OnNewOrder(or OrderRequest) {
@@ -58,9 +73,21 @@ func (book *OrderBook) CancelOrder(orderID string) {
 
 	var list *OrderList
 	if ref.IsBid {
-		list = book.Bids[ref.PriceLevel]
+		val, ok := book.Bids.Get(ref.PriceLevel)
+		if !ok {
+			log.Printf("Order with ID %s not found in Bids at price %s", orderID, ref.PriceLevel)
+			delete(book.orderIndex, orderID)
+			return
+		}
+		list = val.(*OrderList)
 	} else {
-		list = book.Asks[ref.PriceLevel]
+		val, ok := book.Asks.Get(ref.PriceLevel)
+		if !ok {
+			log.Printf("Order with ID %s not found in Asks at price %s", orderID, ref.PriceLevel)
+			delete(book.orderIndex, orderID)
+			return
+		}
+		list = val.(*OrderList)
 	}
 
 	if list == nil || ref.Index >= len(list.Orders) || list.Orders[ref.Index].ID != orderID {
@@ -83,9 +110,9 @@ func (book *OrderBook) CancelOrder(orderID string) {
 
 	if len(list.Orders) == 0 {
 		if ref.IsBid {
-			delete(book.Bids, ref.PriceLevel)
+			book.Bids.Remove(ref.PriceLevel)
 		} else {
-			delete(book.Asks, ref.PriceLevel)
+			book.Asks.Remove(ref.PriceLevel)
 		}
 	}
 
@@ -100,15 +127,19 @@ func (book *OrderBook) addOrderToBook(order Order) {
 	var list *OrderList
 
 	if order.IsBid {
-		if _, ok := book.Bids[priceKey]; !ok {
-			book.Bids[priceKey] = &OrderList{}
+		if val, ok := book.Bids.Get(priceKey); !ok {
+			list = &OrderList{}
+			book.Bids.Put(priceKey, list)
+		} else {
+			list = val.(*OrderList)
 		}
-		list = book.Bids[priceKey]
 	} else {
-		if _, ok := book.Asks[priceKey]; !ok {
-			book.Asks[priceKey] = &OrderList{}
+		if val, ok := book.Asks.Get(priceKey); !ok {
+			list = &OrderList{}
+			book.Asks.Put(priceKey, list)
+		} else {
+			list = val.(*OrderList)
 		}
-		list = book.Asks[priceKey]
 	}
 
 	list.Orders = append(list.Orders, order)
