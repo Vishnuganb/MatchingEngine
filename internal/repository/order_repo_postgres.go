@@ -56,6 +56,8 @@ func (r *PostgresOrderRepository) SaveOrder(ctx context.Context, order model.Ord
 		Instrument:  order.Instrument,
 		CumQty:      cumQty,
 		OrderStatus: order.OrderStatus,
+		Side: map[bool]string{true: "buy", false: "sell"}[order.IsBid],
+		ExecType: order.ExecType,
 	})
 	if err != nil {
 		return model.Order{}, err
@@ -131,6 +133,7 @@ func MapActiveOrderToOrder(activeOrder sqlc.ActiveOrder) (model.Order, error) {
 		IsBid:       activeOrder.Side == string(orderBook.Buy),
 		CumQty:      cumQty,
 		OrderStatus: activeOrder.OrderStatus,
+		ExecType:    activeOrder.ExecType,
 	}, nil
 }
 

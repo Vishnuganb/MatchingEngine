@@ -15,7 +15,7 @@ type ActiveOrder struct {
 	LeavesQty   pgtype.Numeric `json:"leaves_qty"`
 	Price       pgtype.Numeric `json:"price"`
 	Instrument  string         `json:"instrument"`
-	Type        string         `json:"type"`
+	ExecType    string         `json:"exec_type"`
 	CumQty      pgtype.Numeric `json:"cum_qty"`
 	OrderStatus string         `json:"order_status"`
 }

@@ -1,5 +1,5 @@
 -- name: CreateActiveOrder :one
-INSERT INTO active_orders (id, side, order_qty, leaves_qty, price, instrument, cum_qty, type, order_status)
+INSERT INTO active_orders (id, side, order_qty, leaves_qty, price, instrument, cum_qty, exec_type, order_status)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *;
 
 -- name: GetActiveOrder :one
@@ -14,7 +14,7 @@ ORDER BY id;
 
 -- name: UpdateActiveOrder :one
 UPDATE active_orders
-SET type         = COALESCE(sqlc.narg(type), type),
+SET exec_type         = COALESCE(sqlc.narg(exec_type), exec_type),
     leaves_qty   = COALESCE(sqlc.narg(leaves_qty), leaves_qty),
     cum_qty     = COALESCE(sqlc.narg(cum_qty), cum_qty),
     price        = COALESCE(sqlc.narg(price), price),

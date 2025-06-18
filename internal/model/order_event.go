@@ -13,6 +13,7 @@ type Order struct {
 	Timestamp   int64           `json:"timestamp"`
 	IsBid       bool            `json:"is_bid"`
 	OrderStatus string          `json:"order_status"`
+	ExecType    string          `json:"exec_type"`
 	CumQty      decimal.Decimal `json:"cum_qty"`
 }
 
