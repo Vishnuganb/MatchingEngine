@@ -100,6 +100,17 @@ func TestOrderFlowScenarios(t *testing.T) {
 				`{"RequestType":0,"Order":{"id":"5","side":"sell","qty":"5","price":"100","instrument":"BTC/USDT"}}`,
 			},
 			expectedEvents: []interface{}{
+				model.ExecutionReport{
+					OrderID:     "3",
+					Instrument:  "BTC/USDT",
+					Price:       decimal.NewFromInt(100),
+					OrderQty:    decimal.NewFromInt(10),
+					LeavesQty:   decimal.NewFromInt(10),
+					CumQty:      decimal.NewFromInt(0),
+					IsBid:       true,
+					OrderStatus: string(orderBook.OrderStatusNew),
+					ExecType:    string(orderBook.ExecTypeNew),
+				},
 				model.Trade{
 					BuyerOrderID:  "3",
 					SellerOrderID: "4",
@@ -146,7 +157,7 @@ func TestOrderFlowScenarios(t *testing.T) {
 					ExecType:    string(orderBook.ExecTypeFill),
 				},
 				model.ExecutionReport{
-					OrderID:     "5",
+					OrderID:     "3",
 					Instrument:  "BTC/USDT",
 					Price:       decimal.NewFromInt(100),
 					OrderQty:    decimal.NewFromInt(10),
@@ -217,7 +228,7 @@ func TestOrderFlowScenarios(t *testing.T) {
 					OrderID:     "8",
 					Instrument:  "BTC/USDT",
 					LeavesQty:   decimal.NewFromInt(10),
-					CumQty: decimal.NewFromInt(0),
+					CumQty:      decimal.NewFromInt(0),
 					IsBid:       false,
 					Price:       decimal.NewFromInt(100),
 					OrderStatus: string(orderBook.OrderStatusNew),
