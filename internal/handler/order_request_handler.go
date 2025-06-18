@@ -19,6 +19,10 @@ type OrderService interface {
 	UpdateOrderAsync(orderID, orderStatus string, leavesQty, cumQty, price decimal.Decimal)
 }
 
+type TradeService interface {
+	SaveTradeAsync(trade model.Trade)
+}
+
 type OrderBook interface {
 	OnNewOrder(order orderBook.OrderRequest)
 	CancelOrder(orderID string)
@@ -32,15 +36,17 @@ type OrderRequestHandler struct {
 	orderBooks    map[string]OrderBook
 	orderChannels map[string]chan rmq.OrderRequest
 	OrderService  OrderService
+	TradeService TradeService
 	TradeNotifier TradeNotifier
 	mu            sync.Mutex
 }
 
-func NewOrderRequestHandler(orderService OrderService, tradeNotifier TradeNotifier) *OrderRequestHandler {
+func NewOrderRequestHandler(orderService OrderService, tradeService TradeService, tradeNotifier TradeNotifier) *OrderRequestHandler {
 	return &OrderRequestHandler{
 		orderBooks:    make(map[string]OrderBook),
 		orderChannels: make(map[string]chan rmq.OrderRequest),
 		OrderService:  orderService,
+		TradeService:  tradeService,
 		TradeNotifier: tradeNotifier,
 	}
 }
@@ -108,9 +114,28 @@ func (h *OrderRequestHandler) handleCancelOrder(book OrderBook, req rmq.OrderReq
 }
 
 func (h *OrderRequestHandler) HandleExecutionReport(message []byte) error {
+	var raw map[string]interface{}
+	if err := json.Unmarshal(message, &raw); err != nil {
+		log.Printf("Error unmarshaling JSON: %v, message: %s", err, string(message))
+		return nil // Skip processing this message
+	}
+
+	if _, ok := raw["buyer_order_id"]; ok {
+		// Handle Trade
+		var trade model.Trade
+		if err := json.Unmarshal(message, &trade); err != nil {
+			log.Printf("Error unmarshaling Trade: %v, message: %s", err, string(message))
+			return nil // Skip processing this message
+		}
+		log.Printf("Received trade: %+v", trade)
+		h.TradeService.SaveTradeAsync(trade)
+		return nil
+	}
+
+	// Handle ExecutionReport
 	var execReport model.ExecutionReport
 	if err := json.Unmarshal(message, &execReport); err != nil {
-		log.Printf("Error unmarshaling JSON: %v, message: %s", err, string(message))
+		log.Printf("Error unmarshaling ExecutionReport: %v, message: %s", err, string(message))
 		return nil // Skip processing this message
 	}
 	log.Printf("Received execution report: %+v", execReport)

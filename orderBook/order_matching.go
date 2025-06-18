@@ -107,8 +107,8 @@ func (book *OrderBook) publishTrade(order, match *Order, qty decimal.Decimal) {
 	trade := Trade{
 		BuyerOrderID:  buyerID,
 		SellerOrderID: sellerID,
-		Quantity:      qty.BigInt().Uint64(),
-		Price:         price.BigInt().Uint64(),
+		Quantity:      qty,
+		Price:         price,
 		Timestamp:     order.Timestamp,
 		Instrument:    order.Instrument,
 	}

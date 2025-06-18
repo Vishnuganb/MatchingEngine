@@ -32,10 +32,10 @@ type ExecutionReport struct {
 }
 
 type Trade struct {
-	BuyerOrderID  string `json:"buyer_order_id"`
-	SellerOrderID string `json:"seller_order_id"`
-	Quantity      uint64 `json:"quantity"`
-	Price         uint64 `json:"price"`
-	Timestamp     int64  `json:"timestamp"`
-	Instrument    string `json:"instrument"`
+	BuyerOrderID  string          `json:"buyer_order_id"`
+	SellerOrderID string          `json:"seller_order_id"`
+	Quantity      decimal.Decimal `json:"quantity"`
+	Price         decimal.Decimal `json:"price"`
+	Timestamp     int64           `json:"timestamp"`
+	Instrument    string          `json:"instrument"`
 }

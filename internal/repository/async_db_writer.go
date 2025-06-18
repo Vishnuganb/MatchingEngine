@@ -12,15 +12,17 @@ type AsyncDBWriterInterface interface {
 
 type AsyncDBWriter struct {
 	taskChannel chan DBTask
-	repo        *PostgresOrderRepository
+	orderRepo   *PostgresOrderRepository
+	tradeRepo   *PostgresTradeRepository
 	retryCount  int
 	timeout     time.Duration
 }
 
-func NewAsyncDBWriter(repo *PostgresOrderRepository, bufferSize int) *AsyncDBWriter {
+func NewAsyncDBWriter(orderRepo *PostgresOrderRepository, tradeRepo *PostgresTradeRepository, bufferSize int) *AsyncDBWriter {
 	writer := &AsyncDBWriter{
 		taskChannel: make(chan DBTask, bufferSize),
-		repo:        repo,
+		orderRepo:   orderRepo,
+		tradeRepo:   tradeRepo,
 		retryCount:  3,
 		timeout:     100 * time.Millisecond,
 	}
@@ -33,7 +35,7 @@ func (w *AsyncDBWriter) startWorkerPool(workerCount int) {
 		go func(workerID int) {
 			for task := range w.taskChannel {
 				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-				err := task.Execute(ctx, w.repo)
+				err := w.executeTask(ctx, task)
 				cancel()
 
 				if err != nil {
@@ -42,6 +44,18 @@ func (w *AsyncDBWriter) startWorkerPool(workerCount int) {
 			}
 		}(i)
 	}
+}
+
+func (w *AsyncDBWriter) executeTask(ctx context.Context, task DBTask) error {
+	// Type assertion to determine the repository type
+	if orderTask, ok := task.(SaveOrderTask); ok {
+		return orderTask.Execute(ctx, w.orderRepo)
+	} else if updateOrderTask, ok := task.(UpdateOrderTask); ok {
+		return updateOrderTask.Execute(ctx, w.orderRepo)
+	} else if tradeTask, ok := task.(SaveTradeTask); ok {
+		return tradeTask.Execute(ctx, w.tradeRepo)
+	}
+	return nil
 }
 
 func (w *AsyncDBWriter) EnqueueTask(task DBTask) {

@@ -47,10 +47,12 @@ func main() {
 	if kafkaProducer == nil {
 		log.Fatal("Failed to initialize Kafka producer")
 	}
-	repo := repository.NewPostgresOrderRepository(sqlc.New(conn))
-	asyncWriter := repository.NewAsyncDBWriter(repo, 10)
+	orderRepo := repository.NewPostgresOrderRepository(sqlc.New(conn))
+	tradeRepo := repository.NewPostgresTradeRepository(sqlc.New(conn))
+	asyncWriter := repository.NewAsyncDBWriter(orderRepo, tradeRepo, 10)
 	orderService := service.NewOrderService(asyncWriter)
-	requestHandler := handler.NewOrderRequestHandler(orderService, kafkaProducer)
+	tradeService := service.NewTradeService(asyncWriter)
+	requestHandler := handler.NewOrderRequestHandler(orderService, tradeService, kafkaProducer)
 
 	consumerOpts := rmq.ConsumerOpts{
 		RabbitMQURL: config.RmqHost,
