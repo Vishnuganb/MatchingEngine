@@ -53,6 +53,11 @@ make up
   make migrateup
 ```
 
+### 4. Run component tests:
+  ```bash
+  make integration-test
+  ```
+
 ## Makefile Commands
 
 The `Makefile` in this project provides several commands to simplify common tasks. Below is an explanation of each command:
@@ -125,11 +130,5 @@ This project includes a `Makefile` to simplify common development tasks.
 - Run unit-tests with coverage:
   ```bash
   make unit-test
-  ```
-  
-- Run component tests:
-  ```bash
-  cd MatchingEngine/integration
-  make integration-test
   ```
 

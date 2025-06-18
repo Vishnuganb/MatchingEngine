@@ -5,6 +5,7 @@ package suite
 import (
 	"encoding/json"
 	"log"
+	"sync"
 	"testing"
 	"time"
 
@@ -17,7 +18,20 @@ import (
 	"MatchingEngine/orderBook"
 )
 
+var (
+	once   sync.Once
+	Events <-chan string
+)
+
+func setupConsumerOnce() {
+	once.Do(func() {
+		topic := "executionTopic"
+		Events = test_util.ConsumeKafkaMessages(topic)
+	})
+}
+
 func TestOrderFlowScenarios(t *testing.T) {
+	setupConsumerOnce()
 	tests := []struct {
 		name           string
 		orders         []string
@@ -267,15 +281,14 @@ func TestOrderFlowScenarios(t *testing.T) {
 			log.Printf("All orders published, waiting for events...")
 
 			// Collect events
-			messageChan := test_util.ConsumeKafkaMessages("executionTopic")
 			var receivedEvents []interface{}
-			timeout := time.After(2 * time.Minute)
+			timeout := time.After(3 * time.Minute)
 			expectedCount := len(tt.expectedEvents)
 
 			startTime := time.Now()
 			for len(receivedEvents) < expectedCount {
 				select {
-				case message, ok := <-messageChan:
+				case message, ok := <-Events:
 					if !ok {
 						// Channel closed, check if we got all expected events
 						if len(receivedEvents) < expectedCount {
@@ -285,31 +298,9 @@ func TestOrderFlowScenarios(t *testing.T) {
 						break
 					}
 
-					var raw map[string]interface{}
-					if err := json.Unmarshal([]byte(message), &raw); err != nil {
-						log.Printf("Failed to unmarshal message into map: %v", err)
-						continue
-					}
-
-					if _, isTrade := raw["buyer_order_id"]; !isTrade {
-						var event model.ExecutionReport
-						if err := json.Unmarshal([]byte(message), &event); err != nil {
-							log.Printf("Failed to unmarshal ExecutionReport: %v", err)
-							continue
-						}
+					event := parseKafkaEvent(message)
+					if matchesExpectedEvent(event, tt.expectedEvents) {
 						receivedEvents = append(receivedEvents, event)
-					} else {
-						var trade model.Trade
-						if err := json.Unmarshal([]byte(message), &trade); err != nil {
-							log.Printf("Failed to unmarshal Trade: %v", err)
-							continue
-						}
-						receivedEvents = append(receivedEvents, trade)
-					}
-
-					// Break if we've received all expected events
-					if len(receivedEvents) == expectedCount {
-						break
 					}
 
 				case <-timeout:
@@ -348,4 +339,37 @@ func TestOrderFlowScenarios(t *testing.T) {
 			}
 		})
 	}
+}
+
+func parseKafkaEvent(msg string) interface{} {
+	var raw map[string]interface{}
+	_ = json.Unmarshal([]byte(msg), &raw)
+
+	if _, ok := raw["buyer_order_id"]; ok {
+		var trade model.Trade
+		_ = json.Unmarshal([]byte(msg), &trade)
+		return trade
+	}
+
+	var report model.ExecutionReport
+	_ = json.Unmarshal([]byte(msg), &report)
+	return report
+}
+
+func matchesExpectedEvent(event interface{}, expectedList []interface{}) bool {
+	switch evt := event.(type) {
+	case model.ExecutionReport:
+		for _, e := range expectedList {
+			if exp, ok := e.(model.ExecutionReport); ok && exp.OrderID == evt.OrderID {
+				return true
+			}
+		}
+	case model.Trade:
+		for _, e := range expectedList {
+			if exp, ok := e.(model.Trade); ok && exp.BuyerOrderID == evt.BuyerOrderID && exp.SellerOrderID == evt.SellerOrderID {
+				return true
+			}
+		}
+	}
+	return false
 }

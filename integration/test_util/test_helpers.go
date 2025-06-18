@@ -2,12 +2,11 @@ package test_util
 
 import (
 	"context"
+	kafka "github.com/segmentio/kafka-go"
+	"github.com/streadway/amqp"
 	"log"
 	"os"
 	"time"
-
-	kafka "github.com/segmentio/kafka-go"
-	"github.com/streadway/amqp"
 )
 
 func SetupRabbitMQConnection() *amqp.Connection {
@@ -59,14 +58,7 @@ func ConsumeKafkaMessages(topic string) <-chan string {
 		for {
 			msg, err := reader.ReadMessage(ctx)
 			if err != nil {
-				if ctx.Err() != nil {
-					return // context canceled or deadline
-				}
-				log.Printf("Error reading message: %v", err)
-				return
-			}
-
-			if len(msg.Value) == 0 {
+				log.Printf("Kafka read error: %v", err)
 				continue
 			}
 			log.Printf("Consumer received message: %s", string(msg.Value))
