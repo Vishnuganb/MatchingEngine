@@ -18,12 +18,12 @@ func (s Side) IsValid() bool {
 }
 
 type OrderRequest struct {
-	ID        string
-	Side      Side
-	Price     decimal.Decimal
-	Qty       decimal.Decimal
+	ID         string
+	Side       Side
+	Price      decimal.Decimal
+	Qty        decimal.Decimal
 	Instrument string
-	Timestamp int64
+	Timestamp  int64
 }
 
 func (or *OrderRequest) Validate() error {

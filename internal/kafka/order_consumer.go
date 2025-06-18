@@ -27,9 +27,9 @@ type MessageHandler interface {
 
 func NewConsumer(opts ConsumerOpts, requestHandler MessageHandler) *Consumer {
 	reader := kafka.NewReader(kafka.ReaderConfig{
-		Brokers:        []string{opts.BrokerAddrs},
-		Topic:          opts.Topic,
-		GroupID:        opts.GroupID,
+		Brokers:     []string{opts.BrokerAddrs},
+		Topic:       opts.Topic,
+		GroupID:     opts.GroupID,
 		StartOffset: kafka.FirstOffset,
 	})
 

@@ -1,10 +1,12 @@
 package repository
 
 import (
+	"context"
+
+	"github.com/google/uuid"
+
 	sqlc "MatchingEngine/internal/db/sqlc"
 	"MatchingEngine/internal/model"
-	"context"
-	"github.com/google/uuid"
 )
 
 type TradeQueries interface {

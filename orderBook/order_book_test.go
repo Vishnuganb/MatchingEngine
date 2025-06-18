@@ -29,12 +29,12 @@ func TestOnNewOrder_ValidOrder(t *testing.T) {
 	book := NewOrderBook(mockNotifier)
 
 	order := OrderRequest{
-		ID:          "1",
-		Price:       decimal.NewFromInt(100),
-		Qty:    decimal.NewFromInt(10),
-		Instrument:  "BTC/USDT",
-		Timestamp:   time.Now().UnixNano(),
-		Side:        Buy,
+		ID:         "1",
+		Price:      decimal.NewFromInt(100),
+		Qty:        decimal.NewFromInt(10),
+		Instrument: "BTC/USDT",
+		Timestamp:  time.Now().UnixNano(),
+		Side:       Buy,
 	}
 
 	book.OnNewOrder(order)
@@ -50,11 +50,11 @@ func TestOnNewOrder_InvalidOrder(t *testing.T) {
 	book := NewOrderBook(mockNotifier)
 
 	order := OrderRequest{
-		ID:          "2",
-		Price:       decimal.NewFromInt(-100), // Invalid price
-		Qty:    decimal.NewFromInt(10),
-		Instrument:  "BTC/USDT",
-		Timestamp:   time.Now().UnixNano(),
+		ID:         "2",
+		Price:      decimal.NewFromInt(-100), // Invalid price
+		Qty:        decimal.NewFromInt(10),
+		Instrument: "BTC/USDT",
+		Timestamp:  time.Now().UnixNano(),
 		Side:       Buy,
 	}
 
@@ -69,11 +69,11 @@ func TestCancelOrder_ExistingOrder(t *testing.T) {
 	book := NewOrderBook(mockNotifier)
 
 	order := OrderRequest{
-		ID:          "1",
-		Price:       decimal.NewFromInt(100),
-		Qty:    decimal.NewFromInt(10),
-		Instrument:  "BTC/USDT",
-		Timestamp:   time.Now().UnixNano(),
+		ID:         "1",
+		Price:      decimal.NewFromInt(100),
+		Qty:        decimal.NewFromInt(10),
+		Instrument: "BTC/USDT",
+		Timestamp:  time.Now().UnixNano(),
 		Side:       Buy,
 	}
 

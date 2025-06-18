@@ -27,6 +27,14 @@ func (m *MockOrderService) UpdateOrderAsync(orderID, orderStatus string, leavesQ
 	m.Called(orderID, orderStatus, leavesQty, cumQty, price)
 }
 
+type MockTradeService struct {
+	mock.Mock
+}
+
+func (m *MockTradeService) SaveTradeAsync(trade model.Trade) {
+	m.Called(trade)
+}
+
 type mockAcknowledger struct{}
 
 func (m *mockAcknowledger) Ack(uint64, bool) error {
@@ -49,8 +57,9 @@ func (m *MockTradeNotifier) NotifyEventAndTrade(string, json.RawMessage) error {
 
 func TestHandleOrderMessage_ValidOrder(t *testing.T) {
 	mockService := new(MockOrderService)
+	mockTradeService := new(MockTradeService)
 	mockNotifier := new(MockTradeNotifier)
-	handler := NewOrderRequestHandler(mockService, mockNotifier)
+	handler := NewOrderRequestHandler(mockService, mockTradeService, mockNotifier)
 
 	orderReq := rmq.OrderRequest{
 		RequestType: rmq.ReqTypeNew,
@@ -78,8 +87,9 @@ func TestHandleOrderMessage_ValidOrder(t *testing.T) {
 
 func TestHandleOrderMessage_InvalidJSON(t *testing.T) {
 	mockService := new(MockOrderService)
+	mockTradeService := new(MockTradeService)
 	mockNotifier := new(MockTradeNotifier)
-	handler := NewOrderRequestHandler(mockService, mockNotifier)
+	handler := NewOrderRequestHandler(mockService, mockTradeService, mockNotifier)
 
 	msg := amqp.Delivery{
 		Body:         []byte("invalid json"),
@@ -95,8 +105,9 @@ func TestHandleOrderMessage_InvalidJSON(t *testing.T) {
 
 func TestStartOrderWorkerForInstrument(t *testing.T) {
 	mockService := new(MockOrderService)
+	mockTradeService := new(MockTradeService)
 	mockNotifier := new(MockTradeNotifier)
-	handler := NewOrderRequestHandler(mockService, mockNotifier)
+	handler := NewOrderRequestHandler(mockService, mockTradeService, mockNotifier)
 
 	instrument := "BTC/USDT"
 	orderReq := rmq.OrderRequest{
@@ -131,8 +142,9 @@ func TestStartOrderWorkerForInstrument(t *testing.T) {
 
 func TestHandleExecutionReport(t *testing.T) {
 	mockService := new(MockOrderService)
+	mockTradeService := new(MockTradeService)
 	mockNotifier := new(MockTradeNotifier)
-	handler := NewOrderRequestHandler(mockService, mockNotifier)
+	handler := NewOrderRequestHandler(mockService, mockTradeService, mockNotifier)
 
 	event := model.ExecutionReport{
 		OrderID:     "1",

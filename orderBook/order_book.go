@@ -40,7 +40,8 @@ func NewOrderBook(tradeNotifier TradeNotifier) *OrderBook {
 func (book *OrderBook) OnNewOrder(or OrderRequest) {
 	order := convertOrderRequestToOrder(or)
 	order.ExecutionNotifier = book.TradeNotifier
-	err := or.Validate(); if err != nil {
+	err := or.Validate()
+	if err != nil {
 		log.Printf("Rejecting invalid order: %+s", err)
 		NewRejectedOrderEvent(&order)
 		return

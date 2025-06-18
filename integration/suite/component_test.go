@@ -67,7 +67,7 @@ func TestOrderFlowScenarios(t *testing.T) {
 					SellerOrderID: "2",
 					Quantity:      10,
 					Price:         100,
-					Instrument:  "BTC/USDT",
+					Instrument:    "BTC/USDT",
 				},
 				model.ExecutionReport{
 					OrderID:     "2",
@@ -117,7 +117,7 @@ func TestOrderFlowScenarios(t *testing.T) {
 					SellerOrderID: "4",
 					Quantity:      5,
 					Price:         100,
-					Instrument:  "BTC/USDT",
+					Instrument:    "BTC/USDT",
 				},
 				model.ExecutionReport{
 					OrderID:     "4",
@@ -146,7 +146,7 @@ func TestOrderFlowScenarios(t *testing.T) {
 					SellerOrderID: "5",
 					Quantity:      5,
 					Price:         100,
-					Instrument:  "BTC/USDT",
+					Instrument:    "BTC/USDT",
 				},
 				model.ExecutionReport{
 					OrderID:     "5",
@@ -195,7 +195,7 @@ func TestOrderFlowScenarios(t *testing.T) {
 					SellerOrderID: "6",
 					Quantity:      5,
 					Price:         100,
-					Instrument:  "BTC/USDT",
+					Instrument:    "BTC/USDT",
 				},
 				model.ExecutionReport{
 					OrderID:     "7",

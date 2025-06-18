@@ -11,6 +11,7 @@ import (
 
 	"MatchingEngine/internal/model"
 	"MatchingEngine/internal/rmq"
+	"MatchingEngine/internal/util"
 	"MatchingEngine/orderBook"
 )
 
@@ -36,7 +37,7 @@ type OrderRequestHandler struct {
 	orderBooks    map[string]OrderBook
 	orderChannels map[string]chan rmq.OrderRequest
 	OrderService  OrderService
-	TradeService TradeService
+	TradeService  TradeService
 	TradeNotifier TradeNotifier
 	mu            sync.Mutex
 }
@@ -58,14 +59,7 @@ func (h *OrderRequestHandler) HandleOrderMessage(msg amqp.Delivery) {
 		return
 	}
 	// Get or create the order channel for the instrument
-	h.mu.Lock()
-	orderChannel, exists := h.orderChannels[req.Order.Instrument]
-	if !exists {
-		orderChannel = make(chan rmq.OrderRequest, 100)
-		h.orderChannels[req.Order.Instrument] = orderChannel
-		go h.startOrderWorkerForInstrument(req.Order.Instrument, orderChannel)
-	}
-	h.mu.Unlock()
+	orderChannel := h.getOrderChannel(req.Order.Instrument)
 
 	// Send the order to the instrument-specific channel
 	select {
@@ -79,6 +73,20 @@ func (h *OrderRequestHandler) HandleOrderMessage(msg amqp.Delivery) {
 	if err := msg.Ack(false); err != nil {
 		log.Printf("Failed to acknowledge message: %v", err)
 	}
+}
+
+func (h *OrderRequestHandler) getOrderChannel(instrument string) chan rmq.OrderRequest {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
+	orderChannel, exists := h.orderChannels[instrument]
+	if !exists {
+		orderChannel = make(chan rmq.OrderRequest, 100)
+		h.orderChannels[instrument] = orderChannel
+		go h.startOrderWorkerForInstrument(instrument, orderChannel)
+	}
+
+	return orderChannel
 }
 
 func (h *OrderRequestHandler) startOrderWorkerForInstrument(instrument string, orderChannel chan rmq.OrderRequest) {
@@ -120,12 +128,11 @@ func (h *OrderRequestHandler) HandleExecutionReport(message []byte) error {
 		return nil // Skip processing this message
 	}
 
+	// Handle Trade
 	if _, ok := raw["buyer_order_id"]; ok {
-		// Handle Trade
 		var trade model.Trade
-		if err := json.Unmarshal(message, &trade); err != nil {
-			log.Printf("Error unmarshaling Trade: %v, message: %s", err, string(message))
-			return nil // Skip processing this message
+		if err := h.unmarshalAndLogError(message, &trade); err != nil {
+			return err
 		}
 		log.Printf("Received trade: %+v", trade)
 		h.TradeService.SaveTradeAsync(trade)
@@ -134,16 +141,31 @@ func (h *OrderRequestHandler) HandleExecutionReport(message []byte) error {
 
 	// Handle ExecutionReport
 	var execReport model.ExecutionReport
-	if err := json.Unmarshal(message, &execReport); err != nil {
-		log.Printf("Error unmarshaling ExecutionReport: %v, message: %s", err, string(message))
-		return nil // Skip processing this message
+	if err := h.unmarshalAndLogError(message, &execReport); err != nil {
+		return err
 	}
 	log.Printf("Received execution report: %+v", execReport)
 
-	switch execReport.ExecType {
-	case string(orderBook.ExecTypeNew), string(orderBook.ExecTypePendingNew):
+	return h.processExecutionReport(execReport)
+}
+
+func (h *OrderRequestHandler) unmarshalAndLogError(message []byte, v interface{}) error {
+	if err := json.Unmarshal(message, v); err != nil {
+		log.Printf("Error unmarshaling message: %v, message: %s", err, string(message))
+		return fmt.Errorf("invalid message format: %w", err)
+	}
+	return nil
+}
+
+func (h *OrderRequestHandler) processExecutionReport(execReport model.ExecutionReport) error {
+	action, exists := util.ExecTypeActions[execReport.ExecType]
+	if !exists {
+		return fmt.Errorf("unsupported ExecType: %s", execReport.ExecType)
+	}
+	switch action {
+	case "SaveOrder":
 		h.OrderService.SaveOrderAsync(convertEventToOrder(execReport))
-	case string(orderBook.ExecTypeFill), string(orderBook.ExecTypeCanceled), string(orderBook.ExecTypeRejected):
+	case "UpdateOrder":
 		h.OrderService.UpdateOrderAsync(
 			execReport.OrderID,
 			execReport.OrderStatus,

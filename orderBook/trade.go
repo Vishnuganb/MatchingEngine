@@ -2,6 +2,7 @@ package orderBook
 
 import (
 	"encoding/json"
+
 	"github.com/shopspring/decimal"
 )
 
