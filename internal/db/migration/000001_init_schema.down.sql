@@ -1,2 +1,2 @@
-DROP TABLE active_orders CASCADE;
+DROP TABLE executions CASCADE;
 DROP TABLE trades CASCADE;

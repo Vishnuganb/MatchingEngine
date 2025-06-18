@@ -8,8 +8,9 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-type ActiveOrder struct {
+type Execution struct {
 	ID          string         `json:"id"`
+	OrderID     string         `json:"order_id"`
 	Side        string         `json:"side"`
 	OrderQty    pgtype.Numeric `json:"order_qty"`
 	LeavesQty   pgtype.Numeric `json:"leaves_qty"`

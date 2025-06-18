@@ -1,9 +1,10 @@
 CREATE
 EXTENSION IF NOT EXISTS "uuid-ossp";
 
-CREATE TABLE active_orders
+CREATE TABLE executions
 (
     id           text    NOT NULL,
+    order_id     text    NOT NULL,
     side         text    NOT NULL,
     order_qty    numeric NOT NULL,
     leaves_qty   numeric NOT NULL,

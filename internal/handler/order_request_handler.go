@@ -6,18 +6,15 @@ import (
 	"log"
 	"sync"
 
-	"github.com/shopspring/decimal"
 	"github.com/streadway/amqp"
 
 	"MatchingEngine/internal/model"
 	"MatchingEngine/internal/rmq"
-	"MatchingEngine/internal/util"
 	"MatchingEngine/orderBook"
 )
 
-type OrderService interface {
-	SaveOrderAsync(order model.Order)
-	UpdateOrderAsync(orderID, orderStatus string, leavesQty, cumQty, price decimal.Decimal)
+type ExecutionService interface {
+	SaveExecutionAsync(order model.ExecutionReport)
 }
 
 type TradeService interface {
@@ -36,17 +33,17 @@ type TradeNotifier interface {
 type OrderRequestHandler struct {
 	orderBooks    map[string]OrderBook
 	orderChannels map[string]chan rmq.OrderRequest
-	OrderService  OrderService
+	ExecutionService  ExecutionService
 	TradeService  TradeService
 	TradeNotifier TradeNotifier
 	mu            sync.Mutex
 }
 
-func NewOrderRequestHandler(orderService OrderService, tradeService TradeService, tradeNotifier TradeNotifier) *OrderRequestHandler {
+func NewOrderRequestHandler(executionService ExecutionService, tradeService TradeService, tradeNotifier TradeNotifier) *OrderRequestHandler {
 	return &OrderRequestHandler{
 		orderBooks:    make(map[string]OrderBook),
 		orderChannels: make(map[string]chan rmq.OrderRequest),
-		OrderService:  orderService,
+		ExecutionService:  executionService,
 		TradeService:  tradeService,
 		TradeNotifier: tradeNotifier,
 	}
@@ -145,8 +142,10 @@ func (h *OrderRequestHandler) HandleExecutionReport(message []byte) error {
 		return err
 	}
 	log.Printf("Received execution report: %+v", execReport)
+	
+	h.ExecutionService.SaveExecutionAsync(execReport)
 
-	return h.processExecutionReport(execReport)
+	return nil
 }
 
 func (h *OrderRequestHandler) unmarshalAndLogError(message []byte, v interface{}) error {
@@ -154,29 +153,6 @@ func (h *OrderRequestHandler) unmarshalAndLogError(message []byte, v interface{}
 		log.Printf("Error unmarshaling message: %v, message: %s", err, string(message))
 		return fmt.Errorf("invalid message format: %w", err)
 	}
-	return nil
-}
-
-func (h *OrderRequestHandler) processExecutionReport(execReport model.ExecutionReport) error {
-	action, exists := util.ExecTypeActions[execReport.ExecType]
-	if !exists {
-		return fmt.Errorf("unsupported ExecType: %s", execReport.ExecType)
-	}
-	switch action {
-	case "SaveOrder":
-		h.OrderService.SaveOrderAsync(convertEventToOrder(execReport))
-	case "UpdateOrder":
-		h.OrderService.UpdateOrderAsync(
-			execReport.OrderID,
-			execReport.OrderStatus,
-			execReport.LeavesQty,
-			execReport.CumQty,
-			execReport.Price,
-		)
-	default:
-		return fmt.Errorf("unknown execution type: %s", execReport.ExecType)
-	}
-
 	return nil
 }
 

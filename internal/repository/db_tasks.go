@@ -4,8 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/shopspring/decimal"
-
 	"MatchingEngine/internal/model"
 )
 
@@ -13,33 +11,16 @@ type DBTask interface {
 	Execute(ctx context.Context, repo interface{}) error
 }
 
-type SaveOrderTask struct {
-	Order model.Order
+type SaveExecutionTask struct {
+	Execution model.ExecutionReport
 }
 
-func (t SaveOrderTask) Execute(ctx context.Context, repo interface{}) error {
-	orderRepo, ok := repo.(OrderRepository)
+func (t SaveExecutionTask) Execute(ctx context.Context, repo interface{}) error {
+	execRepo, ok := repo.(ExecutionRepository)
 	if !ok {
 		return fmt.Errorf("invalid repository type")
 	}
-	_, err := orderRepo.SaveOrder(ctx, t.Order)
-	return err
-}
-
-type UpdateOrderTask struct {
-	OrderID     string
-	OrderStatus string
-	LeavesQty   decimal.Decimal
-	CumQty      decimal.Decimal
-	Price       decimal.Decimal
-}
-
-func (t UpdateOrderTask) Execute(ctx context.Context, repo interface{}) error {
-	orderRepo, ok := repo.(OrderRepository)
-	if !ok {
-		return fmt.Errorf("invalid repository type")
-	}
-	_, err := orderRepo.UpdateOrder(ctx, t.OrderID, t.OrderStatus, t.LeavesQty, t.CumQty, t.Price)
+	_, err := execRepo.SaveExecution(ctx, t.Execution)
 	return err
 }
 

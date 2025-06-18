@@ -50,9 +50,9 @@ func main() {
 	orderRepo := repository.NewPostgresOrderRepository(sqlc.New(conn))
 	tradeRepo := repository.NewPostgresTradeRepository(sqlc.New(conn))
 	asyncWriter := repository.NewAsyncDBWriter(orderRepo, tradeRepo, 10)
-	orderService := service.NewOrderService(asyncWriter)
+	execService := service.NewExecutionService(asyncWriter)
 	tradeService := service.NewTradeService(asyncWriter)
-	requestHandler := handler.NewOrderRequestHandler(orderService, tradeService, kafkaProducer)
+	requestHandler := handler.NewOrderRequestHandler(execService, tradeService, kafkaProducer)
 
 	consumerOpts := rmq.ConsumerOpts{
 		RabbitMQURL: config.RmqHost,
