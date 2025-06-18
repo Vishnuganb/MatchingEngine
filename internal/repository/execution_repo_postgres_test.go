@@ -24,13 +24,12 @@ func (m *MockQueries) CreateExecution(ctx context.Context, params sqlc.CreateExe
 	return args.Get(0).(sqlc.Execution), args.Error(1)
 }
 
-
-func TestSaveOrder(t *testing.T) {
+func TestSaveExecution(t *testing.T) {
 	mockQueries := new(MockQueries)
-	repo := NewPostgresOrderRepository(mockQueries)
+	repo := NewPostgresExecutionRepository(mockQueries)
 
 	execReport := model.ExecutionReport{
-		OrderID:          "1",
+		OrderID:     "1",
 		Instrument:  "BTC/USDT",
 		Price:       decimal.NewFromInt(100),
 		OrderQty:    decimal.NewFromInt(10),
@@ -41,8 +40,8 @@ func TestSaveOrder(t *testing.T) {
 		IsBid:       true,
 	}
 
-	mockQueries.On("SaveExecution", mock.Anything, mock.Anything).Return(sqlc.Execution{
-		OrderID:          execReport.OrderID,
+	mockQueries.On("CreateExecution", mock.Anything, mock.Anything).Return(sqlc.Execution{
+		OrderID:     execReport.OrderID,
 		Instrument:  execReport.Instrument,
 		Price:       pgtypeNumeric(execReport.Price),
 		OrderQty:    pgtypeNumeric(execReport.OrderQty),

@@ -21,7 +21,7 @@ type PostgresExecutionRepository struct {
 	queries OrderQueries
 }
 
-func NewPostgresOrderRepository(queries OrderQueries) *PostgresExecutionRepository {
+func NewPostgresExecutionRepository(queries OrderQueries) *PostgresExecutionRepository {
 	return &PostgresExecutionRepository{queries: queries}
 }
 

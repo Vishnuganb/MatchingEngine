@@ -5,7 +5,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/shopspring/decimal"
 	"github.com/streadway/amqp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -15,16 +14,12 @@ import (
 	"MatchingEngine/orderBook"
 )
 
-type MockOrderService struct {
+type MockExecutionService struct {
 	mock.Mock
 }
 
-func (m *MockOrderService) SaveOrderAsync(order model.Order) {
+func (m *MockExecutionService) SaveExecutionAsync(order model.ExecutionReport) {
 	m.Called(order)
-}
-
-func (m *MockOrderService) UpdateOrderAsync(orderID, orderStatus string, leavesQty, cumQty, price decimal.Decimal) {
-	m.Called(orderID, orderStatus, leavesQty, cumQty, price)
 }
 
 type MockTradeService struct {
@@ -56,7 +51,7 @@ func (m *MockTradeNotifier) NotifyEventAndTrade(string, json.RawMessage) error {
 }
 
 func TestHandleOrderMessage_ValidOrder(t *testing.T) {
-	mockService := new(MockOrderService)
+	mockService := new(MockExecutionService)
 	mockTradeService := new(MockTradeService)
 	mockNotifier := new(MockTradeNotifier)
 	handler := NewOrderRequestHandler(mockService, mockTradeService, mockNotifier)
@@ -86,7 +81,7 @@ func TestHandleOrderMessage_ValidOrder(t *testing.T) {
 }
 
 func TestHandleOrderMessage_InvalidJSON(t *testing.T) {
-	mockService := new(MockOrderService)
+	mockService := new(MockExecutionService)
 	mockTradeService := new(MockTradeService)
 	mockNotifier := new(MockTradeNotifier)
 	handler := NewOrderRequestHandler(mockService, mockTradeService, mockNotifier)
@@ -104,7 +99,7 @@ func TestHandleOrderMessage_InvalidJSON(t *testing.T) {
 }
 
 func TestStartOrderWorkerForInstrument(t *testing.T) {
-	mockService := new(MockOrderService)
+	mockService := new(MockExecutionService)
 	mockTradeService := new(MockTradeService)
 	mockNotifier := new(MockTradeNotifier)
 	handler := NewOrderRequestHandler(mockService, mockTradeService, mockNotifier)
@@ -138,31 +133,4 @@ func TestStartOrderWorkerForInstrument(t *testing.T) {
 
 	assert.True(t, exists)
 	assert.NotNil(t, book)
-}
-
-func TestHandleExecutionReport(t *testing.T) {
-	mockService := new(MockOrderService)
-	mockTradeService := new(MockTradeService)
-	mockNotifier := new(MockTradeNotifier)
-	handler := NewOrderRequestHandler(mockService, mockTradeService, mockNotifier)
-
-	event := model.ExecutionReport{
-		OrderID:     "1",
-		Instrument:  "BTC/USDT",
-		Price:       decimal.NewFromInt(100),
-		OrderQty:    decimal.NewFromInt(10),
-		LeavesQty:   decimal.NewFromInt(5),
-		CumQty:      decimal.NewFromInt(5),
-		IsBid:       true,
-		OrderStatus: string(orderBook.OrderStatusFill),
-		ExecType:    string(orderBook.ExecTypeFill),
-	}
-
-	eventJSON, _ := json.Marshal(event)
-
-	mockService.On("UpdateOrderAsync", event.OrderID, event.OrderStatus, event.LeavesQty, event.CumQty, event.Price).Return()
-
-	err := handler.HandleExecutionReport(eventJSON)
-	assert.NoError(t, err)
-	mockService.AssertExpectations(t)
 }
