@@ -110,6 +110,7 @@ func (book *OrderBook) publishTrade(order, match *Order, qty decimal.Decimal) {
 		Quantity:      qty.BigInt().Uint64(),
 		Price:         price.BigInt().Uint64(),
 		Timestamp:     order.Timestamp,
+		Instrument:    order.Instrument,
 	}
 
 	if book.TradeNotifier != nil {

@@ -37,4 +37,5 @@ type Trade struct {
 	Quantity      uint64 `json:"quantity"`
 	Price         uint64 `json:"price"`
 	Timestamp     int64  `json:"timestamp"`
+	Instrument    string `json:"instrument"`
 }

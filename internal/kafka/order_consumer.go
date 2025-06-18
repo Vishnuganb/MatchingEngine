@@ -30,9 +30,7 @@ func NewConsumer(opts ConsumerOpts, requestHandler MessageHandler) *Consumer {
 		Brokers:        []string{opts.BrokerAddrs},
 		Topic:          opts.Topic,
 		GroupID:        opts.GroupID,
-		ReadBackoffMin: time.Millisecond * 100,
-		ReadBackoffMax: time.Second * 1,
-		MaxWait:        time.Second * 1,
+		StartOffset: kafka.FirstOffset,
 	})
 
 	return &Consumer{
@@ -85,7 +83,7 @@ func (c *Consumer) collectMessages(ctx context.Context) {
 }
 
 func (c *Consumer) processBatchPeriodically(ctx context.Context) {
-	ticker := time.NewTicker(5 * time.Minute)
+	ticker := time.NewTicker(3 * time.Minute)
 	defer ticker.Stop()
 
 	for {

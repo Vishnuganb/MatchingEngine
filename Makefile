@@ -7,4 +7,7 @@ import-reviser:
 lint:
 	golangci-lint run --timeout 15m
 
-.PHONY: unit-test import-reviser lint
+sqlc:
+	sqlc generate
+
+.PHONY: unit-test import-reviser lint sqlc

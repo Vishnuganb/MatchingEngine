@@ -19,3 +19,12 @@ type ActiveOrder struct {
 	CumQty      pgtype.Numeric `json:"cum_qty"`
 	OrderStatus string         `json:"order_status"`
 }
+
+type Trade struct {
+	ID            string         `json:"id"`
+	BuyerOrderID  string         `json:"buyer_order_id"`
+	SellerOrderID string         `json:"seller_order_id"`
+	Qty           pgtype.Numeric `json:"qty"`
+	Price         pgtype.Numeric `json:"price"`
+	Instrument    string         `json:"instrument"`
+}

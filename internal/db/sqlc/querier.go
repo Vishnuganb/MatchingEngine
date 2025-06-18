@@ -10,10 +10,15 @@ import (
 
 type Querier interface {
 	CreateActiveOrder(ctx context.Context, arg CreateActiveOrderParams) (ActiveOrder, error)
+	CreateTrade(ctx context.Context, arg CreateTradeParams) (Trade, error)
 	DeleteActiveOrder(ctx context.Context, id string) (ActiveOrder, error)
+	DeleteTrade(ctx context.Context, id string) (Trade, error)
 	GetActiveOrder(ctx context.Context, id string) (ActiveOrder, error)
+	GetTrade(ctx context.Context, id string) (Trade, error)
 	ListActiveOrders(ctx context.Context) ([]ActiveOrder, error)
+	ListTrades(ctx context.Context) ([]Trade, error)
 	UpdateActiveOrder(ctx context.Context, arg UpdateActiveOrderParams) (ActiveOrder, error)
+	UpdateTrade(ctx context.Context, arg UpdateTradeParams) (Trade, error)
 }
 
 var _ Querier = (*Queries)(nil)

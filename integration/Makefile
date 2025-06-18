@@ -23,12 +23,9 @@ migrateup:
 migratedown:
 	migrate -path ../internal/db/migration -database "postgresql://postgres:secret@localhost:5433/orderManagement?sslmode=disable" -verbose down
 
-sqlc:
-	sqlc generate
-
 integration-test:
 	docker compose exec matching-engine sh -c 'until nc -z kafka 9092; do echo "waiting for kafka..."; sleep 1; done'
 	docker compose exec matching-engine sh -c 'until nc -z postgres 5432; do echo "waiting for postgres..."; sleep 1; done'
 	docker compose exec matching-engine sh -c 'go test -v -tags integration -count=1 -timeout 300s ./integration/suite/...'
 
-.PHONY: up down bash ps createdb dropdb migrateup migratedown sqlc integration-test
+.PHONY: up down bash ps createdb dropdb migrateup migratedown integration-test

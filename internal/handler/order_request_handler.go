@@ -113,6 +113,7 @@ func (h *OrderRequestHandler) HandleExecutionReport(message []byte) error {
 		log.Printf("Error unmarshaling JSON: %v, message: %s", err, string(message))
 		return nil // Skip processing this message
 	}
+	log.Printf("Received execution report: %+v", execReport)
 
 	switch execReport.ExecType {
 	case string(orderBook.ExecTypeNew), string(orderBook.ExecTypePendingNew):
