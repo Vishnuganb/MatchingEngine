@@ -28,14 +28,13 @@ func TestOnNewOrder_ValidOrder(t *testing.T) {
 	mockNotifier := &MockTradeNotifier{}
 	book := NewOrderBook(mockNotifier)
 
-	order := Order{
+	order := OrderRequest{
 		ID:          "1",
 		Price:       decimal.NewFromInt(100),
-		OrderQty:    decimal.NewFromInt(10),
+		Qty:    decimal.NewFromInt(10),
 		Instrument:  "BTC/USDT",
 		Timestamp:   time.Now().UnixNano(),
-		OrderStatus: OrderStatusPendingNew,
-		IsBid:       true,
+		Side:        Buy,
 	}
 
 	book.OnNewOrder(order)
@@ -50,14 +49,13 @@ func TestOnNewOrder_InvalidOrder(t *testing.T) {
 	mockNotifier := &MockTradeNotifier{}
 	book := NewOrderBook(mockNotifier)
 
-	order := Order{
+	order := OrderRequest{
 		ID:          "2",
 		Price:       decimal.NewFromInt(-100), // Invalid price
-		OrderQty:    decimal.NewFromInt(10),
+		Qty:    decimal.NewFromInt(10),
 		Instrument:  "BTC/USDT",
 		Timestamp:   time.Now().UnixNano(),
-		OrderStatus: OrderStatusPendingNew,
-		IsBid:       true,
+		Side:       Buy,
 	}
 
 	book.OnNewOrder(order)
@@ -70,14 +68,13 @@ func TestCancelOrder_ExistingOrder(t *testing.T) {
 	mockNotifier := &MockTradeNotifier{}
 	book := NewOrderBook(mockNotifier)
 
-	order := Order{
+	order := OrderRequest{
 		ID:          "1",
 		Price:       decimal.NewFromInt(100),
-		OrderQty:    decimal.NewFromInt(10),
+		Qty:    decimal.NewFromInt(10),
 		Instrument:  "BTC/USDT",
 		Timestamp:   time.Now().UnixNano(),
-		OrderStatus: OrderStatusPendingNew,
-		IsBid:       true,
+		Side:       Buy,
 	}
 
 	book.OnNewOrder(order)

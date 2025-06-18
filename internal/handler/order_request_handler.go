@@ -20,7 +20,7 @@ type OrderService interface {
 }
 
 type OrderBook interface {
-	OnNewOrder(order orderBook.Order)
+	OnNewOrder(order orderBook.OrderRequest)
 	CancelOrder(orderID string)
 }
 
