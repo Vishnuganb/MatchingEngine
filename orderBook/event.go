@@ -48,15 +48,17 @@ func newFillEvent(order *Order, price, qty decimal.Decimal, isBid bool) {
 	}
 	e := newBaseEvent(order, typ)
 	e.Price = price
-	e.LeavesQty = qty
+	e.LeavesQty = order.LeavesQty
 	e.OrderStatus = orderStatus
-	e.CumQty = order.CumQty
+	order.CumQty = order.CumQty.Add(qty)
+	e.CumQty = qty
 	order.OrderStatus = orderStatus
+	e.IsBid = isBid
 	order.publishExecutionReport(e)
 }
 
 func NewFillOrderEvent(order, matchOrder *Order, qty decimal.Decimal) {
-	newFillEvent(order, order.Price, qty, order.IsBid)
+	newFillEvent(order, matchOrder.Price, qty, order.IsBid)
 	newFillEvent(matchOrder, matchOrder.Price, qty, matchOrder.IsBid)
 }
 
