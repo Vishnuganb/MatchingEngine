@@ -66,6 +66,7 @@ func NewCanceledOrderEvent(order *Order) {
 	log.Printf("Creating canceled event for order: %s", order.ID)
 	e := newBaseEvent(order, ExecTypeCanceled)
 	e.LeavesQty = decimal.Zero
+	e.CumQty = order.CumQty
 	e.OrderStatus = OrderStatusCanceled
 	order.OrderStatus = OrderStatusCanceled
 	order.publishExecutionReport(e)
@@ -75,6 +76,9 @@ func NewRejectedOrderEvent(order *Order) {
 	log.Printf("Creating Rejected event for order: %s", order.ID)
 	e := newBaseEvent(order, ExecTypeRejected)
 	e.LeavesQty = decimal.Zero
+	order.LeavesQty = decimal.Zero
+	e.CumQty = decimal.Zero
+	order.CumQty = decimal.Zero
 	e.OrderStatus = OrderStatusRejected
 	order.OrderStatus = OrderStatusRejected
 	order.publishExecutionReport(e)

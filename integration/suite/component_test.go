@@ -217,6 +217,7 @@ func TestOrderFlowScenarios(t *testing.T) {
 					OrderID:     "8",
 					Instrument:  "BTC/USDT",
 					LeavesQty:   decimal.NewFromInt(10),
+					CumQty: decimal.NewFromInt(0),
 					IsBid:       false,
 					Price:       decimal.NewFromInt(100),
 					OrderStatus: string(orderBook.OrderStatusNew),
@@ -242,7 +243,8 @@ func TestOrderFlowScenarios(t *testing.T) {
 				model.ExecutionReport{
 					OrderID:     "9",
 					Instrument:  "BTC/USDT",
-					LeavesQty:   decimal.NewFromInt(10),
+					LeavesQty:   decimal.NewFromInt(0),
+					CumQty:      decimal.NewFromInt(0),
 					IsBid:       false,
 					Price:       decimal.NewFromInt(-100),
 					OrderStatus: string(orderBook.OrderStatusRejected),
