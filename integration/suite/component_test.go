@@ -65,8 +65,8 @@ func TestOrderFlowScenarios(t *testing.T) {
 				model.Trade{
 					BuyerOrderID:  "1",
 					SellerOrderID: "2",
-					Quantity:      10,
-					Price:         100,
+					Quantity:      decimal.NewFromInt(10),
+					Price:         decimal.NewFromInt(100),
 					Instrument:    "BTC/USDT",
 				},
 				model.ExecutionReport{
@@ -115,8 +115,8 @@ func TestOrderFlowScenarios(t *testing.T) {
 				model.Trade{
 					BuyerOrderID:  "3",
 					SellerOrderID: "4",
-					Quantity:      5,
-					Price:         100,
+					Quantity:      decimal.NewFromInt(5),
+					Price:         decimal.NewFromInt(100),
 					Instrument:    "BTC/USDT",
 				},
 				model.ExecutionReport{
@@ -144,8 +144,8 @@ func TestOrderFlowScenarios(t *testing.T) {
 				model.Trade{
 					BuyerOrderID:  "3",
 					SellerOrderID: "5",
-					Quantity:      5,
-					Price:         100,
+					Quantity:      decimal.NewFromInt(5),
+					Price:         decimal.NewFromInt(100),
 					Instrument:    "BTC/USDT",
 				},
 				model.ExecutionReport{
@@ -193,8 +193,8 @@ func TestOrderFlowScenarios(t *testing.T) {
 				model.Trade{
 					BuyerOrderID:  "7",
 					SellerOrderID: "6",
-					Quantity:      5,
-					Price:         100,
+					Quantity:      decimal.NewFromInt(5),
+					Price:         decimal.NewFromInt(100),
 					Instrument:    "BTC/USDT",
 				},
 				model.ExecutionReport{
