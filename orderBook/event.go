@@ -11,11 +11,11 @@ import (
 type ExecType string
 
 const (
-	ExecTypePendingNew  ExecType = "A"
-	ExecTypeNew         ExecType = "0"
-	ExecTypeFill        ExecType = "2"
-	ExecTypeCanceled    ExecType = "4"
-	ExecTypeRejected    ExecType = "8"
+	ExecTypePendingNew ExecType = "A"
+	ExecTypeNew        ExecType = "0"
+	ExecTypeFill       ExecType = "2"
+	ExecTypeCanceled   ExecType = "4"
+	ExecTypeRejected   ExecType = "8"
 )
 
 type Event struct {
@@ -71,20 +71,13 @@ func NewCanceledOrderEvent(order *Order) {
 	order.publishExecutionReport(e)
 }
 
-func NewRejectedOrderEvent(req *OrderRequest) {
-	_ = Event{
-		ID:          uuid.NewString(),
-		OrderID:     req.ID,
-		Price:       req.Price,
-		OrderQty:    req.Qty,
-		LeavesQty:   decimal.Zero,
-		Timestamp:   time.Now().UnixNano(),
-		IsBid:       req.Side == Buy,
-		OrderStatus: OrderStatusRejected,
-		ExecType:    ExecTypeRejected,
-		CumQty:      decimal.Zero,
-	}
-	//req.publishExecutionReport(e)
+func NewRejectedOrderEvent(order *Order) {
+	log.Printf("Creating canceled event for order: %s", order.ID)
+	e := newBaseEvent(order, ExecTypeRejected)
+	e.LeavesQty = decimal.Zero
+	e.OrderStatus = OrderStatusRejected
+	order.OrderStatus = OrderStatusRejected
+	order.publishExecutionReport(e)
 }
 
 func newBaseEvent(order *Order, execType ExecType) Event {

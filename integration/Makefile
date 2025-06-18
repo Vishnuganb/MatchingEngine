@@ -1,14 +1,14 @@
-postgres:
-	docker-compose up -d postgres
+up:
+	docker compose up -d
 
-rabbitmq:
-	docker-compose up -d rabbitmq
+down:
+	docker compose down
 
-kafka:
-	docker-compose up -d kafka zookeeper
+bash:
+	docker compose exec matching-engine bash
 
-Run-matching-engine:
-	docker-compose up -d matching-engine
+ps:
+	docker compose ps
 
 createdb:
 	docker exec -it matchingEnginePostgres createdb --username=postgres --owner=postgres orderManagement
@@ -29,6 +29,6 @@ sqlc:
 integration-test:
 	docker compose exec matching-engine sh -c 'until nc -z kafka 9092; do echo "waiting for kafka..."; sleep 1; done'
 	docker compose exec matching-engine sh -c 'until nc -z postgres 5432; do echo "waiting for postgres..."; sleep 1; done'
-	docker compose exec matching-engine sh -c 'go test -v -tags integration -count=1 -timeout 300s ./integration/suite/$(TEST_FILE)'
+	docker compose exec matching-engine sh -c 'go test -v -tags integration -count=1 -timeout 300s ./integration/suite/...'
 
-.PHONY: postgres rabbitmq kafka Run-matching-engine createdb dropdb migrateup migratedown sqlc
+.PHONY: up down bash ps createdb dropdb migrateup migratedown sqlc integration-test

@@ -37,16 +37,11 @@ func NewOrderBook(tradeNotifier TradeNotifier) *OrderBook {
 	}
 }
 
-func (book *OrderBook) OnNewOrder(order Order) {
-	if !order.OrderQty.IsPositive() || order.Price.IsNegative() {
-		log.Printf("Rejecting invalid order: %+v", order)
-		NewRejectedOrderEvent(&OrderRequest{
-			ID:        order.ID,
-			Price:     order.Price,
-			Qty:       order.OrderQty,
-			Side:      ternary(order.IsBid, Buy, Sell),
-			Timestamp: order.Timestamp,
-		})
+func (book *OrderBook) OnNewOrder(or OrderRequest) {
+	order := convertOrderRequestToOrder(or)
+	err := or.Validate(); if err != nil {
+		log.Printf("Rejecting invalid order: %+s", err)
+		NewRejectedOrderEvent(&order)
 		return
 	}
 
@@ -129,4 +124,18 @@ func ternary(condition bool, a, b Side) Side {
 		return a
 	}
 	return b
+}
+
+func convertOrderRequestToOrder(or OrderRequest) Order {
+	return Order{
+		ID:          or.ID,
+		Instrument:  or.Instrument,
+		Price:       or.Price,
+		OrderQty:    or.Qty,
+		LeavesQty:   or.Qty,
+		Timestamp:   or.Timestamp,
+		IsBid:       or.Side == "buy",
+		OrderStatus: OrderStatusPendingNew,
+		CumQty:      decimal.Zero,
+	}
 }

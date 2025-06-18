@@ -29,13 +29,13 @@ func TestOnNewOrder_ValidOrder(t *testing.T) {
 	book := NewOrderBook(mockNotifier)
 
 	order := Order{
-		ID:         "1",
-		Price:      decimal.NewFromInt(100),
-		OrderQty:   decimal.NewFromInt(10),
-		Instrument: "BTC/USDT",
-		Timestamp:  time.Now().UnixNano(),
+		ID:          "1",
+		Price:       decimal.NewFromInt(100),
+		OrderQty:    decimal.NewFromInt(10),
+		Instrument:  "BTC/USDT",
+		Timestamp:   time.Now().UnixNano(),
 		OrderStatus: OrderStatusPendingNew,
-		IsBid:      true,
+		IsBid:       true,
 	}
 
 	book.OnNewOrder(order)
@@ -51,13 +51,13 @@ func TestOnNewOrder_InvalidOrder(t *testing.T) {
 	book := NewOrderBook(mockNotifier)
 
 	order := Order{
-		ID:         "2",
-		Price:      decimal.NewFromInt(-100), // Invalid price
-		OrderQty:   decimal.NewFromInt(10),
-		Instrument: "BTC/USDT",
-		Timestamp:  time.Now().UnixNano(),
+		ID:          "2",
+		Price:       decimal.NewFromInt(-100), // Invalid price
+		OrderQty:    decimal.NewFromInt(10),
+		Instrument:  "BTC/USDT",
+		Timestamp:   time.Now().UnixNano(),
 		OrderStatus: OrderStatusPendingNew,
-		IsBid:      true,
+		IsBid:       true,
 	}
 
 	book.OnNewOrder(order)
@@ -71,13 +71,13 @@ func TestCancelOrder_ExistingOrder(t *testing.T) {
 	book := NewOrderBook(mockNotifier)
 
 	order := Order{
-		ID:         "1",
-		Price:      decimal.NewFromInt(100),
-		OrderQty:   decimal.NewFromInt(10),
-		Instrument: "BTC/USDT",
-		Timestamp:  time.Now().UnixNano(),
+		ID:          "1",
+		Price:       decimal.NewFromInt(100),
+		OrderQty:    decimal.NewFromInt(10),
+		Instrument:  "BTC/USDT",
+		Timestamp:   time.Now().UnixNano(),
 		OrderStatus: OrderStatusPendingNew,
-		IsBid:      true,
+		IsBid:       true,
 	}
 
 	book.OnNewOrder(order)
@@ -103,13 +103,13 @@ func TestAddOrderToBook_BuyOrder(t *testing.T) {
 	book := NewOrderBook(mockNotifier)
 
 	order := Order{
-		ID:         "1",
-		Price:      decimal.NewFromInt(100),
-		OrderQty:   decimal.NewFromInt(10),
-		Instrument: "BTC/USDT",
-		Timestamp:  time.Now().UnixNano(),
+		ID:          "1",
+		Price:       decimal.NewFromInt(100),
+		OrderQty:    decimal.NewFromInt(10),
+		Instrument:  "BTC/USDT",
+		Timestamp:   time.Now().UnixNano(),
 		OrderStatus: OrderStatusPendingNew,
-		IsBid:      true,
+		IsBid:       true,
 	}
 
 	book.addOrderToBook(order)
@@ -125,13 +125,13 @@ func TestAddOrderToBook_SellOrder(t *testing.T) {
 	book := NewOrderBook(mockNotifier)
 
 	order := Order{
-		ID:         "2",
-		Price:      decimal.NewFromInt(200),
-		OrderQty:   decimal.NewFromInt(5),
-		Instrument: "BTC/USDT",
-		Timestamp:  time.Now().UnixNano(),
+		ID:          "2",
+		Price:       decimal.NewFromInt(200),
+		OrderQty:    decimal.NewFromInt(5),
+		Instrument:  "BTC/USDT",
+		Timestamp:   time.Now().UnixNano(),
 		OrderStatus: OrderStatusPendingNew,
-		IsBid:      false,
+		IsBid:       false,
 	}
 
 	book.addOrderToBook(order)

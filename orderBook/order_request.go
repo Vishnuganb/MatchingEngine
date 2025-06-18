@@ -22,6 +22,7 @@ type OrderRequest struct {
 	Side      Side
 	Price     decimal.Decimal
 	Qty       decimal.Decimal
+	Instrument string
 	Timestamp int64
 }
 

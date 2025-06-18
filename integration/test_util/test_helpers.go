@@ -38,9 +38,10 @@ func ConsumeKafkaMessages(topic string) <-chan string {
 	brokers := os.Getenv("KAFKA_BROKER")
 
 	reader := kafka.NewReader(kafka.ReaderConfig{
-		Brokers: []string{brokers},
-		Topic:   topic,
-		GroupID: "event_consumer_group",
+		Brokers:     []string{brokers},
+		Topic:       topic,
+		GroupID:     "event_consumer_group",
+		StartOffset: kafka.FirstOffset,
 	})
 
 	messageChan := make(chan string, 100)

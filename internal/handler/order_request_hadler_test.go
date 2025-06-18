@@ -134,11 +134,11 @@ func TestHandleExecutionReport(t *testing.T) {
 	mockNotifier := new(MockTradeNotifier)
 	handler := NewOrderRequestHandler(mockService, mockNotifier)
 
-	event := model.OrderEvent{
+	event := model.ExecutionReport{
 		OrderID:     "1",
 		Instrument:  "BTC/USDT",
 		Price:       decimal.NewFromInt(100),
-		Quantity:    decimal.NewFromInt(10),
+		OrderQty:    decimal.NewFromInt(10),
 		LeavesQty:   decimal.NewFromInt(5),
 		CumQty:      decimal.NewFromInt(5),
 		IsBid:       true,

@@ -9,16 +9,14 @@ import (
 	"MatchingEngine/orderBook"
 )
 
-func toInternalOrder(req rmq.OrderRequest) orderBook.Order {
+func toInternalOrder(req rmq.OrderRequest) orderBook.OrderRequest {
 	qty := decimal.RequireFromString(req.Order.Qty)
-	return orderBook.Order{
+	return orderBook.OrderRequest{
 		ID:          req.Order.ID,
 		Instrument:  req.Order.Instrument,
 		Timestamp:   time.Now().UnixNano(),
-		IsBid:       req.Order.Side == orderBook.Buy,
+		Side:        req.Order.Side,
 		Price:       decimal.RequireFromString(req.Order.Price),
-		OrderQty:    qty,
-		LeavesQty:   qty,
-		OrderStatus: orderBook.OrderStatusPendingNew,
+		Qty:         qty,
 	}
 }
