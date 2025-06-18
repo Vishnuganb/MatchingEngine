@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"MatchingEngine/internal/model"
 	"time"
 
 	"github.com/shopspring/decimal"
@@ -9,7 +10,7 @@ import (
 	"MatchingEngine/orderBook"
 )
 
-func toInternalOrder(req rmq.OrderRequest) orderBook.OrderRequest {
+func toInternalOrderRequest(req rmq.OrderRequest) orderBook.OrderRequest {
 	qty := decimal.RequireFromString(req.Order.Qty)
 	return orderBook.OrderRequest{
 		ID:          req.Order.ID,
@@ -18,5 +19,18 @@ func toInternalOrder(req rmq.OrderRequest) orderBook.OrderRequest {
 		Side:        req.Order.Side,
 		Price:       decimal.RequireFromString(req.Order.Price),
 		Qty:         qty,
+	}
+}
+
+func convertEventToOrder(execution model.ExecutionReport) model.Order {
+	return model.Order{
+		ID:          execution.OrderID,
+		Instrument:  execution.Instrument,
+		Price:       execution.Price,
+		OrderQty:    execution.OrderQty,
+		LeavesQty:   execution.LeavesQty,
+		CumQty:      execution.CumQty,
+		IsBid:       execution.IsBid,
+		OrderStatus: execution.OrderStatus,
 	}
 }

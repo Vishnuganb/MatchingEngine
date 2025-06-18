@@ -99,7 +99,7 @@ func (h *OrderRequestHandler) startOrderWorkerForInstrument(instrument string, o
 }
 
 func (h *OrderRequestHandler) handleNewOrder(book OrderBook, req rmq.OrderRequest) {
-	internalOrder := toInternalOrder(req)
+	internalOrder := toInternalOrderRequest(req)
 	book.OnNewOrder(internalOrder)
 }
 
@@ -108,25 +108,25 @@ func (h *OrderRequestHandler) handleCancelOrder(book OrderBook, req rmq.OrderReq
 }
 
 func (h *OrderRequestHandler) HandleExecutionReport(message []byte) error {
-	var event model.ExecutionReport
-	if err := json.Unmarshal(message, &event); err != nil {
+	var execReport model.ExecutionReport
+	if err := json.Unmarshal(message, &execReport); err != nil {
 		log.Printf("Error unmarshaling JSON: %v, message: %s", err, string(message))
 		return nil // Skip processing this message
 	}
 
-	switch event.ExecType {
+	switch execReport.ExecType {
 	case string(orderBook.ExecTypeNew), string(orderBook.ExecTypePendingNew):
-		h.OrderService.SaveOrderAsync(h.convertEventToOrder(event))
+		h.OrderService.SaveOrderAsync(convertEventToOrder(execReport))
 	case string(orderBook.ExecTypeFill), string(orderBook.ExecTypeCanceled), string(orderBook.ExecTypeRejected):
 		h.OrderService.UpdateOrderAsync(
-			event.OrderID,
-			event.OrderStatus,
-			event.LeavesQty,
-			event.CumQty,
-			event.Price,
+			execReport.OrderID,
+			execReport.OrderStatus,
+			execReport.LeavesQty,
+			execReport.CumQty,
+			execReport.Price,
 		)
 	default:
-		return fmt.Errorf("unknown execution type: %s", event.ExecType)
+		return fmt.Errorf("unknown execution type: %s", execReport.ExecType)
 	}
 
 	return nil
@@ -136,18 +136,5 @@ func (h *OrderRequestHandler) handleFailure(msg amqp.Delivery, err error) {
 	log.Printf("Message failed: %v, error: %v", string(msg.Body), err)
 	if err := msg.Nack(false, false); err != nil {
 		log.Printf("Failed to negatively acknowledge message: %v", err)
-	}
-}
-
-func (s *OrderRequestHandler) convertEventToOrder(execution model.ExecutionReport) model.Order {
-	return model.Order{
-		ID:          execution.OrderID,
-		Instrument:  execution.Instrument,
-		Price:       execution.Price,
-		OrderQty:    execution.OrderQty,
-		LeavesQty:   execution.LeavesQty,
-		CumQty:      execution.CumQty,
-		IsBid:       execution.IsBid,
-		OrderStatus: execution.OrderStatus,
 	}
 }
