@@ -11,7 +11,6 @@ import (
 type ExecType string
 
 const (
-	ExecTypePendingNew ExecType = "A"
 	ExecTypeNew        ExecType = "0"
 	ExecTypeFill       ExecType = "2"
 	ExecTypeCanceled   ExecType = "4"
