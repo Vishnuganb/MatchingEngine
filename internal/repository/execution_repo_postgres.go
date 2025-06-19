@@ -15,6 +15,7 @@ import (
 
 type OrderQueries interface {
 	CreateExecution(ctx context.Context, params sqlc.CreateExecutionParams) (sqlc.Execution, error)
+	ListExecutions(ctx context.Context) ([]sqlc.Execution, error)
 }
 
 type PostgresExecutionRepository struct {
@@ -71,6 +72,24 @@ func (r *PostgresExecutionRepository) SaveExecution(ctx context.Context, execRep
 	}
 
 	return mappedOrder, nil
+}
+
+func (r *PostgresExecutionRepository) GetAllExecutions(ctx context.Context) ([]model.ExecutionReport, error) {
+	executions, err := r.queries.ListExecutions(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("listing executions: %w", err)
+	}
+
+	var reports []model.ExecutionReport
+	for _, exec := range executions {
+		report, err := MapExecutionToModelExecution(exec)
+		if err != nil {
+			return nil, fmt.Errorf("mapping execution to model: %w", err)
+		}
+		reports = append(reports, report)
+	}
+
+	return reports, nil
 }
 
 func MapExecutionToModelExecution(execution sqlc.Execution) (model.ExecutionReport, error) {

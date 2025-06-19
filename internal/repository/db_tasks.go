@@ -24,6 +24,25 @@ func (t SaveExecutionTask) Execute(ctx context.Context, repo interface{}) error 
 	return err
 }
 
+type GetAllExecutionsTask struct{
+	Executions *[]model.ExecutionReport
+}
+
+func (t GetAllExecutionsTask) Execute(ctx context.Context, repo interface{}) error {
+	execRepo, ok := repo.(ExecutionRepository)
+	if !ok {
+		return fmt.Errorf("invalid repository type")
+	}
+
+	executions, err := execRepo.GetAllExecutions(ctx)
+	if err != nil {
+		return err
+	}
+
+	*t.Executions = executions
+	return nil
+}
+
 type SaveTradeTask struct {
 	Trade model.Trade
 }
