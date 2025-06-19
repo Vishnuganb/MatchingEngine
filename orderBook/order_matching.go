@@ -46,8 +46,8 @@ func (book *OrderBook) processOrder(order *Order) {
 
 			book.publishTrade(order, match, matchQty)
 
-			order.LeavesQty = order.LeavesQty.Sub(matchQty)
-			match.LeavesQty = match.LeavesQty.Sub(matchQty)
+			order.updateOrderQuantities(matchQty)
+			match.updateOrderQuantities(matchQty)
 
 			NewFillOrderEvent(order, match, matchQty)
 
@@ -72,6 +72,7 @@ func (book *OrderBook) processOrder(order *Order) {
 	if order.LeavesQty.IsPositive() {
 		book.addOrderToBook(*order)
 		if !orderMatched {
+			order.ResetQuantities()
 			NewOrderEvent(order)
 		}
 	}

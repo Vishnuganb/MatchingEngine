@@ -35,6 +35,20 @@ type Order struct {
 	ExecutionNotifier ExecutionNotifier
 }
 
+func (o *Order) updateOrderQuantities(qty decimal.Decimal) {
+	o.LeavesQty = o.LeavesQty.Sub(qty)
+	o.CumQty = o.CumQty.Add(qty)
+}
+
+func (o *Order) ResetQuantities() {
+	o.CumQty = decimal.Zero
+	o.LeavesQty = o.OrderQty
+}
+
+func (o *Order) SetStatus(status OrderStatus) {
+	o.OrderStatus = status
+}
+
 // In Order struct methods where you want to publish events
 func (o *Order) publishExecutionReport(e Event) {
 	if o.ExecutionNotifier == nil {
@@ -42,18 +56,7 @@ func (o *Order) publishExecutionReport(e Event) {
 		return
 	}
 
-	report := ExecutionReport{
-		ExecType:    string(e.ExecType),
-		OrderID:     e.OrderID,
-		Instrument:  e.Instrument,
-		Price:       e.Price,
-		OrderQty:    e.OrderQty,
-		LeavesQty:   e.LeavesQty,
-		CumQty:      e.CumQty,
-		IsBid:       e.IsBid,
-		Timestamp:   e.Timestamp,
-		OrderStatus: string(e.OrderStatus),
-	}
+	report := NewExecutionReportFromEvent(e)
 
 	payload, err := json.Marshal(report)
 	if err != nil {

@@ -33,9 +33,8 @@ type Event struct {
 
 func NewOrderEvent(order *Order) {
 	e := newBaseEvent(order, ExecTypeNew)
-	e.CumQty = decimal.Zero
 	e.OrderStatus = OrderStatusNew
-	order.OrderStatus = OrderStatusNew
+	order.SetStatus(OrderStatusNew)
 	order.publishExecutionReport(e)
 }
 
@@ -47,11 +46,9 @@ func newFillEvent(order *Order, price, qty decimal.Decimal, isBid bool) {
 	}
 	e := newBaseEvent(order, typ)
 	e.Price = price
-	e.LeavesQty = order.LeavesQty
 	e.OrderStatus = orderStatus
-	order.CumQty = order.CumQty.Add(qty)
 	e.CumQty = qty
-	order.OrderStatus = orderStatus
+	order.SetStatus(orderStatus)
 	e.IsBid = isBid
 	order.publishExecutionReport(e)
 }
@@ -67,7 +64,7 @@ func NewCanceledOrderEvent(order *Order) {
 	e.LeavesQty = decimal.Zero
 	e.CumQty = order.CumQty
 	e.OrderStatus = OrderStatusCanceled
-	order.OrderStatus = OrderStatusCanceled
+	order.SetStatus(OrderStatusCanceled)
 	order.publishExecutionReport(e)
 }
 
@@ -75,7 +72,7 @@ func NewCanceledRejectOrderEvent(order *Order) {
 	log.Printf("Creating canceled event for order: %s", order.ID)
 	e := newBaseEvent(order, ExecTypeCanceled)
 	e.OrderStatus = OrderStatusRejected
-	order.OrderStatus = OrderStatusRejected
+	order.SetStatus(OrderStatusRejected)
 	order.publishExecutionReport(e)
 }
 
@@ -83,11 +80,9 @@ func NewRejectedOrderEvent(order *Order) {
 	log.Printf("Creating Rejected event for order: %s", order.ID)
 	e := newBaseEvent(order, ExecTypeRejected)
 	e.LeavesQty = decimal.Zero
-	order.LeavesQty = decimal.Zero
 	e.CumQty = decimal.Zero
-	order.CumQty = decimal.Zero
 	e.OrderStatus = OrderStatusRejected
-	order.OrderStatus = OrderStatusRejected
+	order.SetStatus(OrderStatusRejected)
 	order.publishExecutionReport(e)
 }
 

@@ -16,3 +16,18 @@ type ExecutionReport struct {
 	Timestamp   int64           `json:"timestamp"`
 	OrderStatus string          `json:"order_status"`
 }
+
+func NewExecutionReportFromEvent(e Event) ExecutionReport {
+	return ExecutionReport{
+		ExecType:    string(e.ExecType),
+		OrderID:     e.OrderID,
+		Instrument:  e.Instrument,
+		Price:       e.Price,
+		OrderQty:    e.OrderQty,
+		LeavesQty:   e.LeavesQty,
+		CumQty:      e.CumQty,
+		IsBid:       e.IsBid,
+		Timestamp:   e.Timestamp,
+		OrderStatus: string(e.OrderStatus),
+	}
+}
