@@ -12,16 +12,16 @@ type AsyncDBWriterInterface interface {
 
 type AsyncDBWriter struct {
 	taskChannel chan DBTask
-	orderRepo   *PostgresExecutionRepository
+	execRepo   *PostgresExecutionRepository
 	tradeRepo   *PostgresTradeRepository
 	retryCount  int
 	timeout     time.Duration
 }
 
-func NewAsyncDBWriter(orderRepo *PostgresExecutionRepository, tradeRepo *PostgresTradeRepository, bufferSize int) *AsyncDBWriter {
+func NewAsyncDBWriter(execRepo *PostgresExecutionRepository, tradeRepo *PostgresTradeRepository, bufferSize int) *AsyncDBWriter {
 	writer := &AsyncDBWriter{
 		taskChannel: make(chan DBTask, bufferSize),
-		orderRepo:   orderRepo,
+		execRepo:   execRepo,
 		tradeRepo:   tradeRepo,
 		retryCount:  3,
 		timeout:     100 * time.Millisecond,
@@ -49,7 +49,7 @@ func (w *AsyncDBWriter) startWorkerPool(workerCount int) {
 func (w *AsyncDBWriter) executeTask(ctx context.Context, task DBTask) error {
 	// Type assertion to determine the repository type
 	if execTask, ok := task.(SaveExecutionTask); ok {
-		return execTask.Execute(ctx, w.orderRepo)
+		return execTask.Execute(ctx, w.execRepo)
 	} else if tradeTask, ok := task.(SaveTradeTask); ok {
 		return tradeTask.Execute(ctx, w.tradeRepo)
 	}
