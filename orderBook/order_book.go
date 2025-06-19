@@ -1,12 +1,13 @@
 package orderBook
 
 import (
-	"MatchingEngine/internal/util"
 	"encoding/json"
 	"log"
 
 	"github.com/emirpasic/gods/maps/treemap"
 	"github.com/shopspring/decimal"
+
+	"MatchingEngine/internal/util"
 )
 
 type TradeNotifier interface {
@@ -55,31 +56,16 @@ func (book *OrderBook) CancelOrder(orderID string) {
 	ref, ok := book.orderIndex[orderID]
 	if !ok {
 		log.Printf("Order with ID %s not found", orderID)
+		NewCanceledRejectOrderEvent(&Order{ID: orderID})
 		return
 	}
 
-	var list *OrderList
-	if ref.IsBid {
-		val, ok := book.Bids.Get(ref.PriceLevel)
-		if !ok {
-			log.Printf("Order with ID %s not found in Bids at price %s", orderID, ref.PriceLevel)
-			delete(book.orderIndex, orderID)
-			return
-		}
-		list = val.(*OrderList)
-	} else {
-		val, ok := book.Asks.Get(ref.PriceLevel)
-		if !ok {
-			log.Printf("Order with ID %s not found in Asks at price %s", orderID, ref.PriceLevel)
-			delete(book.orderIndex, orderID)
-			return
-		}
-		list = val.(*OrderList)
-	}
+	list, exists := book.getOrderListAndRemoveFromBook(ref.PriceLevel, ref.IsBid)
 
-	if list == nil || ref.Index >= len(list.Orders) || list.Orders[ref.Index].ID != orderID {
+	if !exists || list == nil || ref.Index >= len(list.Orders) || list.Orders[ref.Index].ID != orderID {
 		log.Printf("Order with ID %s inconsistent in index", orderID)
 		delete(book.orderIndex, orderID)
+		NewCanceledRejectOrderEvent(&Order{ID: orderID})
 		return
 	}
 
@@ -107,6 +93,33 @@ func (book *OrderBook) CancelOrder(orderID string) {
 
 	log.Printf("Canceled order %s from %s at price %s", orderID, ternary(ref.IsBid, "Bids", "Asks"), ref.PriceLevel)
 	NewCanceledOrderEvent(&order)
+}
+
+func (book *OrderBook) getOrderListAndRemoveFromBook(priceLevel decimal.Decimal, isBid bool) (*OrderList, bool) {
+	var list *OrderList
+	var ok bool
+
+	if isBid {
+		val, exists := book.Bids.Get(priceLevel)
+		if exists {
+			list = val.(*OrderList)
+			ok = true
+		} else {
+			log.Printf("Order with ID not found in Bids at price %s", priceLevel)
+			book.Bids.Remove(priceLevel)
+		}
+	} else {
+		val, exists := book.Asks.Get(priceLevel)
+		if exists {
+			list = val.(*OrderList)
+			ok = true
+		} else {
+			log.Printf("Order with ID not found in Asks at price %s", priceLevel)
+			book.Asks.Remove(priceLevel)
+		}
+	}
+
+	return list, ok
 }
 
 func (book *OrderBook) addOrderToBook(order Order) {

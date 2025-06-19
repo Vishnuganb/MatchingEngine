@@ -11,10 +11,10 @@ import (
 type ExecType string
 
 const (
-	ExecTypeNew        ExecType = "0"
-	ExecTypeFill       ExecType = "2"
-	ExecTypeCanceled   ExecType = "4"
-	ExecTypeRejected   ExecType = "8"
+	ExecTypeNew      ExecType = "0"
+	ExecTypeFill     ExecType = "2"
+	ExecTypeCanceled ExecType = "4"
+	ExecTypeRejected ExecType = "8"
 )
 
 type Event struct {
@@ -68,6 +68,14 @@ func NewCanceledOrderEvent(order *Order) {
 	e.CumQty = order.CumQty
 	e.OrderStatus = OrderStatusCanceled
 	order.OrderStatus = OrderStatusCanceled
+	order.publishExecutionReport(e)
+}
+
+func NewCanceledRejectOrderEvent(order *Order) {
+	log.Printf("Creating canceled event for order: %s", order.ID)
+	e := newBaseEvent(order, ExecTypeCanceled)
+	e.OrderStatus = OrderStatusRejected
+	order.OrderStatus = OrderStatusRejected
 	order.publishExecutionReport(e)
 }
 
