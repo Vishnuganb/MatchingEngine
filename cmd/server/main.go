@@ -52,7 +52,8 @@ func main() {
 	asyncWriter := repository.NewAsyncDBWriter(executionRepo, tradeRepo, 10)
 	execService := service.NewExecutionService(asyncWriter)
 	tradeService := service.NewTradeService(asyncWriter)
-	requestHandler := handler.NewOrderRequestHandler(execService, tradeService, kafkaProducer)
+	orderService := service.NewOrderService(kafkaProducer)
+	requestHandler := handler.NewOrderRequestHandler(execService, tradeService, orderService)
 
 	consumerOpts := rmq.ConsumerOpts{
 		RabbitMQURL: config.RmqHost,

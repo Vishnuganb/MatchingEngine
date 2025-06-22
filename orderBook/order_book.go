@@ -1,6 +1,7 @@
 package orderBook
 
 import (
+	"MatchingEngine/internal/model"
 	"encoding/json"
 	"log"
 
@@ -16,7 +17,7 @@ type TradeNotifier interface {
 
 type OrderRef struct {
 	PriceLevel decimal.Decimal
-	IsBid      bool
+	Side      string
 	Index      int
 }
 
@@ -31,41 +32,57 @@ type OrderList struct {
 	Orders []Order
 }
 
-func NewOrderBook(tradeNotifier TradeNotifier) *OrderBook {
-	return &OrderBook{
+func NewOrderBook(tradeNotifier TradeNotifier) (*OrderBook, chan model.OrderRequest) {
+	ob := &OrderBook{
 		Bids:          treemap.NewWith(util.DecimalDescComparator),
 		Asks:          treemap.NewWith(util.DecimalAscComparator),
 		TradeNotifier: tradeNotifier,
 		orderIndex:    make(map[string]*OrderRef),
 	}
+	orderChan := make(chan model.OrderRequest, 100)
+
+	go func() {
+		for req := range orderChan {
+			switch req.MsgType {
+			case model.MsgTypeNew:
+				ob.OnNewOrder(req.NewOrderReq)
+			case model.MsgTypeCancel:
+				ob.CancelOrder(req.CancelOrderReq.OrigClOrdID)
+			}
+		}
+	}()
+
+	return ob, orderChan
 }
 
-func (book *OrderBook) OnNewOrder(or OrderRequest) {
+func (book *OrderBook) OnNewOrder(or model.NewOrderRequest) {
 	order := convertOrderRequestToOrder(or)
 	order.ExecutionNotifier = book.TradeNotifier
-	err := or.Validate()
+	err := or.ValidateNewOrder()
 	if err != nil {
 		log.Printf("Rejecting invalid order: %+s", err)
-		NewRejectedOrderEvent(&order)
+		order.NewRejectedOrderEvent()
 		return
 	}
 	book.processOrder(&order)
 }
 
-func (book *OrderBook) CancelOrder(orderID string) {
-	ref, ok := book.orderIndex[orderID]
+func (book *OrderBook) CancelOrder(origClOrdID string) {
+	ref, ok := book.orderIndex[origClOrdID]
 	if !ok {
-		log.Printf("Order with ID %s not found", orderID)
-		NewCanceledRejectOrderEvent(&Order{ID: orderID})
+		log.Printf("Order with ID %s not found", origClOrdID)
+		order := Order{ClOrdID: origClOrdID}
+		order.NewCanceledRejectOrderEvent(&order)
 		return
 	}
 
-	list, exists := book.getOrderListAndRemoveFromBook(ref.PriceLevel, ref.IsBid)
+	list, exists := book.getOrderListAndRemoveFromBook(ref.PriceLevel, ref.Side == string(model.Buy))
 
-	if !exists || list == nil || ref.Index >= len(list.Orders) || list.Orders[ref.Index].ID != orderID {
-		log.Printf("Order with ID %s inconsistent in index", orderID)
-		delete(book.orderIndex, orderID)
-		NewCanceledRejectOrderEvent(&Order{ID: orderID})
+	if !exists || list == nil || ref.Index >= len(list.Orders) || list.Orders[ref.Index].ClOrdID != origClOrdID {
+		log.Printf("Order with ID %s inconsistent in index", origClOrdID)
+		delete(book.orderIndex, origClOrdID)
+		order := Order{ClOrdID: origClOrdID}
+		order.NewCanceledRejectOrderEvent(&order)
 		return
 	}
 
@@ -77,22 +94,22 @@ func (book *OrderBook) CancelOrder(orderID string) {
 	if ref.Index != last {
 		list.Orders[ref.Index] = list.Orders[last]
 		// Update moved order's index
-		book.orderIndex[list.Orders[ref.Index].ID].Index = ref.Index
+		book.orderIndex[list.Orders[ref.Index].ClOrdID].Index = ref.Index
 	}
 	list.Orders = list.Orders[:last]
 
 	if len(list.Orders) == 0 {
-		if ref.IsBid {
+		if ref.Side == string(model.Buy) {
 			book.Bids.Remove(ref.PriceLevel)
 		} else {
 			book.Asks.Remove(ref.PriceLevel)
 		}
 	}
 
-	delete(book.orderIndex, orderID)
+	delete(book.orderIndex, origClOrdID)
 
-	log.Printf("Canceled order %s from %s at price %s", orderID, ternary(ref.IsBid, "Bids", "Asks"), ref.PriceLevel)
-	NewCanceledOrderEvent(&order)
+	log.Printf("Canceled order %s from %s at price %s", origClOrdID, ref.Side, ref.PriceLevel)
+	order.NewCanceledOrderEvent()
 }
 
 func (book *OrderBook) getOrderListAndRemoveFromBook(priceLevel decimal.Decimal, isBid bool) (*OrderList, bool) {
@@ -126,7 +143,7 @@ func (book *OrderBook) addOrderToBook(order Order) {
 	priceKey := order.Price
 	var list *OrderList
 
-	if order.IsBid {
+	if order.Side == model.Buy {
 		if val, ok := book.Bids.Get(priceKey); !ok {
 			list = &OrderList{}
 			book.Bids.Put(priceKey, list)
@@ -143,29 +160,23 @@ func (book *OrderBook) addOrderToBook(order Order) {
 	}
 
 	list.Orders = append(list.Orders, order)
-	book.orderIndex[order.ID] = &OrderRef{
+	book.orderIndex[order.ClOrdID] = &OrderRef{
 		PriceLevel: priceKey,
-		IsBid:      order.IsBid,
+		Side:      string(order.Side),
 		Index:      len(list.Orders) - 1,
 	}
 }
 
-func ternary(condition bool, a, b Side) Side {
-	if condition {
-		return a
-	}
-	return b
-}
-
-func convertOrderRequestToOrder(or OrderRequest) Order {
+func convertOrderRequestToOrder(or model.NewOrderRequest) Order {
 	return Order{
-		ID:          or.ID,
-		Instrument:  or.Instrument,
+		ClOrdID:     or.ClOrdID,
+		Symbol:      or.Symbol,
+		Side:        or.Side,
 		Price:       or.Price,
-		OrderQty:    or.Qty,
-		LeavesQty:   or.Qty,
-		Timestamp:   or.Timestamp,
-		IsBid:       or.Side == "buy",
+		OrderQty:    or.OrderQty,
+		LeavesQty:   or.OrderQty,
+		Timestamp:   or.TransactTime,
+		Text:        or.Text,
 		OrderStatus: OrderStatusPendingNew,
 		CumQty:      decimal.Zero,
 	}

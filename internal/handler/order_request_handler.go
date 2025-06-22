@@ -3,14 +3,10 @@ package handler
 import (
 	"encoding/json"
 	"fmt"
-	"log"
-	"sync"
-
 	"github.com/streadway/amqp"
+	"log"
 
 	"MatchingEngine/internal/model"
-	"MatchingEngine/internal/rmq"
-	"MatchingEngine/orderBook"
 )
 
 type ExecutionService interface {
@@ -21,101 +17,42 @@ type TradeService interface {
 	SaveTradeAsync(trade model.Trade)
 }
 
-type OrderBook interface {
-	OnNewOrder(order orderBook.OrderRequest)
-	CancelOrder(orderID string)
-}
-
-type TradeNotifier interface {
-	NotifyEventAndTrade(orderID string, value json.RawMessage) error
+type OrderService interface {
+	ProcessOrderRequest(req model.OrderRequest) error
 }
 
 type OrderRequestHandler struct {
-	orderBooks       map[string]OrderBook
-	orderChannels    map[string]chan rmq.OrderRequest
+	OrderService     OrderService
 	ExecutionService ExecutionService
 	TradeService     TradeService
-	TradeNotifier    TradeNotifier
-	mu               sync.Mutex
 }
 
-func NewOrderRequestHandler(executionService ExecutionService, tradeService TradeService, tradeNotifier TradeNotifier) *OrderRequestHandler {
+func NewOrderRequestHandler(executionService ExecutionService, tradeService TradeService, orderService OrderService) *OrderRequestHandler {
 	return &OrderRequestHandler{
-		orderBooks:       make(map[string]OrderBook),
-		orderChannels:    make(map[string]chan rmq.OrderRequest),
+		OrderService:     orderService,
 		ExecutionService: executionService,
 		TradeService:     tradeService,
-		TradeNotifier:    tradeNotifier,
 	}
 }
 
 func (h *OrderRequestHandler) HandleOrderMessage(msg amqp.Delivery) {
-	var req rmq.OrderRequest
+	var req model.OrderRequest
 	if err := json.Unmarshal(msg.Body, &req); err != nil {
 		h.handleFailure(msg, fmt.Errorf("invalid message format: %w", err))
 		return
 	}
-	// Get or create the order channel for the instrument
-	orderChannel := h.getOrderChannel(req.Order.Instrument)
 
-	// Send the order to the instrument-specific channel
-	select {
-	case orderChannel <- req:
-		// Successfully Added to the already running worker
-	default:
-		log.Printf("Order channel for instrument %s is full, dropping order: %v", req.Order.Instrument, req)
+	err := h.OrderService.ProcessOrderRequest(req)
+	if err != nil {
+		log.Printf("Failed to process order request: %v, message: %s", err, string(msg.Body))
+		h.handleFailure(msg, err)
+		return
 	}
 
 	// Acknowledge a message after successful processing
 	if err := msg.Ack(false); err != nil {
 		log.Printf("Failed to acknowledge message: %v", err)
 	}
-}
-
-func (h *OrderRequestHandler) getOrderChannel(instrument string) chan rmq.OrderRequest {
-	h.mu.Lock()
-	defer h.mu.Unlock()
-
-	orderChannel, exists := h.orderChannels[instrument]
-	if !exists {
-		orderChannel = make(chan rmq.OrderRequest, 100)
-		h.orderChannels[instrument] = orderChannel
-		go h.startOrderWorkerForInstrument(instrument, orderChannel)
-	}
-
-	return orderChannel
-}
-
-func (h *OrderRequestHandler) startOrderWorkerForInstrument(instrument string, orderChannel chan rmq.OrderRequest) {
-	for req := range orderChannel {
-		// Get or create the order book for the instrument
-		h.mu.Lock()
-		book, exists := h.orderBooks[instrument]
-		if !exists {
-			book = orderBook.NewOrderBook(h.TradeNotifier)
-			h.orderBooks[instrument] = book
-		}
-		h.mu.Unlock()
-
-		// Process the request
-		switch req.RequestType {
-		case rmq.ReqTypeNew:
-			h.handleNewOrder(book, req)
-		case rmq.ReqTypeCancel:
-			h.handleCancelOrder(book, req)
-		default:
-			log.Printf("Unknown request type: %v", req.RequestType)
-		}
-	}
-}
-
-func (h *OrderRequestHandler) handleNewOrder(book OrderBook, req rmq.OrderRequest) {
-	internalOrder := toInternalOrderRequest(req)
-	book.OnNewOrder(internalOrder)
-}
-
-func (h *OrderRequestHandler) handleCancelOrder(book OrderBook, req rmq.OrderRequest) {
-	book.CancelOrder(req.Order.ID)
 }
 
 func (h *OrderRequestHandler) HandleExecutionReport(message []byte) error {

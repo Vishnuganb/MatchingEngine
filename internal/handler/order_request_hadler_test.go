@@ -56,7 +56,7 @@ func TestHandleOrderMessage_ValidOrder(t *testing.T) {
 	mockNotifier := new(MockTradeNotifier)
 	handler := NewOrderRequestHandler(mockService, mockTradeService, mockNotifier)
 
-	orderReq := rmq.OrderRequest{
+	orderReq := model.OrderRequest{
 		RequestType: rmq.ReqTypeNew,
 		Order: rmq.TraderOrder{
 			ID:         "1",
@@ -105,7 +105,7 @@ func TestStartOrderWorkerForInstrument(t *testing.T) {
 	handler := NewOrderRequestHandler(mockService, mockTradeService, mockNotifier)
 
 	instrument := "BTC/USDT"
-	orderReq := rmq.OrderRequest{
+	orderReq := model.OrderRequest{
 		RequestType: rmq.ReqTypeNew,
 		Order: rmq.TraderOrder{
 			ID:         "1",
@@ -116,7 +116,7 @@ func TestStartOrderWorkerForInstrument(t *testing.T) {
 		},
 	}
 
-	channel := make(chan rmq.OrderRequest, 100)
+	channel := make(chan model.OrderRequest, 100)
 	handler.mu.Lock()
 	handler.orderChannels[instrument] = channel
 	handler.mu.Unlock()

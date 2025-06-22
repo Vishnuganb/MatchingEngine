@@ -12,48 +12,63 @@ import (
 )
 
 const createExecution = `-- name: CreateExecution :one
-INSERT INTO executions (id, order_id, side, order_qty, leaves_qty, price, instrument, cum_qty, exec_type, order_status)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id, order_id, side, order_qty, leaves_qty, price, instrument, exec_type, cum_qty, order_status
+INSERT INTO executions (exec_id, order_id, cl_ord_id, exec_type, ord_status, symbol, side, order_qty, last_shares, last_px, leaves_qty, cum_qty, avg_px, transact_time, text)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15) RETURNING exec_id, order_id, cl_ord_id, exec_type, ord_status, symbol, side, order_qty, last_shares, last_px, leaves_qty, cum_qty, avg_px, transact_time, text
 `
 
 type CreateExecutionParams struct {
-	ID          string         `json:"id"`
-	OrderID     string         `json:"order_id"`
-	Side        string         `json:"side"`
-	OrderQty    pgtype.Numeric `json:"order_qty"`
-	LeavesQty   pgtype.Numeric `json:"leaves_qty"`
-	Price       pgtype.Numeric `json:"price"`
-	Instrument  string         `json:"instrument"`
-	CumQty      pgtype.Numeric `json:"cum_qty"`
-	ExecType    string         `json:"exec_type"`
-	OrderStatus string         `json:"order_status"`
+	ExecID       string         `json:"exec_id"`
+	OrderID      string         `json:"order_id"`
+	ClOrdID      pgtype.Text    `json:"cl_ord_id"`
+	ExecType     string         `json:"exec_type"`
+	OrdStatus    string         `json:"ord_status"`
+	Symbol       string         `json:"symbol"`
+	Side         string         `json:"side"`
+	OrderQty     pgtype.Numeric `json:"order_qty"`
+	LastShares   pgtype.Numeric `json:"last_shares"`
+	LastPx       pgtype.Numeric `json:"last_px"`
+	LeavesQty    pgtype.Numeric `json:"leaves_qty"`
+	CumQty       pgtype.Numeric `json:"cum_qty"`
+	AvgPx        pgtype.Numeric `json:"avg_px"`
+	TransactTime int64          `json:"transact_time"`
+	Text         pgtype.Text    `json:"text"`
 }
 
 func (q *Queries) CreateExecution(ctx context.Context, arg CreateExecutionParams) (Execution, error) {
 	row := q.db.QueryRow(ctx, createExecution,
-		arg.ID,
+		arg.ExecID,
 		arg.OrderID,
+		arg.ClOrdID,
+		arg.ExecType,
+		arg.OrdStatus,
+		arg.Symbol,
 		arg.Side,
 		arg.OrderQty,
+		arg.LastShares,
+		arg.LastPx,
 		arg.LeavesQty,
-		arg.Price,
-		arg.Instrument,
 		arg.CumQty,
-		arg.ExecType,
-		arg.OrderStatus,
+		arg.AvgPx,
+		arg.TransactTime,
+		arg.Text,
 	)
 	var i Execution
 	err := row.Scan(
-		&i.ID,
+		&i.ExecID,
 		&i.OrderID,
+		&i.ClOrdID,
+		&i.ExecType,
+		&i.OrdStatus,
+		&i.Symbol,
 		&i.Side,
 		&i.OrderQty,
+		&i.LastShares,
+		&i.LastPx,
 		&i.LeavesQty,
-		&i.Price,
-		&i.Instrument,
-		&i.ExecType,
 		&i.CumQty,
-		&i.OrderStatus,
+		&i.AvgPx,
+		&i.TransactTime,
+		&i.Text,
 	)
 	return i, err
 }
@@ -61,55 +76,65 @@ func (q *Queries) CreateExecution(ctx context.Context, arg CreateExecutionParams
 const deleteExecution = `-- name: DeleteExecution :one
 DELETE
 FROM executions
-WHERE id = $1 RETURNING id, order_id, side, order_qty, leaves_qty, price, instrument, exec_type, cum_qty, order_status
+WHERE exec_id = $1 RETURNING exec_id, order_id, cl_ord_id, exec_type, ord_status, symbol, side, order_qty, last_shares, last_px, leaves_qty, cum_qty, avg_px, transact_time, text
 `
 
-func (q *Queries) DeleteExecution(ctx context.Context, id string) (Execution, error) {
-	row := q.db.QueryRow(ctx, deleteExecution, id)
+func (q *Queries) DeleteExecution(ctx context.Context, execID string) (Execution, error) {
+	row := q.db.QueryRow(ctx, deleteExecution, execID)
 	var i Execution
 	err := row.Scan(
-		&i.ID,
+		&i.ExecID,
 		&i.OrderID,
+		&i.ClOrdID,
+		&i.ExecType,
+		&i.OrdStatus,
+		&i.Symbol,
 		&i.Side,
 		&i.OrderQty,
+		&i.LastShares,
+		&i.LastPx,
 		&i.LeavesQty,
-		&i.Price,
-		&i.Instrument,
-		&i.ExecType,
 		&i.CumQty,
-		&i.OrderStatus,
+		&i.AvgPx,
+		&i.TransactTime,
+		&i.Text,
 	)
 	return i, err
 }
 
 const getExecution = `-- name: GetExecution :one
-SELECT id, order_id, side, order_qty, leaves_qty, price, instrument, exec_type, cum_qty, order_status
+SELECT exec_id, order_id, cl_ord_id, exec_type, ord_status, symbol, side, order_qty, last_shares, last_px, leaves_qty, cum_qty, avg_px, transact_time, text
 FROM executions
-WHERE id = $1
+WHERE exec_id = $1
 `
 
-func (q *Queries) GetExecution(ctx context.Context, id string) (Execution, error) {
-	row := q.db.QueryRow(ctx, getExecution, id)
+func (q *Queries) GetExecution(ctx context.Context, execID string) (Execution, error) {
+	row := q.db.QueryRow(ctx, getExecution, execID)
 	var i Execution
 	err := row.Scan(
-		&i.ID,
+		&i.ExecID,
 		&i.OrderID,
+		&i.ClOrdID,
+		&i.ExecType,
+		&i.OrdStatus,
+		&i.Symbol,
 		&i.Side,
 		&i.OrderQty,
+		&i.LastShares,
+		&i.LastPx,
 		&i.LeavesQty,
-		&i.Price,
-		&i.Instrument,
-		&i.ExecType,
 		&i.CumQty,
-		&i.OrderStatus,
+		&i.AvgPx,
+		&i.TransactTime,
+		&i.Text,
 	)
 	return i, err
 }
 
 const listExecutions = `-- name: ListExecutions :many
-SELECT id, order_id, side, order_qty, leaves_qty, price, instrument, exec_type, cum_qty, order_status
+SELECT exec_id, order_id, cl_ord_id, exec_type, ord_status, symbol, side, order_qty, last_shares, last_px, leaves_qty, cum_qty, avg_px, transact_time, text
 FROM executions
-ORDER BY id
+ORDER BY exec_id
 `
 
 func (q *Queries) ListExecutions(ctx context.Context) ([]Execution, error) {
@@ -122,16 +147,21 @@ func (q *Queries) ListExecutions(ctx context.Context) ([]Execution, error) {
 	for rows.Next() {
 		var i Execution
 		if err := rows.Scan(
-			&i.ID,
+			&i.ExecID,
 			&i.OrderID,
+			&i.ClOrdID,
+			&i.ExecType,
+			&i.OrdStatus,
+			&i.Symbol,
 			&i.Side,
 			&i.OrderQty,
+			&i.LastShares,
+			&i.LastPx,
 			&i.LeavesQty,
-			&i.Price,
-			&i.Instrument,
-			&i.ExecType,
 			&i.CumQty,
-			&i.OrderStatus,
+			&i.AvgPx,
+			&i.TransactTime,
+			&i.Text,
 		); err != nil {
 			return nil, err
 		}
@@ -145,44 +175,73 @@ func (q *Queries) ListExecutions(ctx context.Context) ([]Execution, error) {
 
 const updateExecution = `-- name: UpdateExecution :one
 UPDATE executions
-SET exec_type         = COALESCE($2, exec_type),
-    leaves_qty   = COALESCE($3, leaves_qty),
-    cum_qty     = COALESCE($4, cum_qty),
-    price        = COALESCE($5, price),
-    order_status = COALESCE($6, order_status)
-WHERE id = $1 RETURNING id, order_id, side, order_qty, leaves_qty, price, instrument, exec_type, cum_qty, order_status
+SET cl_ord_id     = COALESCE($2, cl_ord_id),
+    exec_type     = COALESCE($3, exec_type),
+    ord_status    = COALESCE($4, ord_status),
+    symbol        = COALESCE($5, symbol),
+    side          = COALESCE($6, side),
+    order_qty     = COALESCE($7, order_qty),
+    last_shares   = COALESCE($8, last_shares),
+    last_px       = COALESCE($9, last_px),
+    leaves_qty    = COALESCE($10, leaves_qty),
+    cum_qty       = COALESCE($11, cum_qty),
+    avg_px        = COALESCE($12, avg_px),
+    transact_time = COALESCE($13, transact_time),
+    text          = COALESCE($14, text)
+WHERE exec_id = $1 RETURNING exec_id, order_id, cl_ord_id, exec_type, ord_status, symbol, side, order_qty, last_shares, last_px, leaves_qty, cum_qty, avg_px, transact_time, text
 `
 
 type UpdateExecutionParams struct {
-	ID          string         `json:"id"`
-	ExecType    pgtype.Text    `json:"exec_type"`
-	LeavesQty   pgtype.Numeric `json:"leaves_qty"`
-	CumQty      pgtype.Numeric `json:"cum_qty"`
-	Price       pgtype.Numeric `json:"price"`
-	OrderStatus pgtype.Text    `json:"order_status"`
+	ExecID       string         `json:"exec_id"`
+	ClOrdID      pgtype.Text    `json:"cl_ord_id"`
+	ExecType     string         `json:"exec_type"`
+	OrdStatus    string         `json:"ord_status"`
+	Symbol       string         `json:"symbol"`
+	Side         string         `json:"side"`
+	OrderQty     pgtype.Numeric `json:"order_qty"`
+	LastShares   pgtype.Numeric `json:"last_shares"`
+	LastPx       pgtype.Numeric `json:"last_px"`
+	LeavesQty    pgtype.Numeric `json:"leaves_qty"`
+	CumQty       pgtype.Numeric `json:"cum_qty"`
+	AvgPx        pgtype.Numeric `json:"avg_px"`
+	TransactTime int64          `json:"transact_time"`
+	Text         pgtype.Text    `json:"text"`
 }
 
 func (q *Queries) UpdateExecution(ctx context.Context, arg UpdateExecutionParams) (Execution, error) {
 	row := q.db.QueryRow(ctx, updateExecution,
-		arg.ID,
+		arg.ExecID,
+		arg.ClOrdID,
 		arg.ExecType,
+		arg.OrdStatus,
+		arg.Symbol,
+		arg.Side,
+		arg.OrderQty,
+		arg.LastShares,
+		arg.LastPx,
 		arg.LeavesQty,
 		arg.CumQty,
-		arg.Price,
-		arg.OrderStatus,
+		arg.AvgPx,
+		arg.TransactTime,
+		arg.Text,
 	)
 	var i Execution
 	err := row.Scan(
-		&i.ID,
+		&i.ExecID,
 		&i.OrderID,
+		&i.ClOrdID,
+		&i.ExecType,
+		&i.OrdStatus,
+		&i.Symbol,
 		&i.Side,
 		&i.OrderQty,
+		&i.LastShares,
+		&i.LastPx,
 		&i.LeavesQty,
-		&i.Price,
-		&i.Instrument,
-		&i.ExecType,
 		&i.CumQty,
-		&i.OrderStatus,
+		&i.AvgPx,
+		&i.TransactTime,
+		&i.Text,
 	)
 	return i, err
 }

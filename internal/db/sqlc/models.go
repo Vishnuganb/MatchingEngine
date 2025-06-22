@@ -9,23 +9,35 @@ import (
 )
 
 type Execution struct {
-	ID          string         `json:"id"`
-	OrderID     string         `json:"order_id"`
-	Side        string         `json:"side"`
-	OrderQty    pgtype.Numeric `json:"order_qty"`
-	LeavesQty   pgtype.Numeric `json:"leaves_qty"`
-	Price       pgtype.Numeric `json:"price"`
-	Instrument  string         `json:"instrument"`
-	ExecType    string         `json:"exec_type"`
-	CumQty      pgtype.Numeric `json:"cum_qty"`
-	OrderStatus string         `json:"order_status"`
+	ExecID       string         `json:"exec_id"`
+	OrderID      string         `json:"order_id"`
+	ClOrdID      pgtype.Text    `json:"cl_ord_id"`
+	ExecType     string         `json:"exec_type"`
+	OrdStatus    string         `json:"ord_status"`
+	Symbol       string         `json:"symbol"`
+	Side         string         `json:"side"`
+	OrderQty     pgtype.Numeric `json:"order_qty"`
+	LastShares   pgtype.Numeric `json:"last_shares"`
+	LastPx       pgtype.Numeric `json:"last_px"`
+	LeavesQty    pgtype.Numeric `json:"leaves_qty"`
+	CumQty       pgtype.Numeric `json:"cum_qty"`
+	AvgPx        pgtype.Numeric `json:"avg_px"`
+	TransactTime int64          `json:"transact_time"`
+	Text         pgtype.Text    `json:"text"`
 }
 
 type Trade struct {
-	ID            string         `json:"id"`
-	BuyerOrderID  string         `json:"buyer_order_id"`
-	SellerOrderID string         `json:"seller_order_id"`
-	Qty           pgtype.Numeric `json:"qty"`
-	Price         pgtype.Numeric `json:"price"`
-	Instrument    string         `json:"instrument"`
+	TradeReportID      string         `json:"trade_report_id"`
+	ExecID             string         `json:"exec_id"`
+	OrderID            string         `json:"order_id"`
+	SecondaryOrderID   pgtype.Text    `json:"secondary_order_id"`
+	ClOrdID            pgtype.Text    `json:"cl_ord_id"`
+	Symbol             string         `json:"symbol"`
+	Side               string         `json:"side"`
+	LastQty            pgtype.Numeric `json:"last_qty"`
+	LastPx             pgtype.Numeric `json:"last_px"`
+	TradeDate          string         `json:"trade_date"`
+	TransactTime       int64          `json:"transact_time"`
+	PreviouslyReported bool           `json:"previously_reported"`
+	Text               pgtype.Text    `json:"text"`
 }

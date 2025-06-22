@@ -3,26 +3,38 @@ EXTENSION IF NOT EXISTS "uuid-ossp";
 
 CREATE TABLE executions
 (
-    id           text    NOT NULL,
-    order_id     text    NOT NULL,
-    side         text    NOT NULL,
-    order_qty    numeric NOT NULL,
-    leaves_qty   numeric NOT NULL,
-    price        numeric NOT NULL,
-    instrument   text    NOT NULL,
-    exec_type         text    NOT NULL,
-    cum_qty      numeric NOT NULL,
-    order_status text    NOT NULL,
-    PRIMARY KEY (id)
+    exec_id       text    NOT NULL, -- Maps to ExecID
+    order_id      text    NOT NULL, -- Maps to OrderID
+    cl_ord_id     text,             -- Maps to ClOrdID
+    exec_type     text    NOT NULL, -- Maps to ExecType
+    ord_status    text    NOT NULL, -- Maps to OrdStatus
+    symbol        text    NOT NULL, -- Maps to Symbol
+    side          text    NOT NULL, -- Maps to Side
+    order_qty     numeric NOT NULL, -- Maps to OrderQty
+    last_shares   numeric NOT NULL, -- Maps to LastShares
+    last_px       numeric NOT NULL, -- Maps to LastPx
+    leaves_qty    numeric NOT NULL, -- Maps to LeavesQty
+    cum_qty       numeric NOT NULL, -- Maps to CumQty
+    avg_px        numeric NOT NULL, -- Maps to AvgPx
+    transact_time bigint  NOT NULL, -- Maps to TransactTime
+    text          text,             -- Maps to Text
+    PRIMARY KEY (exec_id)
 );
 
 CREATE TABLE trades
 (
-    id              text    NOT NULL,
-    buyer_order_id  text    NOT NULL,
-    seller_order_id text    NOT NULL,
-    qty             numeric NOT NULL,
-    price           numeric NOT NULL,
-    instrument      text    NOT NULL,
-    PRIMARY KEY (id)
+    trade_report_id     text    NOT NULL, -- Maps to TradeReportID
+    exec_id             text    NOT NULL, -- Maps to ExecID
+    order_id            text    NOT NULL, -- Maps to OrderID
+    secondary_order_id  text,             -- Maps to SecondaryOrderID
+    cl_ord_id           text,             -- Maps to ClOrdID
+    symbol              text    NOT NULL, -- Maps to Symbol
+    side                text    NOT NULL, -- Maps to Side
+    last_qty            numeric NOT NULL, -- Maps to LastQty
+    last_px             numeric NOT NULL, -- Maps to LastPx
+    trade_date          text    NOT NULL, -- Maps to TradeDate
+    transact_time       bigint  NOT NULL, -- Maps to TransactTime
+    previously_reported boolean NOT NULL, -- Maps to PreviouslyReported
+    text                text,             -- Maps to Text
+    PRIMARY KEY (trade_report_id)
 );

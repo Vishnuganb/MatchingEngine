@@ -1,6 +1,8 @@
 package orderBook
 
 import (
+	"MatchingEngine/internal/model"
+	"MatchingEngine/internal/util"
 	"log"
 
 	"github.com/emirpasic/gods/maps/treemap"
@@ -10,7 +12,7 @@ import (
 func (book *OrderBook) processOrder(order *Order) {
 	var (
 		matchingBook *treemap.Map
-		isBuy        = order.IsBid
+		isBuy        = order.Side == model.Buy
 		priceComp    func(price decimal.Decimal) bool
 	)
 
@@ -46,9 +48,6 @@ func (book *OrderBook) processOrder(order *Order) {
 
 			book.publishTrade(order, match, matchQty)
 
-			order.updateOrderQuantities(matchQty)
-			match.updateOrderQuantities(matchQty)
-
 			NewFillOrderEvent(order, match, matchQty)
 
 			orderMatched = true
@@ -72,22 +71,22 @@ func (book *OrderBook) processOrder(order *Order) {
 	if order.LeavesQty.IsPositive() {
 		book.addOrderToBook(*order)
 		if !orderMatched {
-			order.ResetQuantities()
-			NewOrderEvent(order)
+			order.NewOrderEvent()
 		}
 	}
 }
 
 func (book *OrderBook) publishTrade(order, match *Order, qty decimal.Decimal) {
-	isBuy := order.IsBid
+	isBuy := order.Side == model.Buy
 
-	var buyerID, sellerID string
+	var (
+		side          model.Side
+	)
+
 	if isBuy {
-		buyerID = order.ID
-		sellerID = match.ID
+		side = model.Buy
 	} else {
-		buyerID = match.ID
-		sellerID = order.ID
+		side = model.Sell
 	}
 
 	price := match.Price
@@ -95,20 +94,27 @@ func (book *OrderBook) publishTrade(order, match *Order, qty decimal.Decimal) {
 		price = order.Price
 	}
 
-	trade := Trade{
-		BuyerOrderID:  buyerID,
-		SellerOrderID: sellerID,
-		Quantity:      qty,
-		Price:         price,
-		Timestamp:     order.Timestamp,
-		Instrument:    order.Instrument,
+	tradeReport := TradeCaptureReport{
+		MsgType:            "AE",                // FIX MsgType = AE (Trade Capture Report)
+		TradeReportID:      util.GenerateUUID(), // Unique trade report ID
+		ExecID:             util.GenerateUUID(), // Unique execution ID
+		OrderID:            order.ClOrdID,       // Exchange-assigned order ID
+		ClOrdID:            order.ClOrdID,       // Client Order ID
+		Symbol:             order.Symbol,
+		Side:               side,
+		LastQty:            qty,
+		LastPx:             price,
+		TradeDate:          util.FormatDate(order.Timestamp), // Format: YYYYMMDD
+		TransactTime:       order.Timestamp,
+		PreviouslyReported: false,
 	}
 
 	if book.TradeNotifier != nil {
-		if err := book.TradeNotifier.NotifyEventAndTrade(trade.BuyerOrderID, trade.ToJSON()); err != nil {
-			log.Printf("Error publishing event: %v", err)
+		if err := book.TradeNotifier.NotifyEventAndTrade(tradeReport.TradeReportID, tradeReport.ToJSON()); err != nil {
+			log.Printf("Error publishing trade report: %v", err)
 		} else {
-			log.Printf("Trade published BuyerId %s: SellerId %s", trade.BuyerOrderID, trade.SellerOrderID)
+			//log.Printf("Trade report sent: ExecID %s, Buy=%s Sell=%s Qty=%s",
+			//	trade.ExecID, buyer.ClOrdID, seller.ClOrdID, qty.String())
 		}
 	}
 }

@@ -12,36 +12,57 @@ import (
 )
 
 const createTrade = `-- name: CreateTrade :one
-INSERT INTO trades (id, buyer_order_id, seller_order_id, qty, price, instrument)
-VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, buyer_order_id, seller_order_id, qty, price, instrument
+INSERT INTO trades (trade_report_id, exec_id, order_id, secondary_order_id, cl_ord_id, symbol, side, last_qty, last_px, trade_date, transact_time, previously_reported, text)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING trade_report_id, exec_id, order_id, secondary_order_id, cl_ord_id, symbol, side, last_qty, last_px, trade_date, transact_time, previously_reported, text
 `
 
 type CreateTradeParams struct {
-	ID            string         `json:"id"`
-	BuyerOrderID  string         `json:"buyer_order_id"`
-	SellerOrderID string         `json:"seller_order_id"`
-	Qty           pgtype.Numeric `json:"qty"`
-	Price         pgtype.Numeric `json:"price"`
-	Instrument    string         `json:"instrument"`
+	TradeReportID      string         `json:"trade_report_id"`
+	ExecID             string         `json:"exec_id"`
+	OrderID            string         `json:"order_id"`
+	SecondaryOrderID   pgtype.Text    `json:"secondary_order_id"`
+	ClOrdID            pgtype.Text    `json:"cl_ord_id"`
+	Symbol             string         `json:"symbol"`
+	Side               string         `json:"side"`
+	LastQty            pgtype.Numeric `json:"last_qty"`
+	LastPx             pgtype.Numeric `json:"last_px"`
+	TradeDate          string         `json:"trade_date"`
+	TransactTime       int64          `json:"transact_time"`
+	PreviouslyReported bool           `json:"previously_reported"`
+	Text               pgtype.Text    `json:"text"`
 }
 
 func (q *Queries) CreateTrade(ctx context.Context, arg CreateTradeParams) (Trade, error) {
 	row := q.db.QueryRow(ctx, createTrade,
-		arg.ID,
-		arg.BuyerOrderID,
-		arg.SellerOrderID,
-		arg.Qty,
-		arg.Price,
-		arg.Instrument,
+		arg.TradeReportID,
+		arg.ExecID,
+		arg.OrderID,
+		arg.SecondaryOrderID,
+		arg.ClOrdID,
+		arg.Symbol,
+		arg.Side,
+		arg.LastQty,
+		arg.LastPx,
+		arg.TradeDate,
+		arg.TransactTime,
+		arg.PreviouslyReported,
+		arg.Text,
 	)
 	var i Trade
 	err := row.Scan(
-		&i.ID,
-		&i.BuyerOrderID,
-		&i.SellerOrderID,
-		&i.Qty,
-		&i.Price,
-		&i.Instrument,
+		&i.TradeReportID,
+		&i.ExecID,
+		&i.OrderID,
+		&i.SecondaryOrderID,
+		&i.ClOrdID,
+		&i.Symbol,
+		&i.Side,
+		&i.LastQty,
+		&i.LastPx,
+		&i.TradeDate,
+		&i.TransactTime,
+		&i.PreviouslyReported,
+		&i.Text,
 	)
 	return i, err
 }
@@ -49,47 +70,61 @@ func (q *Queries) CreateTrade(ctx context.Context, arg CreateTradeParams) (Trade
 const deleteTrade = `-- name: DeleteTrade :one
 DELETE
 FROM trades
-WHERE id = $1 RETURNING id, buyer_order_id, seller_order_id, qty, price, instrument
+WHERE trade_report_id = $1 RETURNING trade_report_id, exec_id, order_id, secondary_order_id, cl_ord_id, symbol, side, last_qty, last_px, trade_date, transact_time, previously_reported, text
 `
 
-func (q *Queries) DeleteTrade(ctx context.Context, id string) (Trade, error) {
-	row := q.db.QueryRow(ctx, deleteTrade, id)
+func (q *Queries) DeleteTrade(ctx context.Context, tradeReportID string) (Trade, error) {
+	row := q.db.QueryRow(ctx, deleteTrade, tradeReportID)
 	var i Trade
 	err := row.Scan(
-		&i.ID,
-		&i.BuyerOrderID,
-		&i.SellerOrderID,
-		&i.Qty,
-		&i.Price,
-		&i.Instrument,
+		&i.TradeReportID,
+		&i.ExecID,
+		&i.OrderID,
+		&i.SecondaryOrderID,
+		&i.ClOrdID,
+		&i.Symbol,
+		&i.Side,
+		&i.LastQty,
+		&i.LastPx,
+		&i.TradeDate,
+		&i.TransactTime,
+		&i.PreviouslyReported,
+		&i.Text,
 	)
 	return i, err
 }
 
 const getTrade = `-- name: GetTrade :one
-SELECT id, buyer_order_id, seller_order_id, qty, price, instrument
+SELECT trade_report_id, exec_id, order_id, secondary_order_id, cl_ord_id, symbol, side, last_qty, last_px, trade_date, transact_time, previously_reported, text
 FROM trades
-WHERE id = $1
+WHERE trade_report_id = $1
 `
 
-func (q *Queries) GetTrade(ctx context.Context, id string) (Trade, error) {
-	row := q.db.QueryRow(ctx, getTrade, id)
+func (q *Queries) GetTrade(ctx context.Context, tradeReportID string) (Trade, error) {
+	row := q.db.QueryRow(ctx, getTrade, tradeReportID)
 	var i Trade
 	err := row.Scan(
-		&i.ID,
-		&i.BuyerOrderID,
-		&i.SellerOrderID,
-		&i.Qty,
-		&i.Price,
-		&i.Instrument,
+		&i.TradeReportID,
+		&i.ExecID,
+		&i.OrderID,
+		&i.SecondaryOrderID,
+		&i.ClOrdID,
+		&i.Symbol,
+		&i.Side,
+		&i.LastQty,
+		&i.LastPx,
+		&i.TradeDate,
+		&i.TransactTime,
+		&i.PreviouslyReported,
+		&i.Text,
 	)
 	return i, err
 }
 
 const listTrades = `-- name: ListTrades :many
-SELECT id, buyer_order_id, seller_order_id, qty, price, instrument
+SELECT trade_report_id, exec_id, order_id, secondary_order_id, cl_ord_id, symbol, side, last_qty, last_px, trade_date, transact_time, previously_reported, text
 FROM trades
-ORDER BY id
+ORDER BY trade_report_id
 `
 
 func (q *Queries) ListTrades(ctx context.Context) ([]Trade, error) {
@@ -102,12 +137,19 @@ func (q *Queries) ListTrades(ctx context.Context) ([]Trade, error) {
 	for rows.Next() {
 		var i Trade
 		if err := rows.Scan(
-			&i.ID,
-			&i.BuyerOrderID,
-			&i.SellerOrderID,
-			&i.Qty,
-			&i.Price,
-			&i.Instrument,
+			&i.TradeReportID,
+			&i.ExecID,
+			&i.OrderID,
+			&i.SecondaryOrderID,
+			&i.ClOrdID,
+			&i.Symbol,
+			&i.Side,
+			&i.LastQty,
+			&i.LastPx,
+			&i.TradeDate,
+			&i.TransactTime,
+			&i.PreviouslyReported,
+			&i.Text,
 		); err != nil {
 			return nil, err
 		}
@@ -121,40 +163,68 @@ func (q *Queries) ListTrades(ctx context.Context) ([]Trade, error) {
 
 const updateTrade = `-- name: UpdateTrade :one
 UPDATE trades
-SET buyer_order_id  = COALESCE($2, buyer_order_id),
-    seller_order_id = COALESCE($3, seller_order_id),
-    qty             = COALESCE($4, qty),
-    price           = COALESCE($5, price),
-    instrument      = COALESCE($6, instrument)
-WHERE id = $1 RETURNING id, buyer_order_id, seller_order_id, qty, price, instrument
+SET exec_id             = COALESCE($2, exec_id),
+    order_id            = COALESCE($3, order_id),
+    secondary_order_id  = COALESCE($4, secondary_order_id),
+    cl_ord_id           = COALESCE($5, cl_ord_id),
+    symbol              = COALESCE($6, symbol),
+    side                = COALESCE($7, side),
+    last_qty            = COALESCE($8, last_qty),
+    last_px             = COALESCE($9, last_px),
+    trade_date          = COALESCE($10, trade_date),
+    transact_time       = COALESCE($11, transact_time),
+    previously_reported = COALESCE($12, previously_reported),
+    text                = COALESCE($13, text)
+WHERE trade_report_id = $1 RETURNING trade_report_id, exec_id, order_id, secondary_order_id, cl_ord_id, symbol, side, last_qty, last_px, trade_date, transact_time, previously_reported, text
 `
 
 type UpdateTradeParams struct {
-	ID            string         `json:"id"`
-	BuyerOrderID  string         `json:"buyer_order_id"`
-	SellerOrderID string         `json:"seller_order_id"`
-	Qty           pgtype.Numeric `json:"qty"`
-	Price         pgtype.Numeric `json:"price"`
-	Instrument    string         `json:"instrument"`
+	TradeReportID      string         `json:"trade_report_id"`
+	ExecID             string         `json:"exec_id"`
+	OrderID            string         `json:"order_id"`
+	SecondaryOrderID   pgtype.Text    `json:"secondary_order_id"`
+	ClOrdID            pgtype.Text    `json:"cl_ord_id"`
+	Symbol             string         `json:"symbol"`
+	Side               string         `json:"side"`
+	LastQty            pgtype.Numeric `json:"last_qty"`
+	LastPx             pgtype.Numeric `json:"last_px"`
+	TradeDate          string         `json:"trade_date"`
+	TransactTime       int64          `json:"transact_time"`
+	PreviouslyReported bool           `json:"previously_reported"`
+	Text               pgtype.Text    `json:"text"`
 }
 
 func (q *Queries) UpdateTrade(ctx context.Context, arg UpdateTradeParams) (Trade, error) {
 	row := q.db.QueryRow(ctx, updateTrade,
-		arg.ID,
-		arg.BuyerOrderID,
-		arg.SellerOrderID,
-		arg.Qty,
-		arg.Price,
-		arg.Instrument,
+		arg.TradeReportID,
+		arg.ExecID,
+		arg.OrderID,
+		arg.SecondaryOrderID,
+		arg.ClOrdID,
+		arg.Symbol,
+		arg.Side,
+		arg.LastQty,
+		arg.LastPx,
+		arg.TradeDate,
+		arg.TransactTime,
+		arg.PreviouslyReported,
+		arg.Text,
 	)
 	var i Trade
 	err := row.Scan(
-		&i.ID,
-		&i.BuyerOrderID,
-		&i.SellerOrderID,
-		&i.Qty,
-		&i.Price,
-		&i.Instrument,
+		&i.TradeReportID,
+		&i.ExecID,
+		&i.OrderID,
+		&i.SecondaryOrderID,
+		&i.ClOrdID,
+		&i.Symbol,
+		&i.Side,
+		&i.LastQty,
+		&i.LastPx,
+		&i.TradeDate,
+		&i.TransactTime,
+		&i.PreviouslyReported,
+		&i.Text,
 	)
 	return i, err
 }
