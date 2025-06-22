@@ -1,7 +1,6 @@
 package service
 
 import (
-	"MatchingEngine/orderBook"
 	"testing"
 	"time"
 
@@ -9,6 +8,7 @@ import (
 	"github.com/stretchr/testify/mock"
 
 	"MatchingEngine/internal/repository"
+	"MatchingEngine/orderBook"
 )
 
 type MockAsyncDBWriter struct {

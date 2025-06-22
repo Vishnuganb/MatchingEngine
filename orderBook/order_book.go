@@ -1,13 +1,13 @@
 package orderBook
 
 import (
-	"MatchingEngine/internal/model"
 	"encoding/json"
 	"log"
 
 	"github.com/emirpasic/gods/maps/treemap"
 	"github.com/shopspring/decimal"
 
+	"MatchingEngine/internal/model"
 	"MatchingEngine/internal/util"
 )
 
@@ -17,7 +17,7 @@ type TradeNotifier interface {
 
 type OrderRef struct {
 	PriceLevel decimal.Decimal
-	Side      string
+	Side       string
 	Index      int
 }
 
@@ -163,7 +163,7 @@ func (book *OrderBook) addOrderToBook(order Order) {
 	list.Orders = append(list.Orders, order)
 	book.orderIndex[order.ClOrdID] = &OrderRef{
 		PriceLevel: priceKey,
-		Side:      string(order.Side),
+		Side:       string(order.Side),
 		Index:      len(list.Orders) - 1,
 	}
 }

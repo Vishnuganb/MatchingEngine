@@ -1,8 +1,9 @@
 package repository
 
 import (
-	"MatchingEngine/internal/model"
 	"context"
+
+	"MatchingEngine/internal/model"
 )
 
 type ExecutionRepository interface {

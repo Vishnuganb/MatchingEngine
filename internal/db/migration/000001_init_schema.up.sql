@@ -21,12 +21,12 @@ CREATE TABLE executions
     PRIMARY KEY (exec_id)
 );
 
-CREATE TABLE trades
+CREATE TABLE trade_capture_reports
 (
+    msg_type            text    NOT NULL, -- Maps to MsgType
     trade_report_id     text    NOT NULL, -- Maps to TradeReportID
     exec_id             text    NOT NULL, -- Maps to ExecID
     order_id            text    NOT NULL, -- Maps to OrderID
-    secondary_order_id  text,             -- Maps to SecondaryOrderID
     cl_ord_id           text,             -- Maps to ClOrdID
     symbol              text    NOT NULL, -- Maps to Symbol
     side                text    NOT NULL, -- Maps to Side

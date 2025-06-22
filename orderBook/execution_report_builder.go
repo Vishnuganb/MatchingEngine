@@ -1,13 +1,13 @@
 package orderBook
 
 import (
+	"time"
+
+	"github.com/shopspring/decimal"
+
 	"MatchingEngine/internal/model"
 	"MatchingEngine/internal/util"
-	"github.com/shopspring/decimal"
-	"time"
 )
-
-
 
 func newExecutionReport(order *Order, execType model.ExecType) model.ExecutionReport {
 	return model.ExecutionReport{

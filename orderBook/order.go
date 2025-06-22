@@ -1,12 +1,13 @@
 package orderBook
 
 import (
-	"MatchingEngine/internal/model"
-	"MatchingEngine/internal/util"
 	"encoding/json"
 	"log"
 
 	"github.com/shopspring/decimal"
+
+	"MatchingEngine/internal/model"
+	"MatchingEngine/internal/util"
 )
 
 type ExecutionNotifier interface {

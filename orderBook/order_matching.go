@@ -1,12 +1,13 @@
 package orderBook
 
 import (
-	"MatchingEngine/internal/model"
-	"MatchingEngine/internal/util"
 	"log"
 
 	"github.com/emirpasic/gods/maps/treemap"
 	"github.com/shopspring/decimal"
+
+	"MatchingEngine/internal/model"
+	"MatchingEngine/internal/util"
 )
 
 func (book *OrderBook) processOrder(order *Order) {

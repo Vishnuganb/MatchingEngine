@@ -10,7 +10,7 @@ import (
 )
 
 type TradeQueries interface {
-	CreateTrade(ctx context.Context, params sqlc.CreateTradeParams) (sqlc.Trade, error)
+	CreateTrade(ctx context.Context, params sqlc.CreateTradeParams) (sqlc.TradeCaptureReport, error)
 }
 
 type PostgresTradeRepository struct {
@@ -23,50 +23,58 @@ func NewPostgresTradeRepository(queries TradeQueries) *PostgresTradeRepository {
 
 func (r *PostgresTradeRepository) SaveTrade(ctx context.Context, trade model.TradeCaptureReport) (model.TradeCaptureReport, error) {
 	tradeId := uuid.NewString()
-	price, err := decimalToPgNumeric(trade.Price)
+	price, err := decimalToPgNumeric(trade.LastPx)
 	if err != nil {
 		return model.TradeCaptureReport{}, err
 	}
-	quantity, err := decimalToPgNumeric(trade.Quantity)
+	quantity, err := decimalToPgNumeric(trade.LastQty)
 	if err != nil {
 		return model.TradeCaptureReport{}, err
 	}
 
 	tradeRecord, err := r.queries.CreateTrade(ctx, sqlc.CreateTradeParams{
-		ID:            tradeId,
-		Price:         price,
-		Qty:           quantity,
-		Instrument:    trade.Instrument,
-		BuyerOrderID:  trade.BuyerOrderID,
-		SellerOrderID: trade.SellerOrderID,
+		TradeReportID:      tradeId,
+		ExecID:             trade.ExecID,
+		OrderID:            trade.OrderID,
+		ClOrdID:            stringToPgText(trade.ClOrdID),
+		Symbol:             trade.Symbol,
+		Side:               string(trade.Side),
+		LastQty:            quantity,
+		LastPx:             price,
+		TradeDate:          trade.TradeDate,
+		TransactTime:       trade.TransactTime,
+		PreviouslyReported: trade.PreviouslyReported,
+		Text:               stringToPgText(trade.Text),
 	})
 	if err != nil {
 		return model.TradeCaptureReport{}, err
 	}
 
-	mappedTrade, err := MapTradeToModelTrade(tradeRecord)
-	if err != nil {
-		return model.TradeCaptureReport{}, err
-	}
-
-	return mappedTrade, nil
+	return MapTradeToModelTrade(tradeRecord)
 }
 
-func MapTradeToModelTrade(trade sqlc.Trade) (model.TradeCaptureReport, error) {
-	price, err := pgNumericToDecimal(trade.Price)
+func MapTradeToModelTrade(trade sqlc.TradeCaptureReport) (model.TradeCaptureReport, error) {
+	price, err := pgNumericToDecimal(trade.LastPx)
 	if err != nil {
 		return model.TradeCaptureReport{}, err
 	}
-	quantity, err := pgNumericToDecimal(trade.Qty)
+	quantity, err := pgNumericToDecimal(trade.LastQty)
 	if err != nil {
 		return model.TradeCaptureReport{}, err
 	}
 
 	return model.TradeCaptureReport{
-		BuyerOrderID:  trade.BuyerOrderID,
-		SellerOrderID: trade.SellerOrderID,
-		Price:         price,
-		Quantity:      quantity,
-		Instrument:    trade.Instrument,
+		TradeReportID:      trade.TradeReportID,
+		ExecID:             trade.ExecID,
+		OrderID:            trade.OrderID,
+		ClOrdID:            pgTextToString(trade.ClOrdID),
+		Symbol:             trade.Symbol,
+		Side:               model.Side(trade.Side),
+		LastQty:            quantity,
+		LastPx:             price,
+		TradeDate:          trade.TradeDate,
+		TransactTime:       trade.TransactTime,
+		PreviouslyReported: trade.PreviouslyReported,
+		Text:               pgTextToString(trade.Text),
 	}, nil
 }

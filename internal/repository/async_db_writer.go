@@ -12,7 +12,7 @@ type AsyncDBWriterInterface interface {
 
 type AsyncDBWriter struct {
 	taskChannel chan DBTask
-	execRepo   *PostgresExecutionRepository
+	execRepo    *PostgresExecutionRepository
 	tradeRepo   *PostgresTradeRepository
 	retryCount  int
 	timeout     time.Duration
@@ -21,7 +21,7 @@ type AsyncDBWriter struct {
 func NewAsyncDBWriter(execRepo *PostgresExecutionRepository, tradeRepo *PostgresTradeRepository, bufferSize int) *AsyncDBWriter {
 	writer := &AsyncDBWriter{
 		taskChannel: make(chan DBTask, bufferSize),
-		execRepo:   execRepo,
+		execRepo:    execRepo,
 		tradeRepo:   tradeRepo,
 		retryCount:  3,
 		timeout:     100 * time.Millisecond,

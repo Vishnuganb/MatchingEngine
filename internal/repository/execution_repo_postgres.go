@@ -1,7 +1,6 @@
 package repository
 
 import (
-	"MatchingEngine/internal/model"
 	"context"
 	"fmt"
 
@@ -10,6 +9,7 @@ import (
 	"github.com/shopspring/decimal"
 
 	sqlc "MatchingEngine/internal/db/sqlc"
+	"MatchingEngine/internal/model"
 )
 
 type OrderQueries interface {

@@ -10,15 +10,15 @@ import (
 
 type Querier interface {
 	CreateExecution(ctx context.Context, arg CreateExecutionParams) (Execution, error)
-	CreateTrade(ctx context.Context, arg CreateTradeParams) (Trade, error)
+	CreateTrade(ctx context.Context, arg CreateTradeParams) (TradeCaptureReport, error)
 	DeleteExecution(ctx context.Context, execID string) (Execution, error)
-	DeleteTrade(ctx context.Context, tradeReportID string) (Trade, error)
+	DeleteTrade(ctx context.Context, tradeReportID string) (TradeCaptureReport, error)
 	GetExecution(ctx context.Context, execID string) (Execution, error)
-	GetTrade(ctx context.Context, tradeReportID string) (Trade, error)
+	GetTrade(ctx context.Context, tradeReportID string) (TradeCaptureReport, error)
 	ListExecutions(ctx context.Context) ([]Execution, error)
-	ListTrades(ctx context.Context) ([]Trade, error)
+	ListTrades(ctx context.Context) ([]TradeCaptureReport, error)
 	UpdateExecution(ctx context.Context, arg UpdateExecutionParams) (Execution, error)
-	UpdateTrade(ctx context.Context, arg UpdateTradeParams) (Trade, error)
+	UpdateTrade(ctx context.Context, arg UpdateTradeParams) (TradeCaptureReport, error)
 }
 
 var _ Querier = (*Queries)(nil)

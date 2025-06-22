@@ -1,11 +1,12 @@
 package service
 
 import (
-	"MatchingEngine/internal/model"
-	"MatchingEngine/orderBook"
 	"encoding/json"
 	"log"
 	"sync"
+
+	"MatchingEngine/internal/model"
+	"MatchingEngine/orderBook"
 )
 
 type TradeNotifier interface {
@@ -55,7 +56,8 @@ func extractSymbol(req model.OrderRequest) string {
 	switch req.MsgType {
 	case model.MsgTypeNew:
 		return req.NewOrderReq.Symbol
-	case model.MsgTypeCancel:return req.CancelOrderReq.Symbol
+	case model.MsgTypeCancel:
+		return req.CancelOrderReq.Symbol
 	default:
 		log.Printf("Invalid message type: %s", req.MsgType)
 		return ""

@@ -2,6 +2,7 @@ package model
 
 import (
 	"errors"
+
 	"github.com/shopspring/decimal"
 )
 

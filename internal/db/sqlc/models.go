@@ -26,11 +26,11 @@ type Execution struct {
 	Text         pgtype.Text    `json:"text"`
 }
 
-type Trade struct {
+type TradeCaptureReport struct {
+	MsgType            string         `json:"msg_type"`
 	TradeReportID      string         `json:"trade_report_id"`
 	ExecID             string         `json:"exec_id"`
 	OrderID            string         `json:"order_id"`
-	SecondaryOrderID   pgtype.Text    `json:"secondary_order_id"`
 	ClOrdID            pgtype.Text    `json:"cl_ord_id"`
 	Symbol             string         `json:"symbol"`
 	Side               string         `json:"side"`
