@@ -15,7 +15,7 @@ func NewTradeService(asyncWriter repository.AsyncDBWriterInterface) *TradeServic
 	}
 }
 
-func (s *TradeService) SaveTradeAsync(trade model.Trade) {
+func (s *TradeService) SaveTradeAsync(trade model.TradeCaptureReport) {
 	s.asyncWriter.EnqueueTask(repository.SaveTradeTask{
 		Trade: trade,
 	})

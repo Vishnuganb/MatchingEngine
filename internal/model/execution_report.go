@@ -1,19 +1,6 @@
-package orderBook
+package model
 
-import (
-	"github.com/google/uuid"
-	"github.com/shopspring/decimal"
-	"time"
-)
-
-type ExecType string
-
-const (
-	ExecTypeNew      ExecType = "0"
-	ExecTypeFill     ExecType = "2"
-	ExecTypeCanceled ExecType = "4"
-	ExecTypeRejected ExecType = "8"
-)
+import "github.com/shopspring/decimal"
 
 type ExecutionReport struct {
 	MsgType      string          `json:"35"`           // always "8"
@@ -41,30 +28,4 @@ func (e *ExecutionReport) ResetQuantities() {
 
 func (e *ExecutionReport) SetOrdStatus(status OrderStatus) {
 	e.OrdStatus = status
-}
-
-func newBaseExecutionReport(order *Order, execType ExecType) ExecutionReport {
-	var side Side
-	if order.IsBid {
-		side = Buy
-	} else {
-		side = Sell
-	}
-	return ExecutionReport{
-		MsgType:      "8",
-		ExecID:       uuid.NewString(),
-		OrderID:      order.ID,
-		ClOrdID:      "", // optionally populate from order.ClientOrderID
-		ExecType:     execType,
-		OrdStatus:    order.OrderStatus,
-		Symbol:       order.Instrument,
-		Side:         side,
-		OrderQty:     order.OrderQty,
-		LastShares:   decimal.Zero, // updated later if it's a fill
-		LastPx:       order.Price,  // updated later if it's a fill
-		LeavesQty:    order.LeavesQty,
-		CumQty:       order.CumQty,
-		AvgPx:        order.AvgPx,
-		TransactTime: time.Now().UnixNano(),
-	}
 }

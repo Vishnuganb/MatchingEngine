@@ -1,7 +1,6 @@
-package orderBook
+package model
 
 import (
-	"MatchingEngine/internal/model"
 	"encoding/json"
 
 	"github.com/shopspring/decimal"
@@ -21,7 +20,7 @@ type TradeCaptureReport struct {
 	OrderID            string          `json:"37"`            // OrderID (associated with one side of the trade)
 	ClOrdID            string          `json:"11,omitempty"`  // Client Order ID
 	Symbol             string          `json:"55"`            // Ticker Symbol
-	Side               model.Side      `json:"54"`            // Side: 1 = Buy, 2 = Sell
+	Side               Side            `json:"54"`            // Side: 1 = Buy, 2 = Sell
 	LastQty            decimal.Decimal `json:"32"`            // Quantity traded
 	LastPx             decimal.Decimal `json:"31"`            // Price traded
 	TradeDate          string          `json:"75"`            // Format: YYYYMMDD

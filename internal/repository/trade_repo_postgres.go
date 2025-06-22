@@ -21,15 +21,15 @@ func NewPostgresTradeRepository(queries TradeQueries) *PostgresTradeRepository {
 	return &PostgresTradeRepository{queries: queries}
 }
 
-func (r *PostgresTradeRepository) SaveTrade(ctx context.Context, trade model.Trade) (model.Trade, error) {
+func (r *PostgresTradeRepository) SaveTrade(ctx context.Context, trade model.TradeCaptureReport) (model.TradeCaptureReport, error) {
 	tradeId := uuid.NewString()
 	price, err := decimalToPgNumeric(trade.Price)
 	if err != nil {
-		return model.Trade{}, err
+		return model.TradeCaptureReport{}, err
 	}
 	quantity, err := decimalToPgNumeric(trade.Quantity)
 	if err != nil {
-		return model.Trade{}, err
+		return model.TradeCaptureReport{}, err
 	}
 
 	tradeRecord, err := r.queries.CreateTrade(ctx, sqlc.CreateTradeParams{
@@ -41,28 +41,28 @@ func (r *PostgresTradeRepository) SaveTrade(ctx context.Context, trade model.Tra
 		SellerOrderID: trade.SellerOrderID,
 	})
 	if err != nil {
-		return model.Trade{}, err
+		return model.TradeCaptureReport{}, err
 	}
 
 	mappedTrade, err := MapTradeToModelTrade(tradeRecord)
 	if err != nil {
-		return model.Trade{}, err
+		return model.TradeCaptureReport{}, err
 	}
 
 	return mappedTrade, nil
 }
 
-func MapTradeToModelTrade(trade sqlc.Trade) (model.Trade, error) {
+func MapTradeToModelTrade(trade sqlc.Trade) (model.TradeCaptureReport, error) {
 	price, err := pgNumericToDecimal(trade.Price)
 	if err != nil {
-		return model.Trade{}, err
+		return model.TradeCaptureReport{}, err
 	}
 	quantity, err := pgNumericToDecimal(trade.Qty)
 	if err != nil {
-		return model.Trade{}, err
+		return model.TradeCaptureReport{}, err
 	}
 
-	return model.Trade{
+	return model.TradeCaptureReport{
 		BuyerOrderID:  trade.BuyerOrderID,
 		SellerOrderID: trade.SellerOrderID,
 		Price:         price,

@@ -1,13 +1,13 @@
 package service
 
 import (
+	"MatchingEngine/orderBook"
 	"testing"
 	"time"
 
 	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/mock"
 
-	"MatchingEngine/internal/model"
 	"MatchingEngine/internal/repository"
 )
 
@@ -23,7 +23,7 @@ func TestSaveOrderAsync(t *testing.T) {
 	mockWriter := new(MockAsyncDBWriter)
 	orderService := NewExecutionService(mockWriter)
 
-	exec := model.ExecutionReport{
+	exec := orderBook.ExecutionReport{
 		OrderID:    "1",
 		Instrument: "BTC/USDT",
 		Price:      decimal.NewFromInt(100),

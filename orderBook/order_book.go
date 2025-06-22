@@ -58,6 +58,7 @@ func NewOrderBook(tradeNotifier TradeNotifier) (*OrderBook, chan model.OrderRequ
 func (book *OrderBook) OnNewOrder(or model.NewOrderRequest) {
 	order := convertOrderRequestToOrder(or)
 	order.ExecutionNotifier = book.TradeNotifier
+	order.AssignOrderID()
 	err := or.ValidateNewOrder()
 	if err != nil {
 		log.Printf("Rejecting invalid order: %+s", err)

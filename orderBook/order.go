@@ -2,21 +2,11 @@ package orderBook
 
 import (
 	"MatchingEngine/internal/model"
+	"MatchingEngine/internal/util"
 	"encoding/json"
 	"log"
 
 	"github.com/shopspring/decimal"
-)
-
-type OrderStatus string
-
-const (
-	OrderStatusNew         OrderStatus = "0"
-	OrderStatusFill        OrderStatus = "2"
-	OrderStatusPartialFill OrderStatus = "1"
-	OrderStatusCanceled    OrderStatus = "4"
-	OrderStatusRejected    OrderStatus = "8"
-	OrderStatusPendingNew  OrderStatus = "A"
 )
 
 type ExecutionNotifier interface {
@@ -24,25 +14,29 @@ type ExecutionNotifier interface {
 }
 
 type Order struct {
-	ClOrdID           string          `json:"cl_ord_id"` // from FIX <11>
-	OrderID           string          `json:"order_id"`	 // from FIX <37>
-	Symbol            string          `json:"symbol"`    // from FIX <55>
-	Side              model.Side      `json:"side"`      // from FIX <54>
-	Price             decimal.Decimal `json:"price"`     // from FIX <44>`
-	OrderQty          decimal.Decimal `json:"order_qty"` // from FIX <38>
-	LeavesQty         decimal.Decimal `json:"leaves_qty"`
-	CumQty            decimal.Decimal `json:"cum_qty"`
-	AvgPx             decimal.Decimal `json:"avg_px"`
-	Timestamp         int64           `json:"transact_time"` // from FIX <60>
-	OrderStatus       OrderStatus     `json:"order_status"`
-	Text              string          `json:"text,omitempty"` // from FIX <58>
+	ClOrdID           string            `json:"cl_ord_id"` // from FIX <11>
+	OrderID           string            `json:"order_id"`  // from FIX <37>
+	Symbol            string            `json:"symbol"`    // from FIX <55>
+	Side              model.Side        `json:"side"`      // from FIX <54>
+	Price             decimal.Decimal   `json:"price"`     // from FIX <44>`
+	OrderQty          decimal.Decimal   `json:"order_qty"` // from FIX <38>
+	LeavesQty         decimal.Decimal   `json:"leaves_qty"`
+	CumQty            decimal.Decimal   `json:"cum_qty"`
+	AvgPx             decimal.Decimal   `json:"avg_px"`
+	Timestamp         int64             `json:"transact_time"` // from FIX <60>
+	OrderStatus       model.OrderStatus `json:"order_status"`
+	Text              string            `json:"text,omitempty"` // from FIX <58>
 	ExecutionNotifier ExecutionNotifier
 }
 
+func (o *Order) AssignOrderID() {
+	o.OrderID = util.GeneratePrefixedID("order")
+}
+
 func (o *Order) NewOrderEvent() {
-	er := newBaseExecutionReport(o, ExecTypeNew)
-	er.SetOrdStatus(OrderStatusNew)
-	o.OrderStatus = OrderStatusNew
+	o.OrderStatus = model.OrderStatusNew
+	er := newExecutionReport(o, model.ExecTypeNew)
+	er.SetOrdStatus(model.OrderStatusNew)
 	o.publishExecutionReport(er)
 }
 
@@ -50,16 +44,16 @@ func (o *Order) newFillEvent(price, qty decimal.Decimal) {
 	o.CumQty = o.CumQty.Add(qty)
 	o.LeavesQty = o.OrderQty.Sub(o.CumQty)
 
-	status := OrderStatusFill
-	execType := ExecTypeFill
+	status := model.OrderStatusFill
+	execType := model.ExecTypeFill
 	if o.LeavesQty.IsPositive() {
-		status = OrderStatusPartialFill
+		status = model.OrderStatusPartialFill
 	}
 
 	o.OrderStatus = status
 	o.AvgPx = computeAvgPx(o.AvgPx, o.CumQty, price, qty)
 
-	er := newBaseExecutionReport(o, execType)
+	er := newExecutionReport(o, execType)
 	er.LastShares = qty
 	er.LastPx = price
 	er.SetOrdStatus(status)
@@ -73,27 +67,27 @@ func NewFillOrderEvent(order, matchOrder *Order, qty decimal.Decimal) {
 
 func (o *Order) NewCanceledOrderEvent() {
 	log.Printf("Creating canceled event for order: %s", o.OrderID)
-	o.OrderStatus = OrderStatusCanceled
-	er := newBaseExecutionReport(o, ExecTypeCanceled)
+	o.OrderStatus = model.OrderStatusCanceled
+	er := newExecutionReport(o, model.ExecTypeCanceled)
 	er.LeavesQty = decimal.Zero
-	er.SetOrdStatus(OrderStatusCanceled)
+	er.SetOrdStatus(model.OrderStatusCanceled)
 	o.publishExecutionReport(er)
 }
 
 func (o *Order) NewCanceledRejectOrderEvent(order *Order) {
 	log.Printf("Creating canceled reject event for order: %s", order.OrderID)
-	order.OrderStatus = OrderStatusRejected
-	er := newBaseExecutionReport(order, ExecTypeRejected)
-	er.SetOrdStatus(OrderStatusRejected)
+	order.OrderStatus = model.OrderStatusRejected
+	er := newExecutionReport(order, model.ExecTypeRejected)
+	er.SetOrdStatus(model.OrderStatusRejected)
 	order.publishExecutionReport(er)
 }
 
 func (o *Order) NewRejectedOrderEvent() {
 	log.Printf("Creating rejected event for order: %s", o.OrderID)
-	o.OrderStatus = OrderStatusRejected
-	er := newBaseExecutionReport(o, ExecTypeRejected)
+	o.OrderStatus = model.OrderStatusRejected
+	er := newExecutionReport(o, model.ExecTypeRejected)
 	er.ResetQuantities()
-	er.SetOrdStatus(OrderStatusRejected)
+	er.SetOrdStatus(model.OrderStatusRejected)
 	o.publishExecutionReport(er)
 }
 
@@ -106,7 +100,7 @@ func computeAvgPx(currentAvg decimal.Decimal, totalQty, newPx, fillQty decimal.D
 }
 
 // In Order struct methods where you want to publish events
-func (o *Order) publishExecutionReport(er ExecutionReport) {
+func (o *Order) publishExecutionReport(er model.ExecutionReport) {
 	if o.ExecutionNotifier == nil {
 		log.Printf("Warning: KafkaProducer is nil for order %s", o.OrderID)
 		return

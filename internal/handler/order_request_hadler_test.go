@@ -18,7 +18,7 @@ type MockExecutionService struct {
 	mock.Mock
 }
 
-func (m *MockExecutionService) SaveExecutionAsync(order model.ExecutionReport) {
+func (m *MockExecutionService) SaveExecutionAsync(order orderBook.ExecutionReport) {
 	m.Called(order)
 }
 

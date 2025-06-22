@@ -80,7 +80,7 @@ func (book *OrderBook) publishTrade(order, match *Order, qty decimal.Decimal) {
 	isBuy := order.Side == model.Buy
 
 	var (
-		side          model.Side
+		side model.Side
 	)
 
 	if isBuy {
@@ -94,12 +94,11 @@ func (book *OrderBook) publishTrade(order, match *Order, qty decimal.Decimal) {
 		price = order.Price
 	}
 
-	tradeReport := TradeCaptureReport{
-		MsgType:            "AE",                // FIX MsgType = AE (Trade Capture Report)
-		TradeReportID:      util.GenerateUUID(), // Unique trade report ID
-		ExecID:             util.GenerateUUID(), // Unique execution ID
-		OrderID:            order.ClOrdID,       // Exchange-assigned order ID
-		ClOrdID:            order.ClOrdID,       // Client Order ID
+	tradeReport := model.TradeCaptureReport{
+		MsgType:            "AE",                                   // FIX MsgType = AE (Trade Capture Report)
+		TradeReportID:      util.GeneratePrefixedID("tradeReport"), // Unique trade report ID
+		OrderID:            order.OrderID,                          // Exchange-assigned order ID
+		ClOrdID:            order.ClOrdID,                          // Client Order ID
 		Symbol:             order.Symbol,
 		Side:               side,
 		LastQty:            qty,

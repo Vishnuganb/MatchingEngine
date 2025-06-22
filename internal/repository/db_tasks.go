@@ -25,7 +25,7 @@ func (t SaveExecutionTask) Execute(ctx context.Context, repo interface{}) error 
 }
 
 type SaveTradeTask struct {
-	Trade model.Trade
+	Trade model.TradeCaptureReport
 }
 
 func (t SaveTradeTask) Execute(ctx context.Context, repo interface{}) error {

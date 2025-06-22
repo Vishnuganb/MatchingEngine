@@ -11,7 +11,6 @@ import (
 	"github.com/stretchr/testify/mock"
 
 	sqlc "MatchingEngine/internal/db/sqlc"
-	"MatchingEngine/internal/model"
 	"MatchingEngine/orderBook"
 )
 
@@ -28,7 +27,7 @@ func TestSaveExecution(t *testing.T) {
 	mockQueries := new(MockQueries)
 	repo := NewPostgresExecutionRepository(mockQueries)
 
-	execReport := model.ExecutionReport{
+	execReport := orderBook.ExecutionReport{
 		OrderID:     "1",
 		Instrument:  "BTC/USDT",
 		Price:       decimal.NewFromInt(100),

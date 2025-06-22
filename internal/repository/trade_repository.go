@@ -7,5 +7,5 @@ import (
 )
 
 type TradeRepository interface {
-	SaveTrade(ctx context.Context, trade model.Trade) (model.Trade, error)
+	SaveTrade(ctx context.Context, trade model.TradeCaptureReport) (model.TradeCaptureReport, error)
 }

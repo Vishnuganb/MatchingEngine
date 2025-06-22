@@ -14,7 +14,7 @@ type ExecutionService interface {
 }
 
 type TradeService interface {
-	SaveTradeAsync(trade model.Trade)
+	SaveTradeAsync(trade model.TradeCaptureReport)
 }
 
 type OrderService interface {
@@ -62,25 +62,32 @@ func (h *OrderRequestHandler) HandleExecutionReport(message []byte) error {
 		return nil // Skip processing this message
 	}
 
-	// Handle Trade
-	if _, ok := raw["buyer_order_id"]; ok {
-		var trade model.Trade
-		if err := h.unmarshalAndLogError(message, &trade); err != nil {
-			return err
-		}
-		log.Printf("Received trade: %+v", trade)
-		h.TradeService.SaveTradeAsync(trade)
+	msgType, ok := raw["MsgType"].(string)
+	if !ok {
+		log.Printf("Missing or invalid MsgType in message: %s", string(message))
 		return nil
 	}
 
-	// Handle ExecutionReport
-	var execReport model.ExecutionReport
-	if err := h.unmarshalAndLogError(message, &execReport); err != nil {
-		return err
-	}
-	log.Printf("Received execution report: %+v", execReport)
+	switch msgType {
+	case string(model.MsgTypeTradeReport):
+		var tradeCaptureReport model.TradeCaptureReport
+		if err := h.unmarshalAndLogError(message, &tradeCaptureReport); err != nil {
+			return err
+		}
+		log.Printf("Received trade: %+v", tradeCaptureReport)
+		h.TradeService.SaveTradeAsync(tradeCaptureReport)
 
-	h.ExecutionService.SaveExecutionAsync(execReport)
+	case string(model.MsgTypeExecRpt):
+		var execReport model.ExecutionReport
+		if err := h.unmarshalAndLogError(message, &execReport); err != nil {
+			return err
+		}
+		log.Printf("Received execution report: %+v", execReport)
+		h.ExecutionService.SaveExecutionAsync(execReport)
+
+	default:
+		log.Printf("Unknown MsgType: %s, message: %s", msgType, string(message))
+	}
 
 	return nil
 }

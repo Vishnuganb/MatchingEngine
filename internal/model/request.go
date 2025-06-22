@@ -9,8 +9,10 @@ import (
 type MsgType string
 
 const (
-	MsgTypeNew    MsgType = "D" // New Order - Single
-	MsgTypeCancel MsgType = "F" // Order Cancel Request
+	MsgTypeNew         MsgType = "D"  // New Order - Single
+	MsgTypeCancel      MsgType = "F"  // Order Cancel Request
+	MsgTypeExecRpt     MsgType = "8"  // Execution Report
+	MsgTypeTradeReport MsgType = "AE" // Trade Capture Report
 )
 
 type OrderRequest struct {

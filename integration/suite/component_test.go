@@ -43,7 +43,7 @@ func TestOrderFlowScenarios(t *testing.T) {
 				`{"RequestType":0,"Order":{"id":"1","side":"buy","qty":"10","price":"100","instrument":"BTC/USDT"}}`,
 			},
 			expectedEvents: []interface{}{
-				model.ExecutionReport{
+				orderBook.ExecutionReport{
 					OrderID:     "1",
 					Instrument:  "BTC/USDT",
 					Price:       decimal.NewFromInt(100),
@@ -69,7 +69,7 @@ func TestOrderFlowScenarios(t *testing.T) {
 					Price:         decimal.NewFromInt(100),
 					Instrument:    "BTC/USDT",
 				},
-				model.ExecutionReport{
+				orderBook.ExecutionReport{
 					OrderID:     "2",
 					Instrument:  "BTC/USDT",
 					Price:       decimal.NewFromInt(100),
@@ -80,7 +80,7 @@ func TestOrderFlowScenarios(t *testing.T) {
 					OrderStatus: string(orderBook.ExecTypeFill),
 					ExecType:    string(orderBook.ExecTypeFill),
 				},
-				model.ExecutionReport{
+				orderBook.ExecutionReport{
 					OrderID:     "1",
 					Instrument:  "BTC/USDT",
 					Price:       decimal.NewFromInt(100),
@@ -101,7 +101,7 @@ func TestOrderFlowScenarios(t *testing.T) {
 				`{"RequestType":0,"Order":{"id":"5","side":"sell","qty":"5","price":"100","instrument":"BTC/USDT"}}`,
 			},
 			expectedEvents: []interface{}{
-				model.ExecutionReport{
+				orderBook.ExecutionReport{
 					OrderID:     "3",
 					Instrument:  "BTC/USDT",
 					Price:       decimal.NewFromInt(100),
@@ -119,7 +119,7 @@ func TestOrderFlowScenarios(t *testing.T) {
 					Price:         decimal.NewFromInt(100),
 					Instrument:    "BTC/USDT",
 				},
-				model.ExecutionReport{
+				orderBook.ExecutionReport{
 					OrderID:     "4",
 					Instrument:  "BTC/USDT",
 					Price:       decimal.NewFromInt(100),
@@ -130,7 +130,7 @@ func TestOrderFlowScenarios(t *testing.T) {
 					OrderStatus: string(orderBook.ExecTypeFill),
 					ExecType:    string(orderBook.ExecTypeFill),
 				},
-				model.ExecutionReport{
+				orderBook.ExecutionReport{
 					OrderID:     "3",
 					Instrument:  "BTC/USDT",
 					Price:       decimal.NewFromInt(100),
@@ -148,7 +148,7 @@ func TestOrderFlowScenarios(t *testing.T) {
 					Price:         decimal.NewFromInt(100),
 					Instrument:    "BTC/USDT",
 				},
-				model.ExecutionReport{
+				orderBook.ExecutionReport{
 					OrderID:     "5",
 					Instrument:  "BTC/USDT",
 					Price:       decimal.NewFromInt(100),
@@ -159,7 +159,7 @@ func TestOrderFlowScenarios(t *testing.T) {
 					OrderStatus: string(orderBook.ExecTypeFill),
 					ExecType:    string(orderBook.ExecTypeFill),
 				},
-				model.ExecutionReport{
+				orderBook.ExecutionReport{
 					OrderID:     "3",
 					Instrument:  "BTC/USDT",
 					Price:       decimal.NewFromInt(100),
@@ -179,7 +179,7 @@ func TestOrderFlowScenarios(t *testing.T) {
 				`{"RequestType":0,"Order":{"id":"7","side":"buy","qty":"5","price":"100","instrument":"BTC/USDT"}}`,
 			},
 			expectedEvents: []interface{}{
-				model.ExecutionReport{
+				orderBook.ExecutionReport{
 					OrderID:     "6",
 					Instrument:  "BTC/USDT",
 					Price:       decimal.NewFromInt(100),
@@ -197,7 +197,7 @@ func TestOrderFlowScenarios(t *testing.T) {
 					Price:         decimal.NewFromInt(100),
 					Instrument:    "BTC/USDT",
 				},
-				model.ExecutionReport{
+				orderBook.ExecutionReport{
 					OrderID:     "7",
 					Instrument:  "BTC/USDT",
 					Price:       decimal.NewFromInt(100),
@@ -208,7 +208,7 @@ func TestOrderFlowScenarios(t *testing.T) {
 					OrderStatus: string(orderBook.OrderStatusFill),
 					ExecType:    string(orderBook.ExecTypeFill),
 				},
-				model.ExecutionReport{
+				orderBook.ExecutionReport{
 					OrderID:     "6",
 					Instrument:  "BTC/USDT",
 					Price:       decimal.NewFromInt(100),
@@ -228,7 +228,7 @@ func TestOrderFlowScenarios(t *testing.T) {
 				`{"RequestType":1,"Order":{"id":"8","instrument":"BTC/USDT"}}`,
 			},
 			expectedEvents: []interface{}{
-				model.ExecutionReport{
+				orderBook.ExecutionReport{
 					OrderID:     "8",
 					Instrument:  "BTC/USDT",
 					LeavesQty:   decimal.NewFromInt(10),
@@ -238,7 +238,7 @@ func TestOrderFlowScenarios(t *testing.T) {
 					OrderStatus: string(orderBook.OrderStatusNew),
 					ExecType:    string(orderBook.ExecTypeNew),
 				},
-				model.ExecutionReport{
+				orderBook.ExecutionReport{
 					OrderID:     "8",
 					Instrument:  "BTC/USDT",
 					LeavesQty:   decimal.NewFromInt(0),
@@ -255,7 +255,7 @@ func TestOrderFlowScenarios(t *testing.T) {
 				`{"RequestType":0,"Order":{"id":"9","side":"sell","qty":"10","price":"-100","instrument":"BTC/USDT"}}`,
 			},
 			expectedEvents: []interface{}{
-				model.ExecutionReport{
+				orderBook.ExecutionReport{
 					OrderID:     "9",
 					Instrument:  "BTC/USDT",
 					LeavesQty:   decimal.NewFromInt(0),
@@ -332,8 +332,8 @@ func TestOrderFlowScenarios(t *testing.T) {
 			}
 			for i, exp := range tt.expectedEvents {
 				switch expected := exp.(type) {
-				case model.ExecutionReport:
-					actual, ok := receivedEvents[i].(model.ExecutionReport)
+				case orderBook.ExecutionReport:
+					actual, ok := receivedEvents[i].(orderBook.ExecutionReport)
 					require.True(t, ok, "received event is not of type model.ExecutionReport")
 
 					assert.Equal(t, expected.OrderID, actual.OrderID)
@@ -368,16 +368,16 @@ func parseKafkaEvent(msg string) interface{} {
 		return trade
 	}
 
-	var report model.ExecutionReport
+	var report orderBook.ExecutionReport
 	_ = json.Unmarshal([]byte(msg), &report)
 	return report
 }
 
 func matchesExpectedEvent(event interface{}, expectedList []interface{}) bool {
 	switch evt := event.(type) {
-	case model.ExecutionReport:
+	case orderBook.ExecutionReport:
 		for _, e := range expectedList {
-			if exp, ok := e.(model.ExecutionReport); ok && exp.OrderID == evt.OrderID {
+			if exp, ok := e.(orderBook.ExecutionReport); ok && exp.OrderID == evt.OrderID {
 				return true
 			}
 		}
