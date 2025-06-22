@@ -178,7 +178,7 @@ func convertOrderRequestToOrder(or model.NewOrderRequest) Order {
 		LeavesQty:   or.OrderQty,
 		Timestamp:   or.TransactTime,
 		Text:        or.Text,
-		OrderStatus: OrderStatusPendingNew,
+		OrderStatus: model.OrderStatusPendingNew,
 		CumQty:      decimal.Zero,
 	}
 }
