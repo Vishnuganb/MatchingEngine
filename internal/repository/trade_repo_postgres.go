@@ -11,6 +11,7 @@ import (
 
 type TradeQueries interface {
 	CreateTrade(ctx context.Context, params sqlc.CreateTradeParams) (sqlc.TradeCaptureReport, error)
+	CreateTradeSide(ctx context.Context, params sqlc.CreateTradeSideParams) (sqlc.TradeSide, error)
 }
 
 type PostgresTradeRepository struct {
@@ -33,24 +34,42 @@ func (r *PostgresTradeRepository) SaveTrade(ctx context.Context, trade model.Tra
 	}
 
 	tradeRecord, err := r.queries.CreateTrade(ctx, sqlc.CreateTradeParams{
-		TradeReportID:      tradeId,
-		ExecID:             trade.ExecID,
-		OrderID:            trade.OrderID,
-		ClOrdID:            stringToPgText(trade.ClOrdID),
-		Symbol:             trade.Symbol,
-		Side:               string(trade.Side),
-		LastQty:            quantity,
-		LastPx:             price,
-		TradeDate:          trade.TradeDate,
-		TransactTime:       trade.TransactTime,
-		PreviouslyReported: trade.PreviouslyReported,
-		Text:               stringToPgText(trade.Text),
+		TradeReportID: tradeId,
+		ExecID:        trade.ExecID,
+		Symbol:        trade.Symbol,
+		LastQty:       quantity,
+		LastPx:        price,
+		TradeDate:     trade.TradeDate,
+		TransactTime:  trade.TransactTime,
 	})
 	if err != nil {
 		return model.TradeCaptureReport{}, err
 	}
 
+	// Insert trade sides (552)
+	for _, side := range trade.NoSides {
+		_, err := r.queries.CreateTradeSide(ctx, sqlc.CreateTradeSideParams{
+			TradeReportID: tradeId,
+			Side:         mapSideToInt16(side.Side),
+			OrderID:       side.OrderID,
+		})
+		if err != nil {
+			return model.TradeCaptureReport{}, err
+		}
+	}
+
 	return MapTradeToModelTrade(tradeRecord)
+}
+
+func mapSideToInt16(side model.Side) int16 {
+	switch side {
+	case model.Buy:
+		return 1
+	case model.Sell:
+		return 2
+	default:
+		return 0
+	}
 }
 
 func MapTradeToModelTrade(trade sqlc.TradeCaptureReport) (model.TradeCaptureReport, error) {
@@ -64,17 +83,12 @@ func MapTradeToModelTrade(trade sqlc.TradeCaptureReport) (model.TradeCaptureRepo
 	}
 
 	return model.TradeCaptureReport{
-		TradeReportID:      trade.TradeReportID,
-		ExecID:             trade.ExecID,
-		OrderID:            trade.OrderID,
-		ClOrdID:            pgTextToString(trade.ClOrdID),
-		Symbol:             trade.Symbol,
-		Side:               model.Side(trade.Side),
-		LastQty:            quantity,
-		LastPx:             price,
-		TradeDate:          trade.TradeDate,
-		TransactTime:       trade.TransactTime,
-		PreviouslyReported: trade.PreviouslyReported,
-		Text:               pgTextToString(trade.Text),
+		TradeReportID: trade.TradeReportID,
+		ExecID:        trade.ExecID,
+		Symbol:        trade.Symbol,
+		LastQty:       quantity,
+		LastPx:        price,
+		TradeDate:     trade.TradeDate,
+		TransactTime:  trade.TransactTime,
 	}, nil
 }

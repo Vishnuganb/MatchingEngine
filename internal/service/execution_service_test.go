@@ -1,6 +1,7 @@
 package service
 
 import (
+	"MatchingEngine/internal/model"
 	"testing"
 	"time"
 
@@ -8,7 +9,6 @@ import (
 	"github.com/stretchr/testify/mock"
 
 	"MatchingEngine/internal/repository"
-	"MatchingEngine/orderBook"
 )
 
 type MockAsyncDBWriter struct {
@@ -19,23 +19,31 @@ func (m *MockAsyncDBWriter) EnqueueTask(task repository.DBTask) {
 	m.Called(task)
 }
 
-func TestSaveOrderAsync(t *testing.T) {
+func TestSaveExecutionAsync(t *testing.T) {
 	mockWriter := new(MockAsyncDBWriter)
-	orderService := NewExecutionService(mockWriter)
+	executionService := NewExecutionService(mockWriter)
 
-	exec := orderBook.ExecutionReport{
-		OrderID:    "1",
-		Instrument: "BTC/USDT",
-		Price:      decimal.NewFromInt(100),
-		OrderQty:   decimal.NewFromInt(10),
-		LeavesQty:  decimal.NewFromInt(10),
-		Timestamp:  time.Now().UnixNano(),
-		IsBid:      true,
+	execution := model.ExecutionReport{
+		ExecID:       "execution-123456",
+		OrderID:      "order-123456",
+		ClOrdID:      "clord-123",
+		ExecType:     model.ExecTypeFill,
+		OrdStatus:    model.OrderStatusPartialFill,
+		Symbol:       "BTC/USDT",
+		Side:         model.Buy,
+		OrderQty:     decimal.NewFromInt(10),
+		LastShares:   decimal.NewFromInt(5),
+		LastPx:       decimal.NewFromInt(100),
+		LeavesQty:    decimal.NewFromInt(5),
+		CumQty:       decimal.NewFromInt(5),
+		AvgPx:        decimal.NewFromInt(100),
+		TransactTime: time.Now().UnixNano(),
+		Text:         "Trade executed",
 	}
 
-	mockWriter.On("EnqueueTask", repository.SaveExecutionTask{Execution: exec}).Return()
+	mockWriter.On("EnqueueTask", repository.SaveExecutionTask{Execution: execution}).Return()
 
-	orderService.SaveExecutionAsync(exec)
+	executionService.SaveExecutionAsync(execution)
 
-	mockWriter.AssertCalled(t, "EnqueueTask", repository.SaveExecutionTask{Execution: exec})
+	mockWriter.AssertCalled(t, "EnqueueTask", repository.SaveExecutionTask{Execution: execution})
 }

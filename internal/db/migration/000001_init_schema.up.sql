@@ -23,18 +23,20 @@ CREATE TABLE executions
 
 CREATE TABLE trade_capture_reports
 (
-    msg_type            text    NOT NULL, -- Maps to MsgType
-    trade_report_id     text    NOT NULL, -- Maps to TradeReportID
-    exec_id             text    NOT NULL, -- Maps to ExecID
-    order_id            text    NOT NULL, -- Maps to OrderID
-    cl_ord_id           text,             -- Maps to ClOrdID
-    symbol              text    NOT NULL, -- Maps to Symbol
-    side                text    NOT NULL, -- Maps to Side
-    last_qty            numeric NOT NULL, -- Maps to LastQty
-    last_px             numeric NOT NULL, -- Maps to LastPx
-    trade_date          text    NOT NULL, -- Maps to TradeDate
-    transact_time       bigint  NOT NULL, -- Maps to TransactTime
-    previously_reported boolean NOT NULL, -- Maps to PreviouslyReported
-    text                text,             -- Maps to Text
-    PRIMARY KEY (trade_report_id)
+    trade_report_id text PRIMARY KEY, -- 571
+    msg_type        text    NOT NULL, -- 35 (AE)
+    exec_id         text    NOT NULL, -- 17
+    symbol          text    NOT NULL, -- 55
+    last_qty        NUMERIC NOT NULL, -- 32
+    last_px         NUMERIC NOT NULL, -- 31
+    trade_date      text    NOT NULL, -- 75 (YYYYMMDD)
+    transact_time   bigint  NOT NULL  -- 60
+);
+
+CREATE TABLE trade_sides
+(
+    id              SERIAL PRIMARY KEY,
+    trade_report_id text     NOT NULL REFERENCES trade_capture_reports (trade_report_id) ON DELETE CASCADE,
+    side            SMALLINT NOT NULL, -- 54: 1 = Buy, 2 = Sell
+    order_id        text     NOT NULL  -- 37
 );

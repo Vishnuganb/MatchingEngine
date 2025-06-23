@@ -78,18 +78,6 @@ func (book *OrderBook) processOrder(order *Order) {
 }
 
 func (book *OrderBook) publishTrade(order, match *Order, qty decimal.Decimal) {
-	isBuy := order.Side == model.Buy
-
-	var (
-		side model.Side
-	)
-
-	if isBuy {
-		side = model.Buy
-	} else {
-		side = model.Sell
-	}
-
 	price := match.Price
 	if price.IsZero() {
 		price = order.Price
@@ -98,15 +86,22 @@ func (book *OrderBook) publishTrade(order, match *Order, qty decimal.Decimal) {
 	tradeReport := model.TradeCaptureReport{
 		MsgType:            "AE",                                   // FIX MsgType = AE (Trade Capture Report)
 		TradeReportID:      util.GeneratePrefixedID("tradeReport"), // Unique trade report ID
-		OrderID:            order.OrderID,                          // Exchange-assigned order ID
-		ClOrdID:            order.ClOrdID,                          // Client Order ID
+		ExecID:             util.GeneratePrefixedID("execution"),        // Unique execution ID
 		Symbol:             order.Symbol,
-		Side:               side,
 		LastQty:            qty,
 		LastPx:             price,
 		TradeDate:          util.FormatDate(order.Timestamp), // Format: YYYYMMDD
 		TransactTime:       order.Timestamp,
-		PreviouslyReported: false,
+		NoSides: []model.NoSides{
+			{
+				Side:    order.Side,
+				OrderID: order.OrderID,
+			},
+			{
+				Side:    match.Side,
+				OrderID: match.OrderID,
+			},
+		},
 	}
 
 	if book.TradeNotifier != nil {

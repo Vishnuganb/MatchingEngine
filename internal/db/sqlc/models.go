@@ -27,17 +27,19 @@ type Execution struct {
 }
 
 type TradeCaptureReport struct {
-	MsgType            string         `json:"msg_type"`
-	TradeReportID      string         `json:"trade_report_id"`
-	ExecID             string         `json:"exec_id"`
-	OrderID            string         `json:"order_id"`
-	ClOrdID            pgtype.Text    `json:"cl_ord_id"`
-	Symbol             string         `json:"symbol"`
-	Side               string         `json:"side"`
-	LastQty            pgtype.Numeric `json:"last_qty"`
-	LastPx             pgtype.Numeric `json:"last_px"`
-	TradeDate          string         `json:"trade_date"`
-	TransactTime       int64          `json:"transact_time"`
-	PreviouslyReported bool           `json:"previously_reported"`
-	Text               pgtype.Text    `json:"text"`
+	TradeReportID string         `json:"trade_report_id"`
+	MsgType       string         `json:"msg_type"`
+	ExecID        string         `json:"exec_id"`
+	Symbol        string         `json:"symbol"`
+	LastQty       pgtype.Numeric `json:"last_qty"`
+	LastPx        pgtype.Numeric `json:"last_px"`
+	TradeDate     string         `json:"trade_date"`
+	TransactTime  int64          `json:"transact_time"`
+}
+
+type TradeSide struct {
+	ID            int32  `json:"id"`
+	TradeReportID string `json:"trade_report_id"`
+	Side          int16  `json:"side"`
+	OrderID       string `json:"order_id"`
 }

@@ -1,6 +1,7 @@
 package orderBook
 
 import (
+	"MatchingEngine/internal/model"
 	"encoding/json"
 	"testing"
 	"time"
@@ -15,129 +16,121 @@ func (m *MockTradeNotifier) NotifyEventAndTrade(string, json.RawMessage) error {
 	return nil
 }
 
+func validNewOrderReq(clOrdID string) model.NewOrderRequest {
+	return model.NewOrderRequest{
+		BaseOrderRequest: model.BaseOrderRequest{
+			MsgType:      model.MsgTypeNew,
+			ClOrdID:      clOrdID,
+			Side:         model.Buy,
+			Symbol:       "BTC/USDT",
+			TransactTime: time.Now().UnixNano(),
+			Text:         "Test order",
+		},
+		OrderQty: decimal.NewFromInt(10),
+		Price:    decimal.NewFromFloat(100.50),
+	}
+}
+
 func TestNewOrderBook(t *testing.T) {
 	mockNotifier := &MockTradeNotifier{}
-	book := NewOrderBook(mockNotifier)
-	assert.NotNil(t, book)
-	assert.Equal(t, 0, book.Bids.Size())
-	assert.Equal(t, 0, book.Asks.Size())
-	assert.Empty(t, book.orderIndex)
+	ob, _ := NewOrderBook(mockNotifier)
+	assert.NotNil(t, ob)
+	assert.Equal(t, 0, ob.Bids.Size())
+	assert.Equal(t, 0, ob.Asks.Size())
+	assert.Empty(t, ob.orderIndex)
 }
 
 func TestOnNewOrder_ValidOrder(t *testing.T) {
 	mockNotifier := &MockTradeNotifier{}
-	book := NewOrderBook(mockNotifier)
+	ob, _ := NewOrderBook(mockNotifier)
 
-	order := OrderRequest{
-		ID:         "1",
-		Price:      decimal.NewFromInt(100),
-		Qty:        decimal.NewFromInt(10),
-		Instrument: "BTC/USDT",
-		Timestamp:  time.Now().UnixNano(),
-		Side:       Buy,
-	}
+	req := validNewOrderReq("CLORD001")
+	ob.OnNewOrder(req)
 
-	book.OnNewOrder(order)
-
-	val, ok := book.Bids.Get(order.Price)
+	val, ok := ob.Bids.Get(req.Price)
 	assert.True(t, ok)
 	orderList := val.(*OrderList)
-	assert.Equal(t, "1", orderList.Orders[0].ID)
-	assert.Contains(t, book.orderIndex, "1")
+	assert.Equal(t, req.ClOrdID, orderList.Orders[0].ClOrdID)
+	assert.Contains(t, ob.orderIndex, req.ClOrdID)
 }
 
 func TestOnNewOrder_InvalidOrder(t *testing.T) {
 	mockNotifier := &MockTradeNotifier{}
-	book := NewOrderBook(mockNotifier)
+	ob, _ := NewOrderBook(mockNotifier)
 
-	order := OrderRequest{
-		ID:         "2",
-		Price:      decimal.NewFromInt(-100), // Invalid price
-		Qty:        decimal.NewFromInt(10),
-		Instrument: "BTC/USDT",
-		Timestamp:  time.Now().UnixNano(),
-		Side:       Buy,
-	}
+	req := validNewOrderReq("CLORD002")
+	req.Price = decimal.NewFromInt(-100) // Invalid
 
-	book.OnNewOrder(order)
+	ob.OnNewOrder(req)
 
-	assert.Equal(t, 0, book.Bids.Size())
-	assert.NotContains(t, book.orderIndex, "2")
+	assert.Equal(t, 0, ob.Bids.Size())
+	assert.NotContains(t, ob.orderIndex, req.ClOrdID)
 }
 
 func TestCancelOrder_ExistingOrder(t *testing.T) {
 	mockNotifier := &MockTradeNotifier{}
-	book := NewOrderBook(mockNotifier)
+	ob, _ := NewOrderBook(mockNotifier)
 
-	order := OrderRequest{
-		ID:         "1",
-		Price:      decimal.NewFromInt(100),
-		Qty:        decimal.NewFromInt(10),
-		Instrument: "BTC/USDT",
-		Timestamp:  time.Now().UnixNano(),
-		Side:       Buy,
-	}
+	req := validNewOrderReq("CLORD003")
+	ob.OnNewOrder(req)
 
-	book.OnNewOrder(order)
-	book.CancelOrder("1")
-
-	assert.Equal(t, 0, book.Bids.Size())
-	assert.NotContains(t, book.orderIndex, "1")
+	ob.CancelOrder(req.ClOrdID)
+	assert.Equal(t, 0, ob.Bids.Size())
+	assert.NotContains(t, ob.orderIndex, req.ClOrdID)
 }
 
 func TestCancelOrder_NonExistingOrder(t *testing.T) {
 	mockNotifier := &MockTradeNotifier{}
-	book := NewOrderBook(mockNotifier)
+	ob, _ := NewOrderBook(mockNotifier)
 
-	book.CancelOrder("999") // Non-existing order
-
-	assert.Equal(t, 0, book.Bids.Size())
-	assert.Equal(t, 0, book.Asks.Size())
-	assert.Empty(t, book.orderIndex)
+	ob.CancelOrder("INVALID_ID")
+	assert.Equal(t, 0, ob.Bids.Size())
+	assert.Equal(t, 0, ob.Asks.Size())
+	assert.Empty(t, ob.orderIndex)
 }
 
 func TestAddOrderToBook_BuyOrder(t *testing.T) {
 	mockNotifier := &MockTradeNotifier{}
-	book := NewOrderBook(mockNotifier)
+	ob, _ := NewOrderBook(mockNotifier)
 
 	order := Order{
-		ID:          "1",
-		Price:       decimal.NewFromInt(100),
+		ClOrdID:     "CLORD004",
+		Symbol:      "BTC/USDT",
+		Side:        model.Buy,
+		Price:       decimal.NewFromInt(120),
 		OrderQty:    decimal.NewFromInt(10),
-		Instrument:  "BTC/USDT",
+		LeavesQty:   decimal.NewFromInt(10),
 		Timestamp:   time.Now().UnixNano(),
-		OrderStatus: OrderStatusPendingNew,
-		IsBid:       true,
+		OrderStatus: model.OrderStatusPendingNew,
 	}
+	ob.addOrderToBook(order)
 
-	book.addOrderToBook(order)
-
-	val, ok := book.Bids.Get(order.Price)
+	val, ok := ob.Bids.Get(order.Price)
 	assert.True(t, ok)
 	orderList := val.(*OrderList)
-	assert.Equal(t, "1", orderList.Orders[0].ID)
-	assert.Contains(t, book.orderIndex, "1")
+	assert.Equal(t, order.ClOrdID, orderList.Orders[0].ClOrdID)
+	assert.Contains(t, ob.orderIndex, order.ClOrdID)
 }
 
 func TestAddOrderToBook_SellOrder(t *testing.T) {
 	mockNotifier := &MockTradeNotifier{}
-	book := NewOrderBook(mockNotifier)
+	ob, _ := NewOrderBook(mockNotifier)
 
 	order := Order{
-		ID:          "2",
+		ClOrdID:     "CLORD005",
+		Symbol:      "BTC/USDT",
+		Side:        model.Sell,
 		Price:       decimal.NewFromInt(200),
 		OrderQty:    decimal.NewFromInt(5),
-		Instrument:  "BTC/USDT",
+		LeavesQty:   decimal.NewFromInt(5),
 		Timestamp:   time.Now().UnixNano(),
-		OrderStatus: OrderStatusPendingNew,
-		IsBid:       false,
+		OrderStatus: model.OrderStatusPendingNew,
 	}
+	ob.addOrderToBook(order)
 
-	book.addOrderToBook(order)
-
-	val, ok := book.Asks.Get(order.Price)
+	val, ok := ob.Asks.Get(order.Price)
 	assert.True(t, ok)
 	orderList := val.(*OrderList)
-	assert.Equal(t, "2", orderList.Orders[0].ID)
-	assert.Contains(t, book.orderIndex, "2")
+	assert.Equal(t, order.ClOrdID, orderList.Orders[0].ClOrdID)
+	assert.Contains(t, ob.orderIndex, order.ClOrdID)
 }
