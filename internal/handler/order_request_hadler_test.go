@@ -96,63 +96,124 @@ func TestHandleOrderMessage_InvalidJSON(t *testing.T) {
 }
 
 func TestHandleExecutionReport_ExecReport(t *testing.T) {
-	exec := model.ExecutionReport{
-		MsgType: string(model.MsgTypeExecRpt),
-		ExecID:  "exec123",
-		ClOrdID: "cl123",
+	mockExecSvc := new(MockExecutionService)
+	mockTradeSvc := new(MockTradeService)
+	mockOrderSvc := new(MockOrderService)
+
+	handler := NewOrderRequestHandler(mockExecSvc, mockTradeSvc, mockOrderSvc)
+
+	execReportJSON := `{
+		"35": "8",
+		"17": "exec123",
+		"37": "order123",
+		"11": "cl123",
+		"150": "0",
+		"39": "2",
+		"55": "BTC/USDT",
+		"54": "1",
+		"38": "10",
+		"32": "10",
+		"31": "100",
+		"151": "0",
+		"14": "10",
+		"6": "100",
+		"60": 1620000000
+	}`
+
+	expected := model.ExecutionReport{
+		MsgType:      "8",
+		ExecID:       "exec123",
+		OrderID:      "order123",
+		ClOrdID:      "cl123",
+		ExecType:     "0",
+		OrdStatus:    "2",
+		Symbol:       "BTC/USDT",
+		Side:         "1",
+		OrderQty:     decimal.NewFromInt(10),
+		LastShares:   decimal.NewFromInt(10),
+		LastPx:       decimal.NewFromInt(100),
+		LeavesQty:    decimal.NewFromInt(0),
+		CumQty:       decimal.NewFromInt(10),
+		AvgPx:        decimal.NewFromInt(100),
+		TransactTime: 1620000000,
 	}
-	mockOrderService := new(MockOrderService)
-	mockExecService := new(MockExecutionService)
-	mockTradeService := new(MockTradeService)
 
-	h := NewOrderRequestHandler(mockExecService, mockTradeService, mockOrderService)
-	mockExecService.On("SaveExecutionAsync", exec).Return()
+	mockExecSvc.On("SaveExecutionAsync", mock.MatchedBy(func(r model.ExecutionReport) bool {
+		return r.ExecID == expected.ExecID &&
+			r.OrderID == expected.OrderID &&
+			r.CumQty.Equal(expected.CumQty) &&
+			r.LastPx.Equal(expected.LastPx)
+	})).Once()
 
-	data, _ := json.Marshal(exec)
-	h.HandleExecutionReport(data)
-	mockExecService.AssertExpectations(t)
+	err := handler.HandleExecutionReport([]byte(execReportJSON))
+	assert.NoError(t, err)
+
+	mockExecSvc.AssertExpectations(t)
 }
 
 func TestHandleExecutionReport_TradeReport(t *testing.T) {
-	trade := model.TradeCaptureReport{
-		MsgType:       string(model.MsgTypeTradeReport),
-		TradeReportID: "trade123",
-		ExecID:        "exec123",
-	}
-	mockOrderService := new(MockOrderService)
 	mockExecService := new(MockExecutionService)
 	mockTradeService := new(MockTradeService)
+	handler := NewOrderRequestHandler(mockExecService, mockTradeService, nil)
 
-	h := NewOrderRequestHandler(mockExecService, mockTradeService, mockOrderService)
-	mockTradeService.On("SaveTradeAsync", trade).Return()
+	rawJSON := []byte(`{
+		"35": "AE",
+		"571": "trade123",
+		"17": "exec123",
+		"55": "BTC/USDT",
+		"32": "5",
+		"31": "100",
+		"75": "20250624",
+		"60": 1729811234567890,
+		"552": [
+			{"54": "1", "37": "order1"},
+			{"54": "2", "37": "order2"}
+		]
+	}`)
 
-	data, _ := json.Marshal(trade)
-	h.HandleExecutionReport(data)
+	expectedReport := model.TradeCaptureReport{
+		MsgType:       "AE",
+		TradeReportID: "trade123",
+		ExecID:        "exec123",
+		Symbol:        "BTC/USDT",
+		LastQty:       decimal.NewFromInt(5),
+		LastPx:        decimal.NewFromInt(100),
+		TradeDate:     "20250624",
+		TransactTime:  1729811234567890,
+		NoSides: []model.NoSides{
+			{Side: model.Buy, OrderID: "order1"},
+			{Side: model.Sell, OrderID: "order2"},
+		},
+	}
+
+	mockTradeService.On("SaveTradeAsync", expectedReport).Once()
+
+	err := handler.HandleExecutionReport(rawJSON)
+	assert.NoError(t, err)
+
 	mockTradeService.AssertExpectations(t)
 }
 
 func TestHandleExecutionReport_InvalidJSON(t *testing.T) {
-	mockOrderService := new(MockOrderService)
-	mockExecService := new(MockExecutionService)
-	mockTradeService := new(MockTradeService)
+	mockExecSvc := new(MockExecutionService)
+	mockTradeSvc := new(MockTradeService)
+	mockOrderSvc := new(MockOrderService)
 
-	h := NewOrderRequestHandler(mockExecService, mockTradeService, mockOrderService)
-	invalid := []byte("not-json")
-	err := h.HandleExecutionReport(invalid)
+	handler := NewOrderRequestHandler(mockExecSvc, mockTradeSvc, mockOrderSvc)
+
+	invalidJSON := []byte(`not a valid json`)
+	err := handler.HandleExecutionReport(invalidJSON)
 	assert.NoError(t, err)
 }
 
-func TestHandleExecutionReport_UnknownType(t *testing.T) {
-	msg := map[string]interface{}{
-		"MsgType": "XYZ",
-	}
-	data, _ := json.Marshal(msg)
+func TestHandleExecutionReport_UnknownMsgType(t *testing.T) {
+	mockExecSvc := new(MockExecutionService)
+	mockTradeSvc := new(MockTradeService)
+	mockOrderSvc := new(MockOrderService)
 
-	mockOrderService := new(MockOrderService)
-	mockExecService := new(MockExecutionService)
-	mockTradeService := new(MockTradeService)
+	handler := NewOrderRequestHandler(mockExecSvc, mockTradeSvc, mockOrderSvc)
 
-	h := NewOrderRequestHandler(mockExecService, mockTradeService, mockOrderService)
-	err := h.HandleExecutionReport(data)
+	unknownMsg := `{"35": "ZZ", "some": "field"}`
+	err := handler.HandleExecutionReport([]byte(unknownMsg))
 	assert.NoError(t, err)
 }
