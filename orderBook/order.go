@@ -69,18 +69,18 @@ func NewFillOrderEvent(order, matchOrder *Order, qty decimal.Decimal) {
 func (o *Order) NewCanceledOrderEvent() {
 	log.Printf("Creating canceled event for order: %s", o.OrderID)
 	o.OrderStatus = model.OrderStatusCanceled
+	o.LeavesQty = decimal.Zero
 	er := newExecutionReport(o, model.ExecTypeCanceled)
-	er.LeavesQty = decimal.Zero
 	er.SetOrdStatus(model.OrderStatusCanceled)
 	o.publishExecutionReport(er)
 }
 
-func (o *Order) NewCanceledRejectOrderEvent(order *Order) {
-	log.Printf("Creating canceled reject event for order: %s", order.OrderID)
-	order.OrderStatus = model.OrderStatusRejected
-	er := newExecutionReport(order, model.ExecTypeRejected)
+func (o *Order) NewCanceledRejectOrderEvent() {
+	log.Printf("Creating canceled reject event for order: %s", o.OrderID)
+	o.OrderStatus = model.OrderStatusRejected
+	er := newExecutionReport(o, model.ExecTypeRejected)
 	er.SetOrdStatus(model.OrderStatusRejected)
-	order.publishExecutionReport(er)
+	o.publishExecutionReport(er)
 }
 
 func (o *Order) NewRejectedOrderEvent() {

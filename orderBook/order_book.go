@@ -73,7 +73,8 @@ func (book *OrderBook) CancelOrder(origClOrdID string) {
 	if !ok {
 		log.Printf("Order with ID %s not found", origClOrdID)
 		order := Order{ClOrdID: origClOrdID}
-		order.NewCanceledRejectOrderEvent(&order)
+		order.ExecutionNotifier = book.TradeNotifier
+		order.NewCanceledRejectOrderEvent()
 		return
 	}
 
@@ -83,7 +84,8 @@ func (book *OrderBook) CancelOrder(origClOrdID string) {
 		log.Printf("Order with ID %s inconsistent in index", origClOrdID)
 		delete(book.orderIndex, origClOrdID)
 		order := Order{ClOrdID: origClOrdID}
-		order.NewCanceledRejectOrderEvent(&order)
+		order.ExecutionNotifier = book.TradeNotifier
+		order.NewCanceledRejectOrderEvent()
 		return
 	}
 

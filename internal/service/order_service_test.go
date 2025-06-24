@@ -1,16 +1,18 @@
 package service
 
 import (
+	"encoding/json"
 	"testing"
+	"time"
 
 	"MatchingEngine/internal/model"
-	"MatchingEngine/orderBook"
+	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/assert"
 )
 
 type MockTradeNotifier struct{}
 
-func (m *MockTradeNotifier) NotifyEventAndTrade(orderID string, value []byte) error {
+func (m *MockTradeNotifier) NotifyEventAndTrade(orderID string, value json.RawMessage) error {
 	return nil
 }
 
@@ -21,8 +23,14 @@ func TestProcessOrderRequest_NewOrder(t *testing.T) {
 	req := model.OrderRequest{
 		MsgType: model.MsgTypeNew,
 		NewOrderReq: model.NewOrderRequest{
-			Symbol: "BTC/USDT",
-			Side:   model.Buy,
+			BaseOrderRequest: model.BaseOrderRequest{
+				ClOrdID:      "CL001",
+				Side:         model.Buy,
+				Symbol:       "BTC/USDT",
+				TransactTime: time.Now().UnixNano(),
+			},
+			OrderQty: decimal.NewFromInt(10),
+			Price:    decimal.NewFromInt(100),
 		},
 	}
 
@@ -32,11 +40,15 @@ func TestProcessOrderRequest_NewOrder(t *testing.T) {
 	orderService.mu.Lock()
 	defer orderService.mu.Unlock()
 
-	_, exists := orderService.orderBooks["BTC/USDT"]
+	ch, exists := orderService.orderChannels["BTC/USDT"]
 	assert.True(t, exists)
 
-	_, exists = orderService.orderChannels["BTC/USDT"]
-	assert.True(t, exists)
+	// ensure message sent to channel
+	select {
+	case ch <- req:
+	default:
+		t.Error("Channel is unexpectedly full or blocked")
+	}
 }
 
 func TestProcessOrderRequest_CancelOrder(t *testing.T) {
@@ -46,7 +58,13 @@ func TestProcessOrderRequest_CancelOrder(t *testing.T) {
 	req := model.OrderRequest{
 		MsgType: model.MsgTypeCancel,
 		CancelOrderReq: model.OrderCancelRequest{
-			Symbol: "BTC/USDT",
+			BaseOrderRequest: model.BaseOrderRequest{
+				ClOrdID:      "CL002",
+				Symbol:       "BTC/USDT",
+				Side:         model.Buy,
+				TransactTime: time.Now().UnixNano(),
+			},
+			OrigClOrdID: "CL001",
 		},
 	}
 
@@ -68,7 +86,7 @@ func TestProcessOrderRequest_InvalidMessageType(t *testing.T) {
 	orderService := NewOrderService(tradeNotifier)
 
 	req := model.OrderRequest{
-		MsgType: "InvalidType",
+		MsgType: "X", // Unknown MsgType
 	}
 
 	err := orderService.ProcessOrderRequest(req)

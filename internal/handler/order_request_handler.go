@@ -63,7 +63,7 @@ func (h *OrderRequestHandler) HandleExecutionReport(message []byte) error {
 		return nil // Skip processing this message
 	}
 
-	msgType, ok := raw["MsgType"].(string)
+	msgType, ok := raw["35"].(string)
 	if !ok {
 		log.Printf("Missing or invalid MsgType in message: %s", string(message))
 		return nil

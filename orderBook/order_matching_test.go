@@ -20,8 +20,8 @@ func TestProcessOrder_FullMatch(t *testing.T) {
 	book := newTestOrderBook()
 
 	sellOrder := Order{
-		ClOrdID:           "SELL1",
-		OrderID:           "ORDER1",
+		ClOrdID:           "CLORD001",
+		OrderID:           "ORDER001",
 		Symbol:            "BTC/USDT",
 		Side:              model.Sell,
 		Price:             decimal.NewFromInt(100),
@@ -34,8 +34,8 @@ func TestProcessOrder_FullMatch(t *testing.T) {
 	book.addOrderToBook(sellOrder)
 
 	buyOrder := Order{
-		ClOrdID:           "BUY1",
-		OrderID:           "ORDER2",
+		ClOrdID:           "CLORD002",
+		OrderID:           "ORDER002",
 		Symbol:            "BTC/USDT",
 		Side:              model.Buy,
 		Price:             decimal.NewFromInt(100),
@@ -56,8 +56,8 @@ func TestProcessOrder_PartialMatch(t *testing.T) {
 	book := newTestOrderBook()
 
 	sellOrder := Order{
-		ClOrdID:           "SELL2",
-		OrderID:           "ORDER3",
+		ClOrdID:           "CLORD001",
+		OrderID:           "ORDER001",
 		Symbol:            "BTC/USDT",
 		Side:              model.Sell,
 		Price:             decimal.NewFromInt(100),
@@ -70,8 +70,8 @@ func TestProcessOrder_PartialMatch(t *testing.T) {
 	book.addOrderToBook(sellOrder)
 
 	buyOrder := Order{
-		ClOrdID:           "BUY2",
-		OrderID:           "ORDER4",
+		ClOrdID:           "CLORD002",
+		OrderID:           "ORDER002",
 		Symbol:            "BTC/USDT",
 		Side:              model.Buy,
 		Price:             decimal.NewFromInt(100),
@@ -92,8 +92,8 @@ func TestProcessOrder_NoMatch(t *testing.T) {
 	book := newTestOrderBook()
 
 	buyOrder := Order{
-		ClOrdID:     "BUY3",
-		OrderID:     "ORDER5",
+		ClOrdID:     "CLORD001",
+		OrderID:     "ORDER001",
 		Symbol:      "BTC/USDT",
 		Side:        model.Buy,
 		Price:       decimal.NewFromInt(50),

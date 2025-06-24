@@ -74,7 +74,7 @@ func TestCancelOrder_ExistingOrder(t *testing.T) {
 	req := validNewOrderReq("CLORD003")
 	ob.OnNewOrder(req)
 
-	ob.CancelOrder(req.ClOrdID)
+	ob.CancelOrder("CLORD003")
 	assert.Equal(t, 0, ob.Bids.Size())
 	assert.NotContains(t, ob.orderIndex, req.ClOrdID)
 }
