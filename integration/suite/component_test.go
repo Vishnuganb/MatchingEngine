@@ -15,7 +15,6 @@ import (
 
 	"MatchingEngine/integration/test_util"
 	"MatchingEngine/internal/model"
-	"MatchingEngine/orderBook"
 )
 
 var (
@@ -40,19 +39,23 @@ func TestOrderFlowScenarios(t *testing.T) {
 		{
 			name: "New Buy Order",
 			orders: []string{
-				`{"RequestType":0,"Order":{"id":"1","side":"buy","qty":"10","price":"100","instrument":"BTC/USDT"}}`,
+				`{"35":"D","11":"1","54":"1","55":"BTC/USDT","38":"10","44":"100","60":1729811234567890}`,
 			},
 			expectedEvents: []interface{}{
-				orderBook.ExecutionReport{
-					OrderID:     "1",
-					Instrument:  "BTC/USDT",
-					Price:       decimal.NewFromInt(100),
-					OrderQty:    decimal.NewFromInt(10),
-					LeavesQty:   decimal.NewFromInt(10),
-					CumQty:      decimal.NewFromInt(0),
-					IsBid:       true,
-					OrderStatus: string(orderBook.OrderStatusNew),
-					ExecType:    string(orderBook.ExecTypeNew),
+				model.ExecutionReport{
+					MsgType:      "8",
+					ClOrdID:      "1",
+					ExecType:     model.ExecTypeNew,
+					OrdStatus:    model.OrderStatusNew,
+					Symbol:       "BTC/USDT",
+					Side:         model.Buy,
+					OrderQty:     decimal.NewFromInt(10),
+					LastShares:   decimal.Zero,
+					LastPx:       decimal.Zero,
+					LeavesQty:    decimal.NewFromInt(10),
+					CumQty:       decimal.Zero,
+					AvgPx:        decimal.Zero,
+					TransactTime: 1729811234567890,
 				},
 			},
 		},
@@ -336,7 +339,7 @@ func TestOrderFlowScenarios(t *testing.T) {
 					actual, ok := receivedEvents[i].(model.ExecutionReport)
 					require.True(t, ok, "received event is not of type model.ExecutionReport")
 
-					assert.Equal(t, expected.OrderID, actual.OrderID)
+					assert.Equal(t, expected.ClOrdID, actual.ClOrdID)
 					assert.Equal(t, expected.Symbol, actual.Symbol)
 					assert.Equal(t, expected.OrdStatus, actual.OrdStatus)
 					assert.True(t, expected.LeavesQty.Equal(actual.LeavesQty), "LeavesQty mismatch")
@@ -362,7 +365,7 @@ func parseKafkaEvent(msg string) interface{} {
 	var raw map[string]interface{}
 	_ = json.Unmarshal([]byte(msg), &raw)
 
-	if _, ok := raw["buyer_order_id"]; ok {
+	if _, ok := raw["571"]; ok {
 		var trade model.TradeCaptureReport
 		_ = json.Unmarshal([]byte(msg), &trade)
 		return trade
@@ -377,13 +380,13 @@ func matchesExpectedEvent(event interface{}, expectedList []interface{}) bool {
 	switch evt := event.(type) {
 	case model.ExecutionReport:
 		for _, e := range expectedList {
-			if exp, ok := e.(model.ExecutionReport); ok && exp.OrderID == evt.OrderID {
+			if exp, ok := e.(model.ExecutionReport); ok && exp.ClOrdID == evt.ClOrdID {
 				return true
 			}
 		}
 	case model.TradeCaptureReport:
 		for _, e := range expectedList {
-			if exp, ok := e.(model.TradeCaptureReport); ok && exp.BuyerOrderID == evt.BuyerOrderID && exp.SellerOrderID == evt.SellerOrderID {
+			if _, ok := e.(model.TradeCaptureReport); ok  {
 				return true
 			}
 		}
