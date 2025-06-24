@@ -1,13 +1,14 @@
 package orderBook
 
 import (
-	"MatchingEngine/internal/model"
 	"encoding/json"
 	"testing"
 	"time"
 
 	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/assert"
+
+	"MatchingEngine/internal/model"
 )
 
 type MockTradeNotifier struct{}

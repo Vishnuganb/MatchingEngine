@@ -5,9 +5,10 @@ import (
 	"testing"
 	"time"
 
-	"MatchingEngine/internal/model"
 	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/assert"
+
+	"MatchingEngine/internal/model"
 )
 
 type MockTradeNotifier struct{}

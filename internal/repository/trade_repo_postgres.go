@@ -50,7 +50,7 @@ func (r *PostgresTradeRepository) SaveTrade(ctx context.Context, trade model.Tra
 	for _, side := range trade.NoSides {
 		_, err := r.queries.CreateTradeSide(ctx, sqlc.CreateTradeSideParams{
 			TradeReportID: tradeId,
-			Side:         mapSideToInt16(side.Side),
+			Side:          mapSideToInt16(side.Side),
 			OrderID:       side.OrderID,
 		})
 		if err != nil {

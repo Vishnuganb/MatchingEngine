@@ -84,14 +84,14 @@ func (book *OrderBook) publishTrade(order, match *Order, qty decimal.Decimal) {
 	}
 
 	tradeReport := model.TradeCaptureReport{
-		MsgType:            "AE",                                   // FIX MsgType = AE (Trade Capture Report)
-		TradeReportID:      util.GeneratePrefixedID("tradeReport"), // Unique trade report ID
-		ExecID:             util.GeneratePrefixedID("execution"),        // Unique execution ID
-		Symbol:             order.Symbol,
-		LastQty:            qty,
-		LastPx:             price,
-		TradeDate:          util.FormatDate(order.Timestamp), // Format: YYYYMMDD
-		TransactTime:       order.Timestamp,
+		MsgType:       "AE",                                   // FIX MsgType = AE (Trade Capture Report)
+		TradeReportID: util.GeneratePrefixedID("tradeReport"), // Unique trade report ID
+		ExecID:        util.GeneratePrefixedID("execution"),   // Unique execution ID
+		Symbol:        order.Symbol,
+		LastQty:       qty,
+		LastPx:        price,
+		TradeDate:     util.FormatDate(order.Timestamp), // Format: YYYYMMDD
+		TransactTime:  order.Timestamp,
 		NoSides: []model.NoSides{
 			{
 				Side:    order.Side,

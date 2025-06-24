@@ -43,6 +43,8 @@ func (h *OrderRequestHandler) HandleOrderMessage(msg amqp.Delivery) {
 		return
 	}
 
+	log.Printf("Received order request: %+v", req)
+
 	err := h.OrderService.ProcessOrderRequest(req)
 	if err != nil {
 		log.Printf("Failed to process order request: %v, message: %s", err, string(msg.Body))

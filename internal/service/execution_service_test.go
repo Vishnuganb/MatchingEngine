@@ -1,13 +1,13 @@
 package service
 
 import (
-	"MatchingEngine/internal/model"
 	"testing"
 	"time"
 
 	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/mock"
 
+	"MatchingEngine/internal/model"
 	"MatchingEngine/internal/repository"
 )
 

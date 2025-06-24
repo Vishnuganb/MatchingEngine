@@ -2,8 +2,10 @@ package service
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"sync"
+	"time"
 
 	"MatchingEngine/internal/model"
 	"MatchingEngine/orderBook"
@@ -31,7 +33,8 @@ func NewOrderService(tradeNotifier TradeNotifier) *OrderService {
 func (s *OrderService) ProcessOrderRequest(req model.OrderRequest) error {
 	symbol := extractSymbol(req)
 	if symbol == "" {
-		return nil
+		log.Printf("Empty symbol in order request: %+v", req)
+		return fmt.Errorf("empty symbol in order request")
 	}
 
 	s.mu.Lock()
@@ -39,17 +42,23 @@ func (s *OrderService) ProcessOrderRequest(req model.OrderRequest) error {
 
 	ch, exists := s.orderChannels[symbol]
 	if !exists {
-		ob, ch := orderBook.NewOrderBook(s.tradeNotifier)
+		ob, newCh := orderBook.NewOrderBook(s.tradeNotifier)
 		s.orderBooks[symbol] = ob
-		s.orderChannels[symbol] = ch
+		s.orderChannels[symbol] = newCh
+		ch = newCh
+		log.Printf("Created new order book and channel for symbol %s, channel addr: %p", symbol, ch)
+	} else {
+		log.Printf("Using existing order channel for symbol %s, channel addr: %p", symbol, ch)
 	}
 
 	select {
 	case ch <- req:
 		return nil
-	default:
-		return nil
+	case <-time.After(5 * time.Second):
+		log.Printf("Order channel for symbol %s is full, dropping order: %+v", symbol, req)
+		return fmt.Errorf("channel full for symbol %s", symbol)
 	}
+
 }
 
 func extractSymbol(req model.OrderRequest) string {

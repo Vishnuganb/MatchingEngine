@@ -39,7 +39,7 @@ func TestOrderFlowScenarios(t *testing.T) {
 		{
 			name: "New Buy Order",
 			orders: []string{
-				`{"35":"D","11":"1","54":"1","55":"BTC/USDT","38":"10","44":"100","60":1729811234567890}`,
+				`{"35": "D","new_order": {"35": "D","11": "1","54": "1","55": "BTC/USDT","38": "10","44": "100","60": 1729811234567890}}`,
 			},
 			expectedEvents: []interface{}{
 				model.ExecutionReport{
@@ -386,7 +386,7 @@ func matchesExpectedEvent(event interface{}, expectedList []interface{}) bool {
 		}
 	case model.TradeCaptureReport:
 		for _, e := range expectedList {
-			if _, ok := e.(model.TradeCaptureReport); ok  {
+			if _, ok := e.(model.TradeCaptureReport); ok {
 				return true
 			}
 		}

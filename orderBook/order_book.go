@@ -56,6 +56,7 @@ func NewOrderBook(tradeNotifier TradeNotifier) (*OrderBook, chan model.OrderRequ
 }
 
 func (book *OrderBook) OnNewOrder(or model.NewOrderRequest) {
+	log.Printf("Received new order: %+v", or)
 	order := convertOrderRequestToOrder(or)
 	order.ExecutionNotifier = book.TradeNotifier
 	order.AssignOrderID()

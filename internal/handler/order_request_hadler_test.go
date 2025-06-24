@@ -2,10 +2,10 @@ package handler
 
 import (
 	"encoding/json"
-	"github.com/shopspring/decimal"
 	"testing"
 	"time"
 
+	"github.com/shopspring/decimal"
 	"github.com/streadway/amqp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
