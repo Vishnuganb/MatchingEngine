@@ -11,7 +11,7 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-const createTrade = `-- name: CreateTrade :one
+const createTrade = `-- name: CreateTrade :exec
 INSERT INTO trade_capture_reports (
     trade_report_id,
     msg_type,
@@ -23,7 +23,6 @@ INSERT INTO trade_capture_reports (
     transact_time
 )
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-    RETURNING trade_report_id, msg_type, exec_id, symbol, last_qty, last_px, trade_date, transact_time
 `
 
 type CreateTradeParams struct {
@@ -37,8 +36,8 @@ type CreateTradeParams struct {
 	TransactTime  int64          `json:"transact_time"`
 }
 
-func (q *Queries) CreateTrade(ctx context.Context, arg CreateTradeParams) (TradeCaptureReport, error) {
-	row := q.db.QueryRow(ctx, createTrade,
+func (q *Queries) CreateTrade(ctx context.Context, arg CreateTradeParams) error {
+	_, err := q.db.Exec(ctx, createTrade,
 		arg.TradeReportID,
 		arg.MsgType,
 		arg.ExecID,
@@ -48,28 +47,16 @@ func (q *Queries) CreateTrade(ctx context.Context, arg CreateTradeParams) (Trade
 		arg.TradeDate,
 		arg.TransactTime,
 	)
-	var i TradeCaptureReport
-	err := row.Scan(
-		&i.TradeReportID,
-		&i.MsgType,
-		&i.ExecID,
-		&i.Symbol,
-		&i.LastQty,
-		&i.LastPx,
-		&i.TradeDate,
-		&i.TransactTime,
-	)
-	return i, err
+	return err
 }
 
-const createTradeSide = `-- name: CreateTradeSide :one
+const createTradeSide = `-- name: CreateTradeSide :exec
 INSERT INTO trade_sides (
     trade_report_id,
     side,
     order_id
 )
 VALUES ($1, $2, $3)
-    RETURNING id, trade_report_id, side, order_id
 `
 
 type CreateTradeSideParams struct {
@@ -78,16 +65,9 @@ type CreateTradeSideParams struct {
 	OrderID       string `json:"order_id"`
 }
 
-func (q *Queries) CreateTradeSide(ctx context.Context, arg CreateTradeSideParams) (TradeSide, error) {
-	row := q.db.QueryRow(ctx, createTradeSide, arg.TradeReportID, arg.Side, arg.OrderID)
-	var i TradeSide
-	err := row.Scan(
-		&i.ID,
-		&i.TradeReportID,
-		&i.Side,
-		&i.OrderID,
-	)
-	return i, err
+func (q *Queries) CreateTradeSide(ctx context.Context, arg CreateTradeSideParams) error {
+	_, err := q.db.Exec(ctx, createTradeSide, arg.TradeReportID, arg.Side, arg.OrderID)
+	return err
 }
 
 const deleteTrade = `-- name: DeleteTrade :one

@@ -13,7 +13,7 @@ import (
 )
 
 type OrderQueries interface {
-	CreateExecution(ctx context.Context, params sqlc.CreateExecutionParams) (sqlc.Execution, error)
+	CreateExecution(ctx context.Context, params sqlc.CreateExecutionParams) error
 }
 
 type PostgresExecutionRepository struct {
@@ -30,30 +30,30 @@ func decimalToPgNumeric(d decimal.Decimal) (pgtype.Numeric, error) {
 	return num, err
 }
 
-func (r *PostgresExecutionRepository) SaveExecution(ctx context.Context, execReport model.ExecutionReport) (model.ExecutionReport, error) {
+func (r *PostgresExecutionRepository) SaveExecution(ctx context.Context, execReport model.ExecutionReport) error {
 	executionId := uuid.NewString()
 	orderQty, err := decimalToPgNumeric(execReport.OrderQty)
 	if err != nil {
-		return model.ExecutionReport{}, err
+		return err
 	}
 	leavesQty, err := decimalToPgNumeric(execReport.LeavesQty)
 	if err != nil {
-		return model.ExecutionReport{}, err
+		return err
 	}
 	lastPx, err := decimalToPgNumeric(execReport.LastPx)
 	if err != nil {
-		return model.ExecutionReport{}, err
+		return err
 	}
 	cumQty, err := decimalToPgNumeric(execReport.CumQty)
 	if err != nil {
-		return model.ExecutionReport{}, err
+		return err
 	}
 	avgPx, err := decimalToPgNumeric(execReport.AvgPx)
 	if err != nil {
-		return model.ExecutionReport{}, err
+		return err
 	}
 
-	execution, err := r.queries.CreateExecution(ctx, sqlc.CreateExecutionParams{
+	err = r.queries.CreateExecution(ctx, sqlc.CreateExecutionParams{
 		ExecID:       executionId,
 		OrderID:      execReport.OrderID,
 		ClOrdID:      stringToPgText(execReport.ClOrdID),
@@ -71,62 +71,14 @@ func (r *PostgresExecutionRepository) SaveExecution(ctx context.Context, execRep
 		Text:         stringToPgText(execReport.Text),
 	})
 	if err != nil {
-		return model.ExecutionReport{}, err
+		return err
 	}
 
-	return MapExecutionToModelExecution(execution)
-}
-
-func MapExecutionToModelExecution(execution sqlc.Execution) (model.ExecutionReport, error) {
-	orderQty, err := pgNumericToDecimal(execution.OrderQty)
-	if err != nil {
-		return model.ExecutionReport{}, fmt.Errorf("converting orderQty: %w", err)
-	}
-	leavesQty, err := pgNumericToDecimal(execution.LeavesQty)
-	if err != nil {
-		return model.ExecutionReport{}, fmt.Errorf("converting leavesQty: %w", err)
-	}
-	lastPx, err := pgNumericToDecimal(execution.LastPx)
-	if err != nil {
-		return model.ExecutionReport{}, fmt.Errorf("converting lastPx: %w", err)
-	}
-	cumQty, err := pgNumericToDecimal(execution.CumQty)
-	if err != nil {
-		return model.ExecutionReport{}, fmt.Errorf("converting cumQty: %w", err)
-	}
-	avgPx, err := pgNumericToDecimal(execution.AvgPx)
-	if err != nil {
-		return model.ExecutionReport{}, fmt.Errorf("converting avgPx: %w", err)
-	}
-
-	return model.ExecutionReport{
-		ExecID:       execution.ExecID,
-		OrderID:      execution.OrderID,
-		ClOrdID:      pgTextToString(execution.ClOrdID),
-		ExecType:     model.ExecType(execution.ExecType),
-		OrdStatus:    model.OrderStatus(execution.OrdStatus),
-		Symbol:       execution.Symbol,
-		Side:         model.Side(execution.Side),
-		OrderQty:     orderQty,
-		LastShares:   pgNumericToDecimalOrZero(execution.LastShares),
-		LastPx:       lastPx,
-		LeavesQty:    leavesQty,
-		CumQty:       cumQty,
-		AvgPx:        avgPx,
-		TransactTime: execution.TransactTime,
-		Text:         pgTextToString(execution.Text),
-	}, nil
+	return nil
 }
 
 func stringToPgText(s string) pgtype.Text {
 	return pgtype.Text{String: s, Valid: true}
-}
-
-func pgTextToString(t pgtype.Text) string {
-	if t.Valid {
-		return t.String
-	}
-	return ""
 }
 
 func pgNumericToDecimal(num pgtype.Numeric) (decimal.Decimal, error) {
@@ -147,12 +99,4 @@ func decimalToPgNumericOrZero(d decimal.Decimal) pgtype.Numeric {
 		return pgtype.Numeric{}
 	}
 	return num
-}
-
-func pgNumericToDecimalOrZero(num pgtype.Numeric) decimal.Decimal {
-	dec, err := pgNumericToDecimal(num)
-	if err != nil {
-		return decimal.Zero
-	}
-	return dec
 }

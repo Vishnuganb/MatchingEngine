@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"MatchingEngine/internal/model"
 	"context"
 	"testing"
 	"time"
@@ -27,7 +28,7 @@ func TestSaveExecution(t *testing.T) {
 	mockQueries := new(MockQueries)
 	repo := NewPostgresExecutionRepository(mockQueries)
 
-	execReport := orderBook.ExecutionReport{
+	execReport := model.ExecutionReport{
 		OrderID:     "1",
 		Instrument:  "BTC/USDT",
 		Price:       decimal.NewFromInt(100),

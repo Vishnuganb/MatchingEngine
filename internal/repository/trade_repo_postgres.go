@@ -10,8 +10,8 @@ import (
 )
 
 type TradeQueries interface {
-	CreateTrade(ctx context.Context, params sqlc.CreateTradeParams) (sqlc.TradeCaptureReport, error)
-	CreateTradeSide(ctx context.Context, params sqlc.CreateTradeSideParams) (sqlc.TradeSide, error)
+	CreateTrade(ctx context.Context, params sqlc.CreateTradeParams) error
+	CreateTradeSide(ctx context.Context, params sqlc.CreateTradeSideParams) error
 }
 
 type PostgresTradeRepository struct {
@@ -22,19 +22,20 @@ func NewPostgresTradeRepository(queries TradeQueries) *PostgresTradeRepository {
 	return &PostgresTradeRepository{queries: queries}
 }
 
-func (r *PostgresTradeRepository) SaveTrade(ctx context.Context, trade model.TradeCaptureReport) (model.TradeCaptureReport, error) {
+func (r *PostgresTradeRepository) SaveTrade(ctx context.Context, trade model.TradeCaptureReport) error {
 	tradeId := uuid.NewString()
 	price, err := decimalToPgNumeric(trade.LastPx)
 	if err != nil {
-		return model.TradeCaptureReport{}, err
+		return err
 	}
 	quantity, err := decimalToPgNumeric(trade.LastQty)
 	if err != nil {
-		return model.TradeCaptureReport{}, err
+		return err
 	}
 
-	tradeRecord, err := r.queries.CreateTrade(ctx, sqlc.CreateTradeParams{
+	err = r.queries.CreateTrade(ctx, sqlc.CreateTradeParams{
 		TradeReportID: tradeId,
+		MsgType:       trade.MsgType,
 		ExecID:        trade.ExecID,
 		Symbol:        trade.Symbol,
 		LastQty:       quantity,
@@ -43,22 +44,22 @@ func (r *PostgresTradeRepository) SaveTrade(ctx context.Context, trade model.Tra
 		TransactTime:  trade.TransactTime,
 	})
 	if err != nil {
-		return model.TradeCaptureReport{}, err
+		return err
 	}
 
 	// Insert trade sides (552)
 	for _, side := range trade.NoSides {
-		_, err := r.queries.CreateTradeSide(ctx, sqlc.CreateTradeSideParams{
+		err = r.queries.CreateTradeSide(ctx, sqlc.CreateTradeSideParams{
 			TradeReportID: tradeId,
 			Side:          mapSideToInt16(side.Side),
 			OrderID:       side.OrderID,
 		})
 		if err != nil {
-			return model.TradeCaptureReport{}, err
+			return err
 		}
 	}
 
-	return MapTradeToModelTrade(tradeRecord)
+	return nil
 }
 
 func mapSideToInt16(side model.Side) int16 {
@@ -70,25 +71,4 @@ func mapSideToInt16(side model.Side) int16 {
 	default:
 		return 0
 	}
-}
-
-func MapTradeToModelTrade(trade sqlc.TradeCaptureReport) (model.TradeCaptureReport, error) {
-	price, err := pgNumericToDecimal(trade.LastPx)
-	if err != nil {
-		return model.TradeCaptureReport{}, err
-	}
-	quantity, err := pgNumericToDecimal(trade.LastQty)
-	if err != nil {
-		return model.TradeCaptureReport{}, err
-	}
-
-	return model.TradeCaptureReport{
-		TradeReportID: trade.TradeReportID,
-		ExecID:        trade.ExecID,
-		Symbol:        trade.Symbol,
-		LastQty:       quantity,
-		LastPx:        price,
-		TradeDate:     trade.TradeDate,
-		TransactTime:  trade.TransactTime,
-	}, nil
 }

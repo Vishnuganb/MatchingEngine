@@ -1,4 +1,4 @@
--- name: CreateTrade :one
+-- name: CreateTrade :exec
 INSERT INTO trade_capture_reports (
     trade_report_id,
     msg_type,
@@ -9,17 +9,15 @@ INSERT INTO trade_capture_reports (
     trade_date,
     transact_time
 )
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-    RETURNING *;
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8);
 
--- name: CreateTradeSide :one
+-- name: CreateTradeSide :exec
 INSERT INTO trade_sides (
     trade_report_id,
     side,
     order_id
 )
-VALUES ($1, $2, $3)
-    RETURNING *;
+VALUES ($1, $2, $3);
 
 -- name: GetTrade :one
 SELECT *

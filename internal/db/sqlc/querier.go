@@ -9,9 +9,9 @@ import (
 )
 
 type Querier interface {
-	CreateExecution(ctx context.Context, arg CreateExecutionParams) (Execution, error)
-	CreateTrade(ctx context.Context, arg CreateTradeParams) (TradeCaptureReport, error)
-	CreateTradeSide(ctx context.Context, arg CreateTradeSideParams) (TradeSide, error)
+	CreateExecution(ctx context.Context, arg CreateExecutionParams) error
+	CreateTrade(ctx context.Context, arg CreateTradeParams) error
+	CreateTradeSide(ctx context.Context, arg CreateTradeSideParams) error
 	DeleteExecution(ctx context.Context, execID string) (Execution, error)
 	DeleteTrade(ctx context.Context, tradeReportID string) (TradeCaptureReport, error)
 	DeleteTradeSidesByTradeID(ctx context.Context, tradeReportID string) ([]TradeSide, error)

@@ -20,7 +20,7 @@ func (t SaveExecutionTask) Execute(ctx context.Context, repo interface{}) error 
 	if !ok {
 		return fmt.Errorf("invalid repository type")
 	}
-	_, err := execRepo.SaveExecution(ctx, t.Execution)
+	err := execRepo.SaveExecution(ctx, t.Execution)
 	return err
 }
 
@@ -33,6 +33,6 @@ func (t SaveTradeTask) Execute(ctx context.Context, repo interface{}) error {
 	if !ok {
 		return fmt.Errorf("invalid repository type")
 	}
-	_, err := tradeRepo.SaveTrade(ctx, t.Trade)
+	err := tradeRepo.SaveTrade(ctx, t.Trade)
 	return err
 }

@@ -11,9 +11,9 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-const createExecution = `-- name: CreateExecution :one
+const createExecution = `-- name: CreateExecution :exec
 INSERT INTO executions (exec_id, order_id, cl_ord_id, exec_type, ord_status, symbol, side, order_qty, last_shares, last_px, leaves_qty, cum_qty, avg_px, transact_time, text)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15) RETURNING exec_id, order_id, cl_ord_id, exec_type, ord_status, symbol, side, order_qty, last_shares, last_px, leaves_qty, cum_qty, avg_px, transact_time, text
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
 `
 
 type CreateExecutionParams struct {
@@ -34,8 +34,8 @@ type CreateExecutionParams struct {
 	Text         pgtype.Text    `json:"text"`
 }
 
-func (q *Queries) CreateExecution(ctx context.Context, arg CreateExecutionParams) (Execution, error) {
-	row := q.db.QueryRow(ctx, createExecution,
+func (q *Queries) CreateExecution(ctx context.Context, arg CreateExecutionParams) error {
+	_, err := q.db.Exec(ctx, createExecution,
 		arg.ExecID,
 		arg.OrderID,
 		arg.ClOrdID,
@@ -52,25 +52,7 @@ func (q *Queries) CreateExecution(ctx context.Context, arg CreateExecutionParams
 		arg.TransactTime,
 		arg.Text,
 	)
-	var i Execution
-	err := row.Scan(
-		&i.ExecID,
-		&i.OrderID,
-		&i.ClOrdID,
-		&i.ExecType,
-		&i.OrdStatus,
-		&i.Symbol,
-		&i.Side,
-		&i.OrderQty,
-		&i.LastShares,
-		&i.LastPx,
-		&i.LeavesQty,
-		&i.CumQty,
-		&i.AvgPx,
-		&i.TransactTime,
-		&i.Text,
-	)
-	return i, err
+	return err
 }
 
 const deleteExecution = `-- name: DeleteExecution :one
