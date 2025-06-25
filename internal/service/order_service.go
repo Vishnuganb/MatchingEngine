@@ -21,7 +21,6 @@ type TradeNotifier interface {
 }
 
 type OrderService struct {
-	orderBooks    map[string]*orderBook.OrderBook
 	tradeNotifier TradeNotifier
 	orderChannels map[string]chan model.OrderRequest
 	mu            sync.Mutex
@@ -29,7 +28,6 @@ type OrderService struct {
 
 func NewOrderService(tradeNotifier TradeNotifier) *OrderService {
 	return &OrderService{
-		orderBooks:    make(map[string]*orderBook.OrderBook),
 		orderChannels: make(map[string]chan model.OrderRequest),
 		tradeNotifier: tradeNotifier,
 	}
@@ -47,8 +45,7 @@ func (s *OrderService) ProcessOrderRequest(req model.OrderRequest) error {
 
 	ch, exists := s.orderChannels[symbol]
 	if !exists {
-		ob, newCh := orderBook.NewOrderBook(s.tradeNotifier)
-		s.orderBooks[symbol] = ob
+		newCh := orderBook.NewOrderBook(s.tradeNotifier)
 		s.orderChannels[symbol] = newCh
 		ch = newCh
 		log.Printf("Created new order book and channel for symbol %s, channel addr: %p", symbol, ch)

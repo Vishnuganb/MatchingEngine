@@ -77,10 +77,7 @@ func TestProcessOrderRequest_CancelOrder(t *testing.T) {
 	orderService.mu.Lock()
 	defer orderService.mu.Unlock()
 
-	_, exists := orderService.orderBooks["BTC/USDT"]
-	assert.True(t, exists)
-
-	_, exists = orderService.orderChannels["BTC/USDT"]
+	_, exists := orderService.orderChannels["BTC/USDT"]
 	assert.True(t, exists)
 }
 
@@ -109,6 +106,5 @@ func TestProcessOrderRequest_InvalidMessageType(t *testing.T) {
 	orderService.mu.Lock()
 	defer orderService.mu.Unlock()
 
-	assert.Equal(t, 0, len(orderService.orderBooks))
 	assert.Equal(t, 0, len(orderService.orderChannels))
 }

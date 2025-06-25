@@ -32,7 +32,7 @@ type OrderList struct {
 	Orders []Order
 }
 
-func NewOrderBook(tradeNotifier TradeNotifier) (*OrderBook, chan model.OrderRequest) {
+func NewOrderBook(tradeNotifier TradeNotifier) chan model.OrderRequest {
 	ob := &OrderBook{
 		Bids:          treemap.NewWith(util.DecimalDescComparator),
 		Asks:          treemap.NewWith(util.DecimalAscComparator),
@@ -52,7 +52,7 @@ func NewOrderBook(tradeNotifier TradeNotifier) (*OrderBook, chan model.OrderRequ
 		}
 	}()
 
-	return ob, orderChan
+	return orderChan
 }
 
 func (book *OrderBook) OnNewOrder(or model.NewOrderRequest) {
