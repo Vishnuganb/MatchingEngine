@@ -83,7 +83,7 @@ func TestOrderFlowScenarios(t *testing.T) {
 					LastPx:       decimal.NewFromInt(100),
 					LeavesQty:    decimal.NewFromInt(0),
 					CumQty:       decimal.NewFromInt(10),
-					AvgPx:        decimal.NewFromInt(0),
+					AvgPx:        decimal.NewFromInt(100),
 					TransactTime: 1729811234567890,
 				},
 				model.ExecutionReport{
@@ -240,7 +240,7 @@ func TestOrderFlowScenarios(t *testing.T) {
 					LastPx:       decimal.NewFromInt(100),
 					LeavesQty:    decimal.NewFromInt(0),
 					CumQty:       decimal.NewFromInt(5),
-					AvgPx:        decimal.NewFromInt(0),
+					AvgPx:        decimal.NewFromInt(100),
 					TransactTime: 1729811234567890,
 				},
 				model.ExecutionReport{
@@ -398,6 +398,7 @@ func TestOrderFlowScenarios(t *testing.T) {
 					assert.Equal(t, expected.LastShares, actual.LastShares)
 					assert.Equal(t, expected.LastPx, actual.LastPx)
 					assert.Equal(t, expected.CumQty, actual.CumQty)
+					assert.Equal(t, expected.AvgPx, actual.AvgPx)
 					assert.Equal(t, expected.ClOrdID, actual.ClOrdID)
 					assert.Equal(t, expected.Symbol, actual.Symbol)
 					assert.Equal(t, expected.OrdStatus, actual.OrdStatus)
