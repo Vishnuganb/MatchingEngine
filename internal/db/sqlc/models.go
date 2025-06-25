@@ -9,6 +9,7 @@ import (
 )
 
 type Execution struct {
+	MsgType      string         `json:"msg_type"`
 	ExecID       string         `json:"exec_id"`
 	OrderID      string         `json:"order_id"`
 	ClOrdID      pgtype.Text    `json:"cl_ord_id"`

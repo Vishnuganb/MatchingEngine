@@ -1,6 +1,6 @@
 -- name: CreateExecution :exec
-INSERT INTO executions (exec_id, order_id, cl_ord_id, exec_type, ord_status, symbol, side, order_qty, last_shares, last_px, leaves_qty, cum_qty, avg_px, transact_time, text)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15);
+INSERT INTO executions (exec_id, order_id, cl_ord_id, exec_type, ord_status, symbol, side, order_qty, last_shares, last_px, leaves_qty, cum_qty, avg_px, transact_time, text, msg_type)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16);
 
 -- name: GetExecution :one
 SELECT *

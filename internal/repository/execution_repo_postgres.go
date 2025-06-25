@@ -3,7 +3,6 @@ package repository
 import (
 	"context"
 	"fmt"
-
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/shopspring/decimal"
@@ -26,34 +25,36 @@ func NewPostgresExecutionRepository(queries OrderQueries) *PostgresExecutionRepo
 
 func decimalToPgNumeric(d decimal.Decimal) (pgtype.Numeric, error) {
 	var num pgtype.Numeric
-	err := num.Scan(d.String())
-	return num, err
+	if err := num.Scan(d.String()); err != nil {
+		return pgtype.Numeric{}, fmt.Errorf("failed to convert decimal to pgtype.Numeric: %w", err)
+	}
+	return num, nil
 }
 
 func (r *PostgresExecutionRepository) SaveExecution(ctx context.Context, execReport model.ExecutionReport) error {
 	executionId := uuid.NewString()
 	orderQty, err := decimalToPgNumeric(execReport.OrderQty)
 	if err != nil {
-		return err
+		return fmt.Errorf("conversion failed for OrderQty: %w", err)
 	}
 	leavesQty, err := decimalToPgNumeric(execReport.LeavesQty)
 	if err != nil {
-		return err
+		return fmt.Errorf("conversion failed for LeavesQty: %w", err)
 	}
 	lastPx, err := decimalToPgNumeric(execReport.LastPx)
 	if err != nil {
-		return err
+		return fmt.Errorf("conversion failed for LastPx: %w", err)
 	}
 	cumQty, err := decimalToPgNumeric(execReport.CumQty)
 	if err != nil {
-		return err
+		return fmt.Errorf("conversion failed for CumQty: %w", err)
 	}
 	avgPx, err := decimalToPgNumeric(execReport.AvgPx)
 	if err != nil {
-		return err
+		return fmt.Errorf("conversion failed for AvgPx: %w", err)
 	}
 
-	err = r.queries.CreateExecution(ctx, sqlc.CreateExecutionParams{
+	params := sqlc.CreateExecutionParams{
 		ExecID:       executionId,
 		OrderID:      execReport.OrderID,
 		ClOrdID:      stringToPgText(execReport.ClOrdID),
@@ -69,9 +70,11 @@ func (r *PostgresExecutionRepository) SaveExecution(ctx context.Context, execRep
 		AvgPx:        avgPx,
 		TransactTime: execReport.TransactTime,
 		Text:         stringToPgText(execReport.Text),
-	})
-	if err != nil {
-		return err
+		MsgType:      execReport.MsgType,
+	}
+
+	if err := r.queries.CreateExecution(ctx, params); err != nil {
+		return fmt.Errorf("create execution failed: %w", err)
 	}
 
 	return nil
@@ -79,18 +82,6 @@ func (r *PostgresExecutionRepository) SaveExecution(ctx context.Context, execRep
 
 func stringToPgText(s string) pgtype.Text {
 	return pgtype.Text{String: s, Valid: true}
-}
-
-func pgNumericToDecimal(num pgtype.Numeric) (decimal.Decimal, error) {
-	val, err := num.Value()
-	if err != nil {
-		return decimal.Decimal{}, err
-	}
-	str, ok := val.(string)
-	if !ok {
-		return decimal.Decimal{}, fmt.Errorf("unexpected type for pgtype.Numeric: %T", val)
-	}
-	return decimal.NewFromString(str)
 }
 
 func decimalToPgNumericOrZero(d decimal.Decimal) pgtype.Numeric {

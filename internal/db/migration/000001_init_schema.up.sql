@@ -3,6 +3,7 @@ EXTENSION IF NOT EXISTS "uuid-ossp";
 
 CREATE TABLE executions
 (
+    msg_type      text    NOT NULL, -- 35 (AE)
     exec_id       text    NOT NULL, -- Maps to ExecID
     order_id      text    NOT NULL, -- Maps to OrderID
     cl_ord_id     text,             -- Maps to ClOrdID

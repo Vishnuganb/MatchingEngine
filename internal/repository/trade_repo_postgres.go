@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/google/uuid"
 
@@ -26,11 +27,12 @@ func (r *PostgresTradeRepository) SaveTrade(ctx context.Context, trade model.Tra
 	tradeId := uuid.NewString()
 	price, err := decimalToPgNumeric(trade.LastPx)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to convert LastPx to pgtype.Numeric: %w", err)
 	}
+
 	quantity, err := decimalToPgNumeric(trade.LastQty)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to convert LastQty to pgtype.Numeric: %w", err)
 	}
 
 	err = r.queries.CreateTrade(ctx, sqlc.CreateTradeParams{
@@ -44,7 +46,7 @@ func (r *PostgresTradeRepository) SaveTrade(ctx context.Context, trade model.Tra
 		TransactTime:  trade.TransactTime,
 	})
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to insert trade record: %w", err)
 	}
 
 	// Insert trade sides (552)
@@ -55,7 +57,7 @@ func (r *PostgresTradeRepository) SaveTrade(ctx context.Context, trade model.Tra
 			OrderID:       side.OrderID,
 		})
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to insert trade side (orderID=%s): %w", side.OrderID, err)
 		}
 	}
 

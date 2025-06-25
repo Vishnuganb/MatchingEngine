@@ -12,8 +12,8 @@ import (
 )
 
 const createExecution = `-- name: CreateExecution :exec
-INSERT INTO executions (exec_id, order_id, cl_ord_id, exec_type, ord_status, symbol, side, order_qty, last_shares, last_px, leaves_qty, cum_qty, avg_px, transact_time, text)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+INSERT INTO executions (exec_id, order_id, cl_ord_id, exec_type, ord_status, symbol, side, order_qty, last_shares, last_px, leaves_qty, cum_qty, avg_px, transact_time, text, msg_type)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
 `
 
 type CreateExecutionParams struct {
@@ -32,6 +32,7 @@ type CreateExecutionParams struct {
 	AvgPx        pgtype.Numeric `json:"avg_px"`
 	TransactTime int64          `json:"transact_time"`
 	Text         pgtype.Text    `json:"text"`
+	MsgType      string         `json:"msg_type"`
 }
 
 func (q *Queries) CreateExecution(ctx context.Context, arg CreateExecutionParams) error {
@@ -51,6 +52,7 @@ func (q *Queries) CreateExecution(ctx context.Context, arg CreateExecutionParams
 		arg.AvgPx,
 		arg.TransactTime,
 		arg.Text,
+		arg.MsgType,
 	)
 	return err
 }
@@ -58,13 +60,14 @@ func (q *Queries) CreateExecution(ctx context.Context, arg CreateExecutionParams
 const deleteExecution = `-- name: DeleteExecution :one
 DELETE
 FROM executions
-WHERE exec_id = $1 RETURNING exec_id, order_id, cl_ord_id, exec_type, ord_status, symbol, side, order_qty, last_shares, last_px, leaves_qty, cum_qty, avg_px, transact_time, text
+WHERE exec_id = $1 RETURNING msg_type, exec_id, order_id, cl_ord_id, exec_type, ord_status, symbol, side, order_qty, last_shares, last_px, leaves_qty, cum_qty, avg_px, transact_time, text
 `
 
 func (q *Queries) DeleteExecution(ctx context.Context, execID string) (Execution, error) {
 	row := q.db.QueryRow(ctx, deleteExecution, execID)
 	var i Execution
 	err := row.Scan(
+		&i.MsgType,
 		&i.ExecID,
 		&i.OrderID,
 		&i.ClOrdID,
@@ -85,7 +88,7 @@ func (q *Queries) DeleteExecution(ctx context.Context, execID string) (Execution
 }
 
 const getExecution = `-- name: GetExecution :one
-SELECT exec_id, order_id, cl_ord_id, exec_type, ord_status, symbol, side, order_qty, last_shares, last_px, leaves_qty, cum_qty, avg_px, transact_time, text
+SELECT msg_type, exec_id, order_id, cl_ord_id, exec_type, ord_status, symbol, side, order_qty, last_shares, last_px, leaves_qty, cum_qty, avg_px, transact_time, text
 FROM executions
 WHERE exec_id = $1
 `
@@ -94,6 +97,7 @@ func (q *Queries) GetExecution(ctx context.Context, execID string) (Execution, e
 	row := q.db.QueryRow(ctx, getExecution, execID)
 	var i Execution
 	err := row.Scan(
+		&i.MsgType,
 		&i.ExecID,
 		&i.OrderID,
 		&i.ClOrdID,
@@ -114,7 +118,7 @@ func (q *Queries) GetExecution(ctx context.Context, execID string) (Execution, e
 }
 
 const listExecutions = `-- name: ListExecutions :many
-SELECT exec_id, order_id, cl_ord_id, exec_type, ord_status, symbol, side, order_qty, last_shares, last_px, leaves_qty, cum_qty, avg_px, transact_time, text
+SELECT msg_type, exec_id, order_id, cl_ord_id, exec_type, ord_status, symbol, side, order_qty, last_shares, last_px, leaves_qty, cum_qty, avg_px, transact_time, text
 FROM executions
 ORDER BY exec_id
 `
@@ -129,6 +133,7 @@ func (q *Queries) ListExecutions(ctx context.Context) ([]Execution, error) {
 	for rows.Next() {
 		var i Execution
 		if err := rows.Scan(
+			&i.MsgType,
 			&i.ExecID,
 			&i.OrderID,
 			&i.ClOrdID,
@@ -170,7 +175,7 @@ SET cl_ord_id     = COALESCE($2, cl_ord_id),
     avg_px        = COALESCE($12, avg_px),
     transact_time = COALESCE($13, transact_time),
     text          = COALESCE($14, text)
-WHERE exec_id = $1 RETURNING exec_id, order_id, cl_ord_id, exec_type, ord_status, symbol, side, order_qty, last_shares, last_px, leaves_qty, cum_qty, avg_px, transact_time, text
+WHERE exec_id = $1 RETURNING msg_type, exec_id, order_id, cl_ord_id, exec_type, ord_status, symbol, side, order_qty, last_shares, last_px, leaves_qty, cum_qty, avg_px, transact_time, text
 `
 
 type UpdateExecutionParams struct {
@@ -209,6 +214,7 @@ func (q *Queries) UpdateExecution(ctx context.Context, arg UpdateExecutionParams
 	)
 	var i Execution
 	err := row.Scan(
+		&i.MsgType,
 		&i.ExecID,
 		&i.OrderID,
 		&i.ClOrdID,

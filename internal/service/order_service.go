@@ -2,7 +2,7 @@ package service
 
 import (
 	"encoding/json"
-	"fmt"
+	"errors"
 	"log"
 	"sync"
 	"time"
@@ -10,6 +10,12 @@ import (
 	"MatchingEngine/internal/model"
 	"MatchingEngine/orderBook"
 )
+
+var (
+	ErrSymbolNotSpecified = errors.New("symbol not specified in order request")
+	ErrChannelTimeout = errors.New("timeout while sending order to processing channel")
+)
+
 
 type TradeNotifier interface {
 	NotifyEventAndTrade(orderID string, value json.RawMessage) error
@@ -34,7 +40,7 @@ func (s *OrderService) ProcessOrderRequest(req model.OrderRequest) error {
 	symbol := extractSymbol(req)
 	if symbol == "" {
 		log.Printf("Empty symbol in order request: %+v", req)
-		return fmt.Errorf("empty symbol in order request")
+		return ErrSymbolNotSpecified
 	}
 
 	s.mu.Lock()
@@ -56,7 +62,7 @@ func (s *OrderService) ProcessOrderRequest(req model.OrderRequest) error {
 		return nil
 	case <-time.After(5 * time.Second):
 		log.Printf("Order channel for symbol %s is full, dropping order: %+v", symbol, req)
-		return fmt.Errorf("channel full for symbol %s", symbol)
+		return ErrChannelTimeout
 	}
 
 }

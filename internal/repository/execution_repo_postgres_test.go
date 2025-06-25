@@ -6,22 +6,20 @@ import (
 	"testing"
 	"time"
 
-	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
 	sqlc "MatchingEngine/internal/db/sqlc"
-	"MatchingEngine/orderBook"
 )
 
 type MockQueries struct {
 	mock.Mock
 }
 
-func (m *MockQueries) CreateExecution(ctx context.Context, params sqlc.CreateExecutionParams) (sqlc.Execution, error) {
+func (m *MockQueries) CreateExecution(ctx context.Context, params sqlc.CreateExecutionParams) error {
 	args := m.Called(ctx, params)
-	return args.Get(0).(sqlc.Execution), args.Error(1)
+	return args.Error(0)
 }
 
 func TestSaveExecution(t *testing.T) {
@@ -29,42 +27,30 @@ func TestSaveExecution(t *testing.T) {
 	repo := NewPostgresExecutionRepository(mockQueries)
 
 	execReport := model.ExecutionReport{
-		OrderID:     "1",
-		Instrument:  "BTC/USDT",
-		Price:       decimal.NewFromInt(100),
-		OrderQty:    decimal.NewFromInt(10),
-		LeavesQty:   decimal.NewFromInt(10),
-		CumQty:      decimal.NewFromInt(0),
-		OrderStatus: string(orderBook.OrderStatusNew),
-		Timestamp:   time.Now().UnixNano(),
-		IsBid:       true,
+		MsgType:      "8",
+		ExecID:       "exec-123",
+		OrderID:      "order-1",
+		ClOrdID:      "CL001",
+		ExecType:     model.ExecTypeFill,
+		OrdStatus:    model.OrderStatusPartialFill,
+		Symbol:       "BTC/USDT",
+		Side:         model.Buy,
+		OrderQty:     decimal.NewFromInt(10),
+		LastShares:   decimal.NewFromInt(5),
+		LastPx:       decimal.NewFromInt(100),
+		LeavesQty:    decimal.NewFromInt(5),
+		CumQty:       decimal.NewFromInt(5),
+		AvgPx:        decimal.NewFromInt(100),
+		TransactTime: time.Now().UnixNano(),
+		Text:         "Trade executed",
 	}
 
-	mockQueries.On("CreateExecution", mock.Anything, mock.Anything).Return(sqlc.Execution{
-		OrderID:     execReport.OrderID,
-		Instrument:  execReport.Instrument,
-		Price:       pgtypeNumeric(execReport.Price),
-		OrderQty:    pgtypeNumeric(execReport.OrderQty),
-		LeavesQty:   pgtypeNumeric(execReport.LeavesQty),
-		CumQty:      pgtypeNumeric(execReport.CumQty),
-		OrderStatus: execReport.OrderStatus,
-		Side:        "buy",
-	}, nil)
+	mockQueries.
+		On("CreateExecution", mock.Anything, mock.Anything).
+		Return(nil)
 
-	savedExecution, err := repo.SaveExecution(context.Background(), execReport)
-
+	err := repo.SaveExecution(context.Background(), execReport)
 	assert.NoError(t, err)
-	assert.Equal(t, execReport.OrderID, savedExecution.OrderID)
-	assert.Equal(t, execReport.Instrument, savedExecution.Instrument)
-	assert.True(t, execReport.Price.Equal(savedExecution.Price))
-	assert.True(t, execReport.OrderQty.Equal(savedExecution.OrderQty))
-	assert.True(t, execReport.LeavesQty.Equal(savedExecution.LeavesQty))
-	assert.Equal(t, execReport.OrderStatus, savedExecution.OrderStatus)
-	mockQueries.AssertExpectations(t)
-}
 
-func pgtypeNumeric(d decimal.Decimal) pgtype.Numeric {
-	var num pgtype.Numeric
-	_ = num.Scan(d.String())
-	return num
+	mockQueries.AssertExpectations(t)
 }
