@@ -37,7 +37,6 @@ func (o *Order) AssignOrderID() {
 func (o *Order) NewOrderEvent() {
 	o.OrderStatus = model.OrderStatusNew
 	er := newExecutionReport(o, model.ExecTypeNew)
-	er.SetOrdStatus(model.OrderStatusNew)
 	o.publishExecutionReport(er)
 }
 
@@ -57,7 +56,6 @@ func (o *Order) newFillEvent(price, qty decimal.Decimal) {
 	er := newExecutionReport(o, execType)
 	er.LastShares = qty
 	er.LastPx = price
-	er.SetOrdStatus(status)
 	o.publishExecutionReport(er)
 }
 
@@ -71,24 +69,22 @@ func (o *Order) NewCanceledOrderEvent() {
 	o.OrderStatus = model.OrderStatusCanceled
 	o.LeavesQty = decimal.Zero
 	er := newExecutionReport(o, model.ExecTypeCanceled)
-	er.SetOrdStatus(model.OrderStatusCanceled)
 	o.publishExecutionReport(er)
 }
 
 func (o *Order) NewCanceledRejectOrderEvent() {
 	log.Printf("Creating canceled reject event for order: %s", o.OrderID)
 	o.OrderStatus = model.OrderStatusRejected
+	o.LeavesQty = decimal.Zero
 	er := newExecutionReport(o, model.ExecTypeRejected)
-	er.SetOrdStatus(model.OrderStatusRejected)
 	o.publishExecutionReport(er)
 }
 
 func (o *Order) NewRejectedOrderEvent() {
 	log.Printf("Creating rejected event for order: %s", o.OrderID)
 	o.OrderStatus = model.OrderStatusRejected
+	o.LeavesQty = decimal.Zero
 	er := newExecutionReport(o, model.ExecTypeRejected)
-	er.ResetQuantities()
-	er.SetOrdStatus(model.OrderStatusRejected)
 	o.publishExecutionReport(er)
 }
 

@@ -21,11 +21,3 @@ type ExecutionReport struct {
 	Text         string          `json:"58,omitempty"` // Text
 }
 
-func (e *ExecutionReport) ResetQuantities() {
-	e.CumQty = decimal.Zero
-	e.LeavesQty = e.OrderQty
-}
-
-func (e *ExecutionReport) SetOrdStatus(status OrderStatus) {
-	e.OrdStatus = status
-}
