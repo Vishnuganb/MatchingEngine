@@ -20,4 +20,3 @@ type ExecutionReport struct {
 	TransactTime int64           `json:"60"`           // TransactTime
 	Text         string          `json:"58,omitempty"` // Text
 }
-

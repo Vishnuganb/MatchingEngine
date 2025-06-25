@@ -1,7 +1,6 @@
 package repository
 
 import (
-	"MatchingEngine/internal/model"
 	"context"
 	"testing"
 	"time"
@@ -11,6 +10,7 @@ import (
 	"github.com/stretchr/testify/mock"
 
 	sqlc "MatchingEngine/internal/db/sqlc"
+	"MatchingEngine/internal/model"
 )
 
 // MockTradeQueries mocks the TradeQueries interface

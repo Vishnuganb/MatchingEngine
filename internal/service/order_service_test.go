@@ -25,7 +25,7 @@ func TestProcessOrderRequest_NewOrder(t *testing.T) {
 		MsgType: model.MsgTypeNew,
 		NewOrderReq: model.NewOrderRequest{
 			BaseOrderRequest: model.BaseOrderRequest{
-				MsgType: model.MsgTypeNew,
+				MsgType:      model.MsgTypeNew,
 				ClOrdID:      "CL001",
 				Side:         model.Buy,
 				Symbol:       "BTC/USDT",
@@ -61,7 +61,7 @@ func TestProcessOrderRequest_CancelOrder(t *testing.T) {
 		MsgType: model.MsgTypeCancel,
 		CancelOrderReq: model.OrderCancelRequest{
 			BaseOrderRequest: model.BaseOrderRequest{
-				MsgType: model.MsgTypeCancel,
+				MsgType:      model.MsgTypeCancel,
 				ClOrdID:      "CL002",
 				Symbol:       "BTC/USDT",
 				Side:         model.Buy,
@@ -92,7 +92,7 @@ func TestProcessOrderRequest_InvalidMessageType(t *testing.T) {
 		MsgType: "X",
 		NewOrderReq: model.NewOrderRequest{
 			BaseOrderRequest: model.BaseOrderRequest{
-				MsgType: "X",
+				MsgType:      "X",
 				ClOrdID:      "CL001",
 				Side:         model.Buy,
 				Symbol:       "BTC/USDT",

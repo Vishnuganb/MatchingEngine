@@ -13,9 +13,8 @@ import (
 
 var (
 	ErrSymbolNotSpecified = errors.New("symbol not specified in order request")
-	ErrChannelTimeout = errors.New("timeout while sending order to processing channel")
+	ErrChannelTimeout     = errors.New("timeout while sending order to processing channel")
 )
-
 
 type TradeNotifier interface {
 	NotifyEventAndTrade(orderID string, value json.RawMessage) error
