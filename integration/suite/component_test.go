@@ -302,7 +302,7 @@ func TestOrderFlowScenarios(t *testing.T) {
 		{
 			name: "Reject Order",
 			orders: []string{
-				`{"35": "D","new_order": {"35": "D","11": "clOrdId-010","54": "1","55": "BTC/USDT","38": "10","44": "100","60": 1729811234567890}}`,
+				`{"35": "D","new_order": {"35": "D","11": "clOrdId-010","54": "1","55": "BTC/USDT","38": "10","44": "-100","60": 1729811234567890}}`,
 			},
 			expectedEvents: []interface{}{
 				model.ExecutionReport{
