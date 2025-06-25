@@ -20,8 +20,8 @@ func newExecutionReport(order *Order, execType model.ExecType) model.ExecutionRe
 		Symbol:       order.Symbol,
 		Side:         order.Side,
 		OrderQty:     order.OrderQty,
-		LastShares:   decimal.Zero, // updated later if it's a fill
-		LastPx:       order.Price,  // updated later if it's a fill
+		LastShares:   decimal.Zero,
+		LastPx:       decimal.Zero,
 		LeavesQty:    order.LeavesQty,
 		CumQty:       order.CumQty,
 		AvgPx:        order.AvgPx,

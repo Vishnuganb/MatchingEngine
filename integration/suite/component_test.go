@@ -50,11 +50,11 @@ func TestOrderFlowScenarios(t *testing.T) {
 					Symbol:       "BTC/USDT",
 					Side:         model.Buy,
 					OrderQty:     decimal.NewFromInt(10),
-					LastShares:   decimal.Zero,
-					LastPx:       decimal.Zero,
+					LastShares:   decimal.NewFromInt(0),
+					LastPx:       decimal.NewFromInt(0),
 					LeavesQty:    decimal.NewFromInt(10),
-					CumQty:       decimal.Zero,
-					AvgPx:        decimal.Zero,
+					CumQty:       decimal.NewFromInt(0),
+					AvgPx:        decimal.NewFromInt(0),
 					TransactTime: 1729811234567890,
 				},
 			},
@@ -77,13 +77,13 @@ func TestOrderFlowScenarios(t *testing.T) {
 					ExecType:     model.ExecTypeFill,
 					OrdStatus:    model.OrderStatusFill,
 					Symbol:       "BTC/USDT",
-					Side:         model.Buy,
+					Side:         model.Sell,
 					OrderQty:     decimal.NewFromInt(10),
 					LastShares:   decimal.NewFromInt(10),
 					LastPx:       decimal.NewFromInt(100),
 					LeavesQty:    decimal.NewFromInt(0),
 					CumQty:       decimal.NewFromInt(10),
-					AvgPx:        decimal.Zero,
+					AvgPx:        decimal.NewFromInt(0),
 					TransactTime: 1729811234567890,
 				},
 				model.ExecutionReport{
@@ -92,7 +92,7 @@ func TestOrderFlowScenarios(t *testing.T) {
 					ExecType:     model.ExecTypeFill,
 					OrdStatus:    model.OrderStatusFill,
 					Symbol:       "BTC/USDT",
-					Side:         model.Sell,
+					Side:         model.Buy,
 					OrderQty:     decimal.NewFromInt(10),
 					LastShares:   decimal.NewFromInt(10),
 					LastPx:       decimal.NewFromInt(100),
@@ -119,11 +119,11 @@ func TestOrderFlowScenarios(t *testing.T) {
 					Symbol:       "BTC/USDT",
 					Side:         model.Buy,
 					OrderQty:     decimal.NewFromInt(10),
-					LastShares:   decimal.Zero,
-					LastPx:       decimal.Zero,
+					LastShares:   decimal.NewFromInt(0),
+					LastPx:       decimal.NewFromInt(0),
 					LeavesQty:    decimal.NewFromInt(10),
-					CumQty:       decimal.Zero,
-					AvgPx:        decimal.Zero,
+					CumQty:       decimal.NewFromInt(0),
+					AvgPx:        decimal.NewFromInt(0),
 					TransactTime: 1729811234567890,
 				},
 				model.TradeCaptureReport{
@@ -144,7 +144,7 @@ func TestOrderFlowScenarios(t *testing.T) {
 					LastPx:       decimal.NewFromInt(100),
 					LeavesQty:    decimal.NewFromInt(0),
 					CumQty:       decimal.NewFromInt(5),
-					AvgPx:        decimal.Zero,
+					AvgPx:        decimal.NewFromInt(100),
 					TransactTime: 1729811234567890,
 				},
 				model.ExecutionReport{
@@ -179,7 +179,7 @@ func TestOrderFlowScenarios(t *testing.T) {
 					LastShares:   decimal.NewFromInt(5),
 					LastPx:       decimal.NewFromInt(100),
 					LeavesQty:    decimal.NewFromInt(0),
-					CumQty:       decimal.NewFromInt(10),
+					CumQty:       decimal.NewFromInt(5),
 					AvgPx:        decimal.NewFromInt(100),
 					TransactTime: 1729811234567890,
 				},
@@ -189,9 +189,9 @@ func TestOrderFlowScenarios(t *testing.T) {
 					ExecType:     model.ExecTypeFill,
 					OrdStatus:    model.OrderStatusFill,
 					Symbol:       "BTC/USDT",
-					Side:         model.Sell,
+					Side:         model.Buy,
 					OrderQty:     decimal.NewFromInt(10),
-					LastShares:   decimal.NewFromInt(10),
+					LastShares:   decimal.NewFromInt(5),
 					LastPx:       decimal.NewFromInt(100),
 					LeavesQty:    decimal.NewFromInt(0),
 					CumQty:       decimal.NewFromInt(10),
@@ -215,11 +215,11 @@ func TestOrderFlowScenarios(t *testing.T) {
 					Symbol:       "BTC/USDT",
 					Side:         model.Buy,
 					OrderQty:     decimal.NewFromInt(10),
-					LastShares:   decimal.Zero,
-					LastPx:       decimal.Zero,
+					LastShares:   decimal.NewFromInt(0),
+					LastPx:       decimal.NewFromInt(0),
 					LeavesQty:    decimal.NewFromInt(10),
-					CumQty:       decimal.Zero,
-					AvgPx:        decimal.Zero,
+					CumQty:       decimal.NewFromInt(0),
+					AvgPx:        decimal.NewFromInt(0),
 					TransactTime: 1729811234567890,
 				},
 				model.TradeCaptureReport{
@@ -240,7 +240,7 @@ func TestOrderFlowScenarios(t *testing.T) {
 					LastPx:       decimal.NewFromInt(100),
 					LeavesQty:    decimal.NewFromInt(0),
 					CumQty:       decimal.NewFromInt(5),
-					AvgPx:        decimal.Zero,
+					AvgPx:        decimal.NewFromInt(0),
 					TransactTime: 1729811234567890,
 				},
 				model.ExecutionReport{
@@ -275,11 +275,11 @@ func TestOrderFlowScenarios(t *testing.T) {
 					Symbol:       "BTC/USDT",
 					Side:         model.Buy,
 					OrderQty:     decimal.NewFromInt(10),
-					LastShares:   decimal.Zero,
-					LastPx:       decimal.Zero,
+					LastShares:   decimal.NewFromInt(0),
+					LastPx:       decimal.NewFromInt(0),
 					LeavesQty:    decimal.NewFromInt(10),
-					CumQty:       decimal.Zero,
-					AvgPx:        decimal.Zero,
+					CumQty:       decimal.NewFromInt(0),
+					AvgPx:        decimal.NewFromInt(0),
 					TransactTime: 1729811234567890,
 				},
 				model.ExecutionReport{
@@ -290,11 +290,11 @@ func TestOrderFlowScenarios(t *testing.T) {
 					Symbol:       "BTC/USDT",
 					Side:         model.Buy,
 					OrderQty:     decimal.NewFromInt(10),
-					LastShares:   decimal.Zero,
-					LastPx:       decimal.Zero,
-					LeavesQty:    decimal.Zero,
-					CumQty:       decimal.Zero,
-					AvgPx:        decimal.Zero,
+					LastShares:   decimal.NewFromInt(0),
+					LastPx:       decimal.NewFromInt(0),
+					LeavesQty:    decimal.NewFromInt(0),
+					CumQty:       decimal.NewFromInt(0),
+					AvgPx:        decimal.NewFromInt(0),
 					TransactTime: 1729811234567890,
 				},
 			},
@@ -313,11 +313,11 @@ func TestOrderFlowScenarios(t *testing.T) {
 					Symbol:       "BTC/USDT",
 					Side:         model.Buy,
 					OrderQty:     decimal.NewFromInt(10),
-					LastShares:   decimal.Zero,
-					LastPx:       decimal.Zero,
-					LeavesQty:    decimal.Zero,
-					CumQty:       decimal.Zero,
-					AvgPx:        decimal.Zero,
+					LastShares:   decimal.NewFromInt(0),
+					LastPx:       decimal.NewFromInt(0),
+					LeavesQty:    decimal.NewFromInt(0),
+					CumQty:       decimal.NewFromInt(0),
+					AvgPx:        decimal.NewFromInt(0),
 					TransactTime: 1729811234567890,
 				},
 			},
@@ -391,6 +391,13 @@ func TestOrderFlowScenarios(t *testing.T) {
 					actual, ok := receivedEvents[i].(model.ExecutionReport)
 					require.True(t, ok, "received event is not of type model.ExecutionReport")
 
+					assert.Equal(t, expected.MsgType, actual.MsgType)
+					assert.Equal(t, expected.ExecType, actual.ExecType)
+					assert.Equal(t, expected.Side, actual.Side)
+					assert.Equal(t, expected.OrderQty, actual.OrderQty)
+					assert.Equal(t, expected.LastShares, actual.LastShares)
+					assert.Equal(t, expected.LastPx, actual.LastPx)
+					assert.Equal(t, expected.CumQty, actual.CumQty)
 					assert.Equal(t, expected.ClOrdID, actual.ClOrdID)
 					assert.Equal(t, expected.Symbol, actual.Symbol)
 					assert.Equal(t, expected.OrdStatus, actual.OrdStatus)
@@ -400,6 +407,7 @@ func TestOrderFlowScenarios(t *testing.T) {
 					actual, ok := receivedEvents[i].(model.TradeCaptureReport)
 					require.True(t, ok, "received event is not of type model.Trade")
 
+					assert.Equal(t, expected.MsgType, actual.MsgType)
 					assert.Equal(t, expected.Symbol, actual.Symbol)
 					assert.Equal(t, expected.LastQty, actual.LastQty)
 					assert.Equal(t, expected.LastPx, actual.LastPx)

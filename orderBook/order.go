@@ -37,6 +37,7 @@ func (o *Order) AssignOrderID() {
 func (o *Order) NewOrderEvent() {
 	o.OrderStatus = model.OrderStatusNew
 	er := newExecutionReport(o, model.ExecTypeNew)
+	er.LastPx = decimal.Zero
 	o.publishExecutionReport(er)
 }
 
