@@ -18,8 +18,8 @@ func (m *MockNotifier) NotifyEventAndTrade(orderID string, value json.RawMessage
 }
 
 func TestProcessOrderRequest_NewOrder(t *testing.T) {
-	tradeNotifier := &MockNotifier{}
-	orderService := NewOrderService(tradeNotifier)
+	notifier := &MockNotifier{}
+	orderService := NewOrderService(notifier)
 
 	req := model.OrderRequest{
 		MsgType: model.MsgTypeNew,
@@ -54,8 +54,8 @@ func TestProcessOrderRequest_NewOrder(t *testing.T) {
 }
 
 func TestProcessOrderRequest_CancelOrder(t *testing.T) {
-	tradeNotifier := &MockNotifier{}
-	orderService := NewOrderService(tradeNotifier)
+	notifier := &MockNotifier{}
+	orderService := NewOrderService(notifier)
 
 	req := model.OrderRequest{
 		MsgType: model.MsgTypeCancel,
@@ -82,8 +82,8 @@ func TestProcessOrderRequest_CancelOrder(t *testing.T) {
 }
 
 func TestProcessOrderRequest_InvalidMessageType(t *testing.T) {
-	tradeNotifier := &MockNotifier{}
-	orderService := NewOrderService(tradeNotifier)
+	notifier := &MockNotifier{}
+	orderService := NewOrderService(notifier)
 
 	req := model.OrderRequest{
 		MsgType: "X",

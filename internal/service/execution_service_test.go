@@ -21,7 +21,8 @@ func (m *MockAsyncDBWriter) EnqueueTask(task repository.DBTask) {
 
 func TestSaveExecutionAsync(t *testing.T) {
 	mockWriter := new(MockAsyncDBWriter)
-	executionService := NewExecutionService(mockWriter)
+	notifier := &MockNotifier{}
+	executionService := NewExecutionService(mockWriter, notifier)
 
 	execution := model.ExecutionReport{
 		ExecID:       "execution-123456",
