@@ -11,14 +11,14 @@ import (
 	"MatchingEngine/internal/model"
 )
 
-type MockTradeNotifier struct{}
+type MockNotifier struct{}
 
-func (m *MockTradeNotifier) NotifyEventAndTrade(orderID string, value json.RawMessage) error {
+func (m *MockNotifier) NotifyEventAndTrade(orderID string, value json.RawMessage) error {
 	return nil
 }
 
 func TestProcessOrderRequest_NewOrder(t *testing.T) {
-	tradeNotifier := &MockTradeNotifier{}
+	tradeNotifier := &MockNotifier{}
 	orderService := NewOrderService(tradeNotifier)
 
 	req := model.OrderRequest{
@@ -54,7 +54,7 @@ func TestProcessOrderRequest_NewOrder(t *testing.T) {
 }
 
 func TestProcessOrderRequest_CancelOrder(t *testing.T) {
-	tradeNotifier := &MockTradeNotifier{}
+	tradeNotifier := &MockNotifier{}
 	orderService := NewOrderService(tradeNotifier)
 
 	req := model.OrderRequest{
@@ -82,7 +82,7 @@ func TestProcessOrderRequest_CancelOrder(t *testing.T) {
 }
 
 func TestProcessOrderRequest_InvalidMessageType(t *testing.T) {
-	tradeNotifier := &MockTradeNotifier{}
+	tradeNotifier := &MockNotifier{}
 	orderService := NewOrderService(tradeNotifier)
 
 	req := model.OrderRequest{

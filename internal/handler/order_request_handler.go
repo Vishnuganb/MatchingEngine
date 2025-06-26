@@ -38,7 +38,7 @@ func NewOrderRequestHandler(executionService ExecutionService, tradeService Trad
 func (h *OrderRequestHandler) HandleOrderMessage(msg amqp.Delivery) {
 	var req model.OrderRequest
 	if err := json.Unmarshal(msg.Body, &req); err != nil {
-		log.Printf("Failed to decode order request: %v | message: %s", err, string(msg.Body))
+		log.Printf("failed to decode order request: %v | message: %s", err, string(msg.Body))
 		h.handleFailure(msg, "invalid JSON format")
 		return
 	}
@@ -47,27 +47,27 @@ func (h *OrderRequestHandler) HandleOrderMessage(msg amqp.Delivery) {
 
 	err := h.OrderService.ProcessOrderRequest(req)
 	if err != nil {
-		log.Printf("Failed to process order request: %v | message: %s", err, string(msg.Body))
+		log.Printf("failed to process order request: %v | message: %s", err, string(msg.Body))
 		h.handleFailure(msg, "order processing error")
 		return
 	}
 
 	// Acknowledge a message after successful processing
 	if err := msg.Ack(false); err != nil {
-		log.Printf("Failed to acknowledge message: %v", err)
+		log.Printf("failed to acknowledge message: %v", err)
 	}
 }
 
 func (h *OrderRequestHandler) HandleExecutionReport(message []byte) error {
 	var raw map[string]interface{}
 	if err := json.Unmarshal(message, &raw); err != nil {
-		log.Printf("Invalid execution report JSON: %v | message: %s", err, string(message))
+		log.Printf("invalid execution report JSON: %v | message: %s", err, string(message))
 		return nil // Skip processing this message
 	}
 
 	msgType, ok := raw["35"].(string)
 	if !ok {
-		log.Printf("Missing or invalid MsgType in message: %s", string(message))
+		log.Printf("missing or invalid MsgType in message: %s", string(message))
 		return nil
 	}
 
@@ -77,7 +77,7 @@ func (h *OrderRequestHandler) HandleExecutionReport(message []byte) error {
 		if err := h.unmarshalAndLogError(message, &tradeCaptureReport); err != nil {
 			return nil
 		}
-		log.Printf("Received trade report : %+v", tradeCaptureReport)
+		log.Printf("received trade report : %+v", tradeCaptureReport)
 		h.TradeService.SaveTradeAsync(tradeCaptureReport)
 
 	case string(model.MsgTypeExecRpt):
@@ -85,11 +85,11 @@ func (h *OrderRequestHandler) HandleExecutionReport(message []byte) error {
 		if err := h.unmarshalAndLogError(message, &execReport); err != nil {
 			return nil
 		}
-		log.Printf("Received execution report: %+v", execReport)
+		log.Printf("received execution report: %+v", execReport)
 		h.ExecutionService.SaveExecutionAsync(execReport)
 
 	default:
-		log.Printf("Unknown MsgType: %s | message: %s", msgType, string(message))
+		log.Printf("unknown MsgType: %s | message: %s", msgType, string(message))
 	}
 
 	return nil
@@ -97,15 +97,15 @@ func (h *OrderRequestHandler) HandleExecutionReport(message []byte) error {
 
 func (h *OrderRequestHandler) unmarshalAndLogError(message []byte, v interface{}) error {
 	if err := json.Unmarshal(message, v); err != nil {
-		log.Printf("Failed to parse FIX message: %v | message: %s", err, string(message))
+		log.Printf("failed to parse FIX message: %v | message: %s", err, string(message))
 		return err
 	}
 	return nil
 }
 
 func (h *OrderRequestHandler) handleFailure(msg amqp.Delivery, reason string) {
-	log.Printf("NACKing message due to: %s | body: %s", reason, string(msg.Body))
+	log.Printf("nacking message due to: %s | body: %s", reason, string(msg.Body))
 	if err := msg.Nack(false, false); err != nil {
-		log.Printf("Failed to negatively acknowledge message: %v", err)
+		log.Printf("failed to negatively acknowledge message: %v", err)
 	}
 }

@@ -16,27 +16,27 @@ var (
 	ErrChannelTimeout     = errors.New("timeout while sending order to processing channel")
 )
 
-type TradeNotifier interface {
+type Notifier interface {
 	NotifyEventAndTrade(orderID string, value json.RawMessage) error
 }
 
 type OrderService struct {
-	tradeNotifier TradeNotifier
+	Notifier Notifier
 	orderChannels map[string]chan model.OrderRequest
 	mu            sync.Mutex
 }
 
-func NewOrderService(tradeNotifier TradeNotifier) *OrderService {
+func NewOrderService(notifier Notifier) *OrderService {
 	return &OrderService{
 		orderChannels: make(map[string]chan model.OrderRequest),
-		tradeNotifier: tradeNotifier,
+		Notifier: notifier,
 	}
 }
 
 func (s *OrderService) ProcessOrderRequest(req model.OrderRequest) error {
 	symbol := extractSymbol(req)
 	if symbol == "" {
-		log.Printf("Empty symbol in order request: %+v", req)
+		log.Printf("empty symbol in order request: %+v", req)
 		return ErrSymbolNotSpecified
 	}
 
@@ -45,19 +45,19 @@ func (s *OrderService) ProcessOrderRequest(req model.OrderRequest) error {
 
 	ch, exists := s.orderChannels[symbol]
 	if !exists {
-		newCh := orderBook.NewOrderBook(s.tradeNotifier)
+		newCh := orderBook.NewOrderBook(s.Notifier)
 		s.orderChannels[symbol] = newCh
 		ch = newCh
-		log.Printf("Created new order book and channel for symbol %s, channel addr: %p", symbol, ch)
+		log.Printf("created new order book and channel for symbol %s, channel addr: %p", symbol, ch)
 	} else {
-		log.Printf("Using existing order channel for symbol %s, channel addr: %p", symbol, ch)
+		log.Printf("using existing order channel for symbol %s, channel addr: %p", symbol, ch)
 	}
 
 	select {
 	case ch <- req:
 		return nil
 	case <-time.After(5 * time.Second):
-		log.Printf("Order channel for symbol %s is full, dropping order: %+v", symbol, req)
+		log.Printf("order channel for symbol %s is full, dropping order: %+v", symbol, req)
 		return ErrChannelTimeout
 	}
 
@@ -70,7 +70,7 @@ func extractSymbol(req model.OrderRequest) string {
 	case model.MsgTypeCancel:
 		return req.CancelOrderReq.Symbol
 	default:
-		log.Printf("Invalid message type: %s", req.MsgType)
+		log.Printf("invalid message type: %s", req.MsgType)
 		return ""
 	}
 }
