@@ -10,24 +10,20 @@ import (
 	"MatchingEngine/internal/util"
 )
 
-type ExecutionNotifier interface {
-	NotifyEventAndTrade(ID string, value json.RawMessage) error
-}
-
 type Order struct {
-	ClOrdID           string            `json:"cl_ord_id"` // from FIX <11>
-	OrderID           string            `json:"order_id"`  // from FIX <37>
-	Symbol            string            `json:"symbol"`    // from FIX <55>
-	Side              model.Side        `json:"side"`      // from FIX <54>
-	Price             decimal.Decimal   `json:"price"`     // from FIX <44>`
-	OrderQty          decimal.Decimal   `json:"order_qty"` // from FIX <38>
-	LeavesQty         decimal.Decimal   `json:"leaves_qty"`
-	CumQty            decimal.Decimal   `json:"cum_qty"`
-	AvgPx             decimal.Decimal   `json:"avg_px"`
-	Timestamp         int64             `json:"transact_time"` // from FIX <60>
-	OrderStatus       model.OrderStatus `json:"order_status"`
-	Text              string            `json:"text,omitempty"` // from FIX <58>
-	ExecutionNotifier ExecutionNotifier
+	ClOrdID     string            `json:"cl_ord_id"` // from FIX <11>
+	OrderID     string            `json:"order_id"`  // from FIX <37>
+	Symbol      string            `json:"symbol"`    // from FIX <55>
+	Side        model.Side        `json:"side"`      // from FIX <54>
+	Price       decimal.Decimal   `json:"price"`     // from FIX <44>`
+	OrderQty    decimal.Decimal   `json:"order_qty"` // from FIX <38>
+	LeavesQty   decimal.Decimal   `json:"leaves_qty"`
+	CumQty      decimal.Decimal   `json:"cum_qty"`
+	AvgPx       decimal.Decimal   `json:"avg_px"`
+	Timestamp   int64             `json:"transact_time"` // from FIX <60>
+	OrderStatus model.OrderStatus `json:"order_status"`
+	Text        string            `json:"text,omitempty"` // from FIX <58>
+	Notifier    Notifier
 }
 
 func (o *Order) AssignOrderID() {
@@ -99,7 +95,7 @@ func computeAvgPx(currentAvg decimal.Decimal, totalQty, newPx, fillQty decimal.D
 
 // In Order struct methods where you want to publish events
 func (o *Order) publishExecutionReport(er model.ExecutionReport) {
-	if o.ExecutionNotifier == nil {
+	if o.Notifier == nil {
 		log.Printf("Warning: KafkaProducer is nil for order %s", o.OrderID)
 		return
 	}
@@ -110,7 +106,7 @@ func (o *Order) publishExecutionReport(er model.ExecutionReport) {
 		return
 	}
 
-	if err := o.ExecutionNotifier.NotifyEventAndTrade(er.ExecID, payload); err != nil {
+	if err := o.Notifier.NotifyEventAndTrade(er.ExecID, payload); err != nil {
 		log.Printf("Error publishing execution report: %v", err)
 	} else {
 		log.Printf("Execution report published for event %s [%s]", er.ExecID, er.OrdStatus)

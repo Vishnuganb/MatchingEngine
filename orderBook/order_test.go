@@ -48,7 +48,7 @@ func TestAssignOrderID(t *testing.T) {
 func TestNewOrderEvent(t *testing.T) {
 	order := newTestOrder()
 	notifier := &MockNotifier{}
-	order.ExecutionNotifier = notifier
+	order.Notifier = notifier
 
 	order.NewOrderEvent()
 
@@ -59,7 +59,7 @@ func TestNewOrderEvent(t *testing.T) {
 func TestNewRejectedOrderEvent(t *testing.T) {
 	order := newTestOrder()
 	notifier := &MockNotifier{}
-	order.ExecutionNotifier = notifier
+	order.Notifier = notifier
 
 	order.NewRejectedOrderEvent()
 
@@ -70,7 +70,7 @@ func TestNewRejectedOrderEvent(t *testing.T) {
 func TestNewCanceledOrderEvent(t *testing.T) {
 	order := newTestOrder()
 	notifier := &MockNotifier{}
-	order.ExecutionNotifier = notifier
+	order.Notifier = notifier
 
 	order.NewCanceledOrderEvent()
 
@@ -82,7 +82,7 @@ func TestNewCanceledOrderEvent(t *testing.T) {
 func TestNewCanceledRejectOrderEvent(t *testing.T) {
 	order := newTestOrder()
 	notifier := &MockNotifier{}
-	order.ExecutionNotifier = notifier
+	order.Notifier = notifier
 
 	order.NewCanceledRejectOrderEvent()
 
@@ -93,7 +93,7 @@ func TestNewCanceledRejectOrderEvent(t *testing.T) {
 func TestNewFillEvent_FullFill(t *testing.T) {
 	order := newTestOrder()
 	notifier := &MockNotifier{}
-	order.ExecutionNotifier = notifier
+	order.Notifier = notifier
 
 	price := decimal.NewFromInt(100)
 	qty := decimal.NewFromInt(10)
@@ -109,7 +109,7 @@ func TestNewFillEvent_FullFill(t *testing.T) {
 func TestNewFillEvent_PartialFill(t *testing.T) {
 	order := newTestOrder()
 	notifier := &MockNotifier{}
-	order.ExecutionNotifier = notifier
+	order.Notifier = notifier
 
 	price := decimal.NewFromInt(100)
 	qty := decimal.NewFromInt(5)
@@ -125,8 +125,8 @@ func TestNewFillEvent_PartialFill(t *testing.T) {
 func TestNewFillOrderEvent(t *testing.T) {
 	buy := newTestOrder()
 	sell := newTestOrder()
-	buy.ExecutionNotifier = &MockNotifier{}
-	sell.ExecutionNotifier = &MockNotifier{}
+	buy.Notifier = &MockNotifier{}
+	sell.Notifier = &MockNotifier{}
 
 	qty := decimal.NewFromInt(5)
 	NewFillOrderEvent(buy, sell, qty)

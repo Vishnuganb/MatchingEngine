@@ -104,8 +104,8 @@ func (book *OrderBook) publishTrade(order, match *Order, qty decimal.Decimal) {
 		},
 	}
 
-	if book.TradeNotifier != nil {
-		if err := book.TradeNotifier.NotifyEventAndTrade(tradeReport.TradeReportID, tradeReport.ToJSON()); err != nil {
+	if book.Notifier != nil {
+		if err := book.Notifier.NotifyEventAndTrade(tradeReport.TradeReportID, tradeReport.ToJSON()); err != nil {
 			log.Printf("Error publishing trade report: %v", err)
 		} else {
 			//log.Printf("Trade report sent: ExecID %s, Buy=%s Sell=%s Qty=%s",

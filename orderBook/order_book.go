@@ -11,7 +11,7 @@ import (
 	"MatchingEngine/internal/util"
 )
 
-type TradeNotifier interface {
+type Notifier interface {
 	NotifyEventAndTrade(orderID string, value json.RawMessage) error
 }
 
@@ -22,22 +22,22 @@ type OrderRef struct {
 }
 
 type OrderBook struct {
-	Bids          *treemap.Map // sorted descending // descending prices
-	Asks          *treemap.Map // ascending prices
-	TradeNotifier TradeNotifier
-	orderIndex    map[string]*OrderRef
+	Bids       *treemap.Map // sorted descending // descending prices
+	Asks       *treemap.Map // ascending prices
+	Notifier   Notifier
+	orderIndex map[string]*OrderRef
 }
 
 type OrderList struct {
 	Orders []Order
 }
 
-func NewOrderBook(tradeNotifier TradeNotifier) chan model.OrderRequest {
+func NewOrderBook(Notifier Notifier) chan model.OrderRequest {
 	ob := &OrderBook{
-		Bids:          treemap.NewWith(util.DecimalDescComparator),
-		Asks:          treemap.NewWith(util.DecimalAscComparator),
-		TradeNotifier: tradeNotifier,
-		orderIndex:    make(map[string]*OrderRef),
+		Bids:       treemap.NewWith(util.DecimalDescComparator),
+		Asks:       treemap.NewWith(util.DecimalAscComparator),
+		Notifier:   Notifier,
+		orderIndex: make(map[string]*OrderRef),
 	}
 	orderChan := make(chan model.OrderRequest, 100)
 
@@ -58,7 +58,7 @@ func NewOrderBook(tradeNotifier TradeNotifier) chan model.OrderRequest {
 func (book *OrderBook) OnNewOrder(or model.NewOrderRequest) {
 	log.Printf("Received new order: %+v", or)
 	order := convertOrderRequestToOrder(or)
-	order.ExecutionNotifier = book.TradeNotifier
+	order.Notifier = book.Notifier
 	order.AssignOrderID()
 	err := or.ValidateNewOrder()
 	if err != nil {
@@ -74,7 +74,7 @@ func (book *OrderBook) CancelOrder(origClOrdID string) {
 	if !ok {
 		log.Printf("Order with ID %s not found", origClOrdID)
 		order := Order{ClOrdID: origClOrdID}
-		order.ExecutionNotifier = book.TradeNotifier
+		order.Notifier = book.Notifier
 		order.NewCanceledRejectOrderEvent()
 		return
 	}
@@ -85,13 +85,13 @@ func (book *OrderBook) CancelOrder(origClOrdID string) {
 		log.Printf("Order with ID %s inconsistent in index", origClOrdID)
 		delete(book.orderIndex, origClOrdID)
 		order := Order{ClOrdID: origClOrdID}
-		order.ExecutionNotifier = book.TradeNotifier
+		order.Notifier = book.Notifier
 		order.NewCanceledRejectOrderEvent()
 		return
 	}
 
 	order := list.Orders[ref.Index]
-	order.ExecutionNotifier = book.TradeNotifier
+	order.Notifier = book.Notifier
 
 	// Remove order from list (swap with last, then pop)
 	last := len(list.Orders) - 1

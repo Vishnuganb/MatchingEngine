@@ -5,16 +5,27 @@ import (
 	"testing"
 	"time"
 
+	"github.com/emirpasic/gods/maps/treemap"
 	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/assert"
 
 	"MatchingEngine/internal/model"
+	"MatchingEngine/internal/util"
 )
 
 type MockTradeNotifier struct{}
 
 func (m *MockTradeNotifier) NotifyEventAndTrade(string, json.RawMessage) error {
 	return nil
+}
+
+func setupOrderBook() *OrderBook {
+	return &OrderBook{
+		Bids:       treemap.NewWith(util.DecimalDescComparator),
+		Asks:       treemap.NewWith(util.DecimalAscComparator),
+		Notifier:   &MockTradeNotifier{},
+		orderIndex: make(map[string]*OrderRef),
+	}
 }
 
 func validNewOrderReq(clOrdID string) model.NewOrderRequest {
@@ -33,18 +44,12 @@ func validNewOrderReq(clOrdID string) model.NewOrderRequest {
 }
 
 func TestNewOrderBook(t *testing.T) {
-	mockNotifier := &MockTradeNotifier{}
-	ob, _ := NewOrderBook(mockNotifier)
-	assert.NotNil(t, ob)
-	assert.Equal(t, 0, ob.Bids.Size())
-	assert.Equal(t, 0, ob.Asks.Size())
-	assert.Empty(t, ob.orderIndex)
+	orderChan := NewOrderBook(&MockTradeNotifier{})
+	assert.NotNil(t, orderChan)
 }
 
 func TestOnNewOrder_ValidOrder(t *testing.T) {
-	mockNotifier := &MockTradeNotifier{}
-	ob, _ := NewOrderBook(mockNotifier)
-
+	ob := setupOrderBook()
 	req := validNewOrderReq("CLORD001")
 	ob.OnNewOrder(req)
 
@@ -56,9 +61,7 @@ func TestOnNewOrder_ValidOrder(t *testing.T) {
 }
 
 func TestOnNewOrder_InvalidOrder(t *testing.T) {
-	mockNotifier := &MockTradeNotifier{}
-	ob, _ := NewOrderBook(mockNotifier)
-
+	ob := setupOrderBook()
 	req := validNewOrderReq("CLORD002")
 	req.Price = decimal.NewFromInt(-100) // Invalid
 
@@ -69,21 +72,17 @@ func TestOnNewOrder_InvalidOrder(t *testing.T) {
 }
 
 func TestCancelOrder_ExistingOrder(t *testing.T) {
-	mockNotifier := &MockTradeNotifier{}
-	ob, _ := NewOrderBook(mockNotifier)
-
+	ob := setupOrderBook()
 	req := validNewOrderReq("CLORD003")
 	ob.OnNewOrder(req)
-
 	ob.CancelOrder("CLORD003")
+
 	assert.Equal(t, 0, ob.Bids.Size())
 	assert.NotContains(t, ob.orderIndex, req.ClOrdID)
 }
 
 func TestCancelOrder_NonExistingOrder(t *testing.T) {
-	mockNotifier := &MockTradeNotifier{}
-	ob, _ := NewOrderBook(mockNotifier)
-
+	ob := setupOrderBook()
 	ob.CancelOrder("INVALID_ID")
 	assert.Equal(t, 0, ob.Bids.Size())
 	assert.Equal(t, 0, ob.Asks.Size())
@@ -91,9 +90,7 @@ func TestCancelOrder_NonExistingOrder(t *testing.T) {
 }
 
 func TestAddOrderToBook_BuyOrder(t *testing.T) {
-	mockNotifier := &MockTradeNotifier{}
-	ob, _ := NewOrderBook(mockNotifier)
-
+	ob := setupOrderBook()
 	order := Order{
 		ClOrdID:     "CLORD004",
 		Symbol:      "BTC/USDT",
@@ -114,9 +111,7 @@ func TestAddOrderToBook_BuyOrder(t *testing.T) {
 }
 
 func TestAddOrderToBook_SellOrder(t *testing.T) {
-	mockNotifier := &MockTradeNotifier{}
-	ob, _ := NewOrderBook(mockNotifier)
-
+	ob := setupOrderBook()
 	order := Order{
 		ClOrdID:     "CLORD005",
 		Symbol:      "BTC/USDT",
