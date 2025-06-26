@@ -7,11 +7,13 @@ import (
 
 type TradeService struct {
 	asyncWriter repository.AsyncDBWriterInterface
+	Notifier Notifier
 }
 
-func NewTradeService(asyncWriter repository.AsyncDBWriterInterface) *TradeService {
+func NewTradeService(asyncWriter repository.AsyncDBWriterInterface, notifier Notifier) *TradeService {
 	return &TradeService{
 		asyncWriter: asyncWriter,
+		Notifier: notifier,
 	}
 }
 

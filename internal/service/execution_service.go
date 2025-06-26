@@ -7,11 +7,13 @@ import (
 
 type ExecutionService struct {
 	asyncWriter repository.AsyncDBWriterInterface
+	Notifier Notifier
 }
 
-func NewExecutionService(asyncWriter repository.AsyncDBWriterInterface) *ExecutionService {
+func NewExecutionService(asyncWriter repository.AsyncDBWriterInterface, notifier Notifier) *ExecutionService {
 	return &ExecutionService{
 		asyncWriter: asyncWriter,
+		Notifier: notifier,
 	}
 }
 

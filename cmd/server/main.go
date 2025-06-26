@@ -50,10 +50,10 @@ func main() {
 	executionRepo := repository.NewPostgresExecutionRepository(sqlc.New(conn))
 	tradeRepo := repository.NewPostgresTradeRepository(sqlc.New(conn))
 	asyncWriter := repository.NewAsyncDBWriter(executionRepo, tradeRepo, 10)
-	execService := service.NewExecutionService(asyncWriter)
-	tradeService := service.NewTradeService(asyncWriter)
+	execService := service.NewExecutionService(asyncWriter, kafkaProducer)
+	tradeService := service.NewTradeService(asyncWriter, kafkaProducer)
 	orderService := service.NewOrderService(kafkaProducer)
-	requestHandler := handler.NewOrderRequestHandler(execService, tradeService, orderService)
+	requestHandler := handler.NewOrderRequestHandler(orderService)
 
 	consumerOpts := rmq.ConsumerOpts{
 		RabbitMQURL: config.RmqHost,
@@ -73,7 +73,7 @@ func main() {
 		Topic:       config.KafkaDBUpdateTopic,
 		GroupID:     config.KafkaConsumerGroup,
 	}
-	kafkaConsumer := kafka.NewConsumer(kafkaConsumerOpts, requestHandler)
+	kafkaConsumer := kafka.NewConsumer(kafkaConsumerOpts, execService, tradeService)
 
 	go func() {
 		if err := kafkaConsumer.Start(ctx); err != nil {
